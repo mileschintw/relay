@@ -12,12 +12,13 @@ Set up relay's records for the repo in the current folder. Each step ends on its
    - `PUBLIC`: the plan would be public. Ask the user: an orphan branch here anyway, or a separate private records repo (they name or create it; you `git init` the folder and add it as `origin`).
    Check: the user's choice is known.
 3. **Settings.** Read the repo (package scripts, CI workflows, `AGENTS.md`/`CLAUDE.md`, `CONTRIBUTING.md`) and draft each field of `templates/project.md`. Ask the user to confirm or change them in one round, your draft as the recommended answer: language, checks before done, test bar, off-limits paths, ask-first additions, unattended additions, release. Check: every `<…>` in the draft has an answer.
-4. **Create the records folder** at `../<repo name>-coord` (the user may name another path):
-   - orphan branch: `git worktree add --detach ../<repo>-coord`, then in it `git switch --orphan coord` (works on git 2.27+);
-   - separate repo: `mkdir ../<repo>-coord`, `git init -b coord` there.
-   Copy `templates/` into it (`gitignore` becomes `.gitignore`), write the confirmed `project.md`, and commit `relay: records`. Check: `git -C ../<repo>-coord log --oneline` shows that one commit on `coord`, and its tree has no file from the default branch.
-5. **Push**, on the user's yes: `git -C ../<repo>-coord push -u origin coord`. Check: `git ls-remote origin coord` prints a sha.
+4. **Create the records folder** beside the main checkout, never beside this session's folder (a desktop-app session usually runs in a worktree under `.claude/worktrees/`, which the app may clean up). The main checkout `<main>` is the first path `git worktree list` prints; the records folder `<records>` is `<main>/../<main's folder name>-coord`, unless the user names another path.
+   - orphan branch: `git -C <main> worktree add --detach <records>`, then in it `git switch --orphan coord` (works on git 2.27+);
+   - separate repo: `mkdir <records>`, `git init -b coord` there.
+   Copy `templates/` into it (`gitignore` becomes `.gitignore`), write the confirmed `project.md`, and commit `relay: records`. Check: `git -C <records> log --oneline` shows that one commit on `coord`, and its tree has no file from the default branch.
+5. **Push**, on the user's yes: `git -C <records> push -u origin coord`. Check: `git ls-remote origin coord` prints a sha.
 6. **Pointer.** Propose this line for the repo's `AGENTS.md` (or `CLAUDE.md`), committed the way the repo commits doc changes:
-   `Multi-session work: records in ../<repo>-coord (branch coord, never merged); the coordinator runs /relay:coordinate, workers follow relay:work.`
+   `Multi-session work: records in the worktree on branch coord (find it with git worktree list; never merged); the coordinator runs /relay:coordinate, workers follow relay:work.`
+   With a separate records repo, the line names its absolute path instead of the worktree.
    Check: the user accepted or declined it.
-7. Tell the user, in the language they chose: the records path; that `/relay:coordinate` in a new desktop-app session starts a coordinator; and, for another machine, `git fetch origin coord` then `git worktree add ../<repo>-coord coord`.
+7. Tell the user, in the language they chose: the records path; that `/relay:coordinate` in a new desktop-app session starts a coordinator; and, for another machine, `git fetch origin coord` then, in the main checkout, `git worktree add ../<folder>-coord coord`.

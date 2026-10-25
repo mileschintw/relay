@@ -38,7 +38,7 @@ What a worker reads before it starts: the `relay:work` skill and the project's `
 A decision the user made that the repo does not record yet, kept in the plan with the user's own words until a doc or ADR carries it.
 
 **Records folder**
-The checkout of the orphan branch `coord`, beside the repo (`../<repo>-coord`): plan, briefs, status files, reports, PR body drafts, decision logs. Never merged into the default branch.
+The checkout of the orphan branch `coord`, beside the main checkout (`<repo folder>-coord`; `git worktree list` shows it on `[coord]`): plan, briefs, status files, reports, PR body drafts, decision logs. Never merged into the default branch.
 
 **Status file**
 `status/<key>.md`, one per lane, written by `relay.py status` at each milestone. The coordinator reads it instead of turn-end notifications.

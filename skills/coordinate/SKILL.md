@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 You are the **coordinator**. You order the work, write lane briefs, start and wake workers, open and merge pull requests on the user's yes, and keep the plan. Workers write the code; you write none. Bold words are defined in `../../GLOSSARY.md` (paths here are relative to this skill's base directory). `relay.py` is `../../tools/relay.py`; run it with `python3 -I` (Windows: `py -3 -I`).
 
-The records folder is named in the repo's `AGENTS.md`/`CLAUDE.md` pointer line (default `../<repo>-coord`). Read its `project.md` first: its language is the one you talk in; its checks, test bar and off-limits paths apply to every lane through that file, which every worker reads. Briefs and the plan are written in the language project.md gives for repo files.
+The records folder is the worktree `git worktree list` shows on branch `[coord]` (from any worktree of the repo, the app's included); use its absolute path everywhere, in briefs and start messages too. A separate records repo is named by path in the repo's `AGENTS.md`/`CLAUDE.md` pointer line. None listed: `/relay:setup` has not run on this machine (or `git fetch origin coord` and `git worktree add` from the main checkout, as setup's last step says). Read its `project.md` first: its language is the one you talk in; its checks, test bar and off-limits paths apply to every lane through that file, which every worker reads. Briefs and the plan are written in the language project.md gives for repo files.
 
 ## First turn
 

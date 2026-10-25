@@ -17,9 +17,9 @@ Needs: git 2.38+, `gh` signed in, Python 3.10+ (standard library only).
 ## Turn it on in a project (once per repo)
 
 1. `/setup-matt-pocock-skills` (the issue tracker and labels relay builds on).
-2. `/relay:setup`. It asks a few questions (language, checks, test bar, off-limits paths), creates the orphan branch `coord` checked out at `../<repo>-coord`, and proposes one pointer line for `AGENTS.md`. A public repo gets the choice of a separate private records repo instead.
+2. `/relay:setup`. It asks a few questions (language, checks, test bar, off-limits paths), creates the orphan branch `coord` checked out beside the main checkout as `<repo folder>-coord`, and proposes one pointer line for `AGENTS.md`. A public repo gets the choice of a separate private records repo instead.
 
-On another machine: `git fetch origin coord`, then `git worktree add ../<repo>-coord coord`.
+On another machine: `git fetch origin coord`, then, in the main checkout, `git worktree add ../<repo folder>-coord coord`.
 
 ## Use it
 
