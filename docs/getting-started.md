@@ -7,10 +7,12 @@ relay coordinates several Claude Code desktop-app sessions on one repo: a **coor
 1. Install mattpocock-skills (`/plugin` → claude-plugins-official → mattpocock-skills).
 2. Add this folder as a marketplace and install relay:
    ```
-   /plugin marketplace add D:\Repos\relay
+   /plugin marketplace add <path of this folder>
    /plugin install relay@relay-local
    ```
    Check: `/relay:setup` and `/relay:coordinate` appear when you type `/relay`.
+
+   For the lightest footprint, install at project scope in the repos that use relay, not user scope: `relay:work` is model-invoked, so its one-line description is loaded in every session where relay is installed.
 
 Needs: git 2.38+, `gh` signed in, Python 3.10+ (standard library only).
 
