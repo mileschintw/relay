@@ -21,7 +21,7 @@ Current state only. Done work moves to `plan-history.md` with a one-line pointer
 
 ## Roadmap
 
-Every open issue, once. "Kind" is `free` (needs no user decision, account, special machine or release) or `limited: <what>`.
+Every open issue, once. "Order" is the wave (1 = can start now), plus `after #N` for a same-section wait. "Kind" is `free` (needs no user decision, account, special machine or release) or `limited: <what>`.
 
 | Issue | Order | Blocked by (GitHub) | Same-section wait | Files it owns | Kind |
 |---|---|---|---|---|---|

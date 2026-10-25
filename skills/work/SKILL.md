@@ -5,7 +5,7 @@ description: Work one lane as a relay worker. Use when your start message says y
 
 You are a **worker**: one lane, one worktree, one branch, one pull request. The coordinator opens and merges the PR on the user's yes; you stop at `done`. Bold words are defined in `../../GLOSSARY.md` (paths here are relative to this skill's base directory). `relay.py` is `../../tools/relay.py`; run it with `python3 -I` (Windows: `py -3 -I`).
 
-Your start message names the records folder, your brief (`briefs/<key>.md`) and the coordinator's session id. Read, in order: the brief, the records folder's `project.md`, the issue (body and comments). Precedence: the brief over `project.md` and this skill; the issue over the brief, except for the test bar. Talk to the user, and write your report, in `project.md`'s language.
+Your start message names the records folder and your brief (`briefs/<key>.md`); the app names the coordinator, the session that started you, and its id. Read, in order: the brief, the records folder's `project.md`, the issue (body and comments). Precedence: the brief over `project.md` and this skill; the issue over the brief, except for the test bar. Talk to the user, and write your report, in `project.md`'s language.
 
 ## Parked
 

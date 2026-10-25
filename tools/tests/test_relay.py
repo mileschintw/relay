@@ -180,6 +180,17 @@ class ReadyTests(Base):
         (self.records / "plan.md").write_text("x\n" * 201)
         self.assertIn("plan.md has 201 lines", self.ready())
 
+    def test_fresh_records_and_brief_without_status(self):
+        for d in ("status", "reports", "pr-bodies"):
+            (self.records / d).rmdir()
+        out = self.ready()
+        self.assertIn("Lanes:\n  (none)\nNothing to do.", out)
+        (self.records / "briefs" / "_template.md").write_text("form")
+        (self.records / "briefs" / "4.md").write_text("Depends on: none\n")
+        out = self.ready()
+        self.assertIn("4: a brief but no status file", out)
+        self.assertNotIn("_template", out)
+
     def test_merged(self):
         head = self.branch("lane-12")
         self.done("12", "lane-12", head)

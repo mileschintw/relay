@@ -29,6 +29,7 @@ ready   read-only. Prints what the coordinator can do next:
           - Ready to merge: done lanes whose open PR head is the status head, checks all passed
             (at least one, none pending) and no conflict.
           - Waiting: everything blocked on someone else, with the reason.
+          - No status yet: a brief with no status file.
           - Merged: done lanes whose PR merged (move them to plan-history.md).
           - Inconsistent: a status head that is not the pushed one, done with no report file, a
             PR head that is not the status head, a PR body draft with a closing keyword outside a
@@ -38,7 +39,7 @@ ready   read-only. Prints what the coordinator can do next:
         PR / Ready to merge branch against the default branch; a conflict moves it to Waiting.
         --repo defaults to what `gh repo view` finds from the current folder.
 
-Exit 0 when done, 1 when a check fails, 2 on a usage error. `gh` is called through $RELAY_GH
+Exit 0 when done, 1 when a check fails, 2 on a usage error or a missing records folder. `gh` is called through $RELAY_GH
 when set (a command line, for tests). Standard library only, Python 3.10+.
 """
 import argparse
@@ -187,11 +188,15 @@ def checks_state(rollup):
 def cmd_ready(a):
     records = pathlib.Path(a.records)
     status_dir = records / "status"
-    if not status_dir.is_dir():
-        print(f"no status folder in {records}", file=sys.stderr)
+    if not records.is_dir():
+        print(f"no records folder at {records}", file=sys.stderr)
         return 2
     out = {k: [] for k in ("Ready for GO", "Ready for PR", "Ready to merge", "Waiting",
-                           "Merged", "Inconsistent", "Could not parse", "Plan")}
+                           "No status yet", "Merged", "Inconsistent", "Could not parse", "Plan")}
+    have = {p.stem for p in status_dir.glob("*.md")}
+    for b in sorted((records / "briefs").glob("*.md")):
+        if not b.stem.startswith("_") and b.stem not in have:
+            out["No status yet"].append(f"{b.stem}: a brief but no status file (not started, or not yet run)")
     plan = records / "plan.md"
     if plan.exists():
         n = len(plan.read_text(encoding="utf-8").splitlines())
@@ -219,11 +224,15 @@ def cmd_ready(a):
                 ready_done(records, key, st, repo, a.checkout, out)
         except (RuntimeError, ValueError, KeyError, TypeError) as e:
             out["Waiting"].append(f"{key}: lookup failed: {e}")
+    if not have:
+        print("  (none)")
     for section, items in out.items():
         if items:
             print(f"{section}:")
             for item in items:
                 print(f"  {item}")
+    if not any(out.values()):
+        print("Nothing to do.")
     return 0
 
 

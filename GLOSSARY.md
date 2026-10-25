@@ -26,7 +26,7 @@ Lane A needs lane B's result. Recorded only as GitHub's "blocked by" on A's issu
 Lanes A and B change the same section of a file, though neither needs the other's result: they run one after the other, in either order. Recorded on the brief's `Waits for (same section):` line and in the plan, never as blocked-by.
 
 **Mechanical overlap**
-Two lanes touch the same file in ways that merge cleanly (separate rows of a table, separate sections that do not refer to each other). They run at the same time; the later one merges the default branch into its branch.
+Two lanes touch the same file in ways that merge cleanly (separate rows of a table, separate sections that do not refer to each other), or one lane adds an item that a list another lane owns must name (the adding lane adds that one row). They run at the same time; the later one merges the default branch into its branch.
 
 **Brief**
 What a worker reads before it starts: the `relay:work` skill and the project's `project.md` (the shared part, the same for every lane) plus its **lane brief** `briefs/<key>.md` (about ten lines, only what is specific to the lane).
