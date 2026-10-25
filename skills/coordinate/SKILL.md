@@ -76,9 +76,9 @@ Sessions start only in a turn the user typed in the desktop app (see `app-limits
 
 | Stage | Who does it |
 |---|---|
-| Design | A grill session (`grilling` + `domain-modeling`, or the user's `/grill-with-docs`); no code, drafts in its report |
+| Design | A grill session (`mattpocock-skills:grilling` + `mattpocock-skills:domain-modeling`, or the user's `/grill-with-docs`); no code, drafts in its report |
 | Issues and blocking edges | The user's `/to-tickets` (or `/wayfinder` for work too foggy to slice) |
-| A lane's work | The worker, via `relay:work` (`tdd`, `code-review`, `writing-for-agents`, `pr`) |
+| A lane's work | The worker, via `relay:work` (`mattpocock-skills:tdd`, `mattpocock-skills:code-review`, `mattpocock-skills:writing-for-agents`, `mattpocock-skills:pr`) |
 | Order, consent, PR, merge, GO | You |
 | Release | `project.md`'s release steps, each outward step on the user's yes |
 

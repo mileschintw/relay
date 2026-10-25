@@ -23,10 +23,10 @@ On another machine: `git fetch origin coord`, then `git worktree add ../<repo>-c
 
 ## Use it
 
-1. **Design.** Grill the idea: `/grill-with-docs`, or ask for a grill using `grilling` + `domain-modeling`. No code yet.
+1. **Design.** Grill the idea: `/grill-with-docs`, or ask for a grill using `mattpocock-skills:grilling` + `mattpocock-skills:domain-modeling`. No code yet.
 2. **Tickets.** `/to-tickets` turns the result into issues with native blocking links (`/wayfinder` first if the work is too foggy to slice).
 3. **Coordinate.** In a new desktop-app session, `/relay:coordinate`. It checks the plan against GitHub, then proposes every lane that can start now and the chains behind them. Say yes; it starts them in that same turn, the waiting ones parked.
-4. **Workers** follow `relay:work`: branch, `tdd`, `code-review` until no blocker, a PR body draft, a report, `done`. They talk to you directly when they need a decision; answer there.
+4. **Workers** follow `relay:work`: branch, `mattpocock-skills:tdd`, `mattpocock-skills:code-review` until no blocker, a PR body draft, a report, `done`. They talk to you directly when they need a decision; answer there.
 5. **PR and merge.** For each finished lane the coordinator asks one question: open the PR and merge when CI passes, or only open it. After a merge it sends `GO` to the parked lanes that were waiting.
 6. **Away?** Tell the coordinator "unattended" with the scope and whether it may merge; it starts everything in that turn and logs what it did in the plan.
 7. **Long session?** Ask the coordinator for a compact instruction before `/compact`.
@@ -35,11 +35,11 @@ On another machine: `git fetch origin coord`, then `git worktree add ../<repo>-c
 
 | You need | Use |
 |---|---|
-| Sharpen a design | `grilling`, `grill-with-docs`, `domain-modeling` |
+| Sharpen a design | `mattpocock-skills:grilling`, `grill-with-docs`, `mattpocock-skills:domain-modeling` |
 | Issues with blocking edges | `/to-tickets`, `/wayfinder` |
 | One agent, many subagents, one session | mattpocock's `chief-of-staff` |
 | Several real sessions in parallel, with your consent gated | relay |
-| Build a lane | `relay:work`, which calls `tdd`, `code-review`, `writing-for-agents`, `pr` |
+| Build a lane | `relay:work`, which calls `mattpocock-skills:tdd`, `mattpocock-skills:code-review`, `mattpocock-skills:writing-for-agents`, `mattpocock-skills:pr` |
 
 ## Rules worth knowing
 
