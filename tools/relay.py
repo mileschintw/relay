@@ -102,6 +102,8 @@ def cmd_status(a):
         branch = "none" if parked else out.strip()
         if not parked and (code or branch == "HEAD"):
             return fail("detached HEAD or no git checkout: pass --branch")
+    if branch == "coord" and not parked:
+        return fail("this is the records branch: run status in your lane's worktree")
     if head is None:
         code, out, _ = run(["git", "rev-parse", "--short", "HEAD"])
         head = "none" if parked else out.strip()

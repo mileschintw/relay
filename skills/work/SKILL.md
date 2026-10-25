@@ -31,7 +31,7 @@ When your start message says you are parked: read the three, run `relay.py statu
 
 ## Status
 
-Run `relay.py status` at each milestone (`parked`, `working`, `blocked`, `review`, `done`), never by hand. The coordinator reads this file and your report, not your turn-end note, which it sees only the first 400 characters of. Stuck on a decision only the user or the coordinator can make: `--state blocked`, the options in the report, and a `SendMessage` to the coordinator's id with one short question. A finding that changes another lane's work (a broken check, a shared file) gets one short `SendMessage` too, and you carry on.
+Run `relay.py status` from your lane's worktree (it reads the branch and head there) at each milestone (`parked`, `working`, `blocked`, `review`, `done`), never by hand. The coordinator reads this file and your report, not your turn-end note, which it sees only the first 400 characters of. Stuck on a decision only the user or the coordinator can make: `--state blocked`, the options in the report, and a `SendMessage` to the coordinator's id with one short question. A finding that changes another lane's work (a broken check, a shared file) gets one short `SendMessage` too, and you carry on.
 
 ## Report
 

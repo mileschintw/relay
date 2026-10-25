@@ -106,6 +106,13 @@ class StatusTests(Base):
         self.assertFalse((self.records / "status" / "12.md").exists())
 
 
+    def test_refuses_records_branch(self):
+        code, _, err = self.call("status", str(self.records), "12", "--state", "working",
+                                 "--doing", "x", "--branch", "coord")
+        self.assertEqual(code, 1)
+        self.assertIn("records branch", err)
+
+
 class ReadyTests(Base):
     def park(self, key, brief):
         (self.records / "briefs" / f"{key}.md").write_text(brief)
