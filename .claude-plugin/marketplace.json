@@ -1,0 +1,8 @@
+{
+  "name": "relay-local",
+  "owner": { "name": "local" },
+  "metadata": { "description": "The relay plugin, installed from this folder", "version": "0.1.0" },
+  "plugins": [
+    { "name": "relay", "source": "./", "description": "Lightweight multi-session coordination for Claude Code" }
+  ]
+}
