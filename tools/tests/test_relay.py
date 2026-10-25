@@ -198,6 +198,11 @@ class ReadyTests(Base):
         self.assertIn("4: a brief but no status file", out)
         self.assertNotIn("_template", out)
 
+    def test_blocked_lane_waits(self):
+        self.call("status", str(self.records), "12", "--state", "blocked",
+                  "--doing", "needs a decision on X")
+        self.assertIn("Waiting:\n  12: blocked: needs a decision on X", self.ready())
+
     def test_merged(self):
         head = self.branch("lane-12")
         self.done("12", "lane-12", head)

@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 Set up relay's records for the repo in the current folder. Each step ends on its check; stop at a failed check and tell the user what is missing. Terms are defined in `../../GLOSSARY.md` (paths here are relative to this skill's base directory). `<main>` below is the main checkout: the first path `git worktree list` prints (a desktop-app session usually runs in a worktree under `.claude/worktrees/`, which the app may clean up, so nothing goes beside it).
 
-1. Existing records: run `git ls-remote origin coord`. If it prints a sha, the repo is already set up: `git fetch origin coord`, `git -C <main> worktree add ../<main's folder name>-coord coord`, tell the user the path, and stop. Check: it printed nothing.
+1. Existing records. If `AGENTS.md`/`CLAUDE.md` has the relay pointer line naming a records repo URL: `git clone -b coord <url>` to the path it names beside `<main>`, tell the user the path, and stop. Otherwise run `git ls-remote origin coord`. If it prints a sha, the repo is already set up: `git fetch origin coord`, `git -C <main> worktree add ../<main's folder name>-coord coord`, tell the user the path, and stop. Check: it printed nothing.
 2. Prerequisites. Check: `git remote get-url origin` names a GitHub repo; `gh auth status` passes; skills named `mattpocock-skills:` are in your skill list; `docs/agents/issue-tracker.md` exists and names GitHub Issues (else ask the user to run `/setup-matt-pocock-skills` first); `python3 --version` (Windows `py -3 --version`) is 3.10 or later; `git --version` is 2.27 or later.
 3. Where the records live. Run `gh repo view --json visibility -q .visibility`.
    - `PRIVATE` or `INTERNAL`: an orphan branch `coord` of this repo.
@@ -20,6 +20,6 @@ Set up relay's records for the repo in the current folder. Each step ends on its
 6. Push, on the user's yes: `git -C <records> push -u origin coord`. Check: `git -C <records> ls-remote origin coord` prints a sha.
 7. Pointer. Propose this line for the repo's `AGENTS.md` (or `CLAUDE.md`), committed the way the repo commits doc changes:
    - orphan branch: `Multi-session work: records in the worktree on branch coord (find it with git worktree list; never merged); the coordinator runs /relay:coordinate, workers follow relay:work.`
-   - separate repo: the same line, naming the records as `../<folder>-coord` beside the main checkout. It is the only way the coordinator finds them, so it is required.
+   - separate repo: the same line, naming the records as `../<folder>-coord` beside the main checkout, cloned from `<url>`. It is the only way the coordinator and other machines find them, so it is required.
    Check: orphan branch: the user accepted or declined it; separate repo: the line is committed.
 8. Tell the user, in the language they chose: the records path; that `/relay:coordinate` in a new desktop-app session starts a coordinator; and, for another machine, running `/relay:setup` there (step 1 attaches the existing records; for a separate repo, `git clone -b coord <url> ../<folder>-coord` beside the main checkout).

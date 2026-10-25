@@ -7,7 +7,7 @@
 (Windows: py -3 -I ...)
 
 <records> is the records folder (the `coord` worktree): plan.md, briefs/, status/, reports/,
-pr-bodies/. <key> names a lane: the issue number it closes first (`12`), or a short name.
+pr-bodies/. <key> names a lane: the number of the first issue it closes (`12`).
 
 status  writes <records>/status/<key>.md, a worker's status file, then reads it back the way
         `ready` does. Run it in the worker's worktree. Fields, one per line:
@@ -28,7 +28,8 @@ ready   read-only. Prints what the coordinator can do next:
           - Ready for PR: done lanes with no pull request, status head equal to the pushed head.
           - Ready to merge: done lanes whose open PR head is the status head, checks all passed
             (at least one, none pending) and no conflict.
-          - Waiting: everything blocked on someone else, with the reason.
+          - Waiting: parked lanes with an open dependency; blocked lanes, with their `doing` line;
+            done lanes with a conflict, pending or failed checks, or a failed lookup.
           - No status yet: a brief with no status file.
           - Merged: done lanes whose PR merged (move them to plan-history.md).
           - Inconsistent: a status head that is not the pushed one, done with no report file, a
@@ -39,7 +40,8 @@ ready   read-only. Prints what the coordinator can do next:
         PR / Ready to merge branch against the default branch; a conflict moves it to Waiting.
         --repo defaults to what `gh repo view` finds from the current folder.
 
-Exit 0 when done, 1 when a check fails, 2 on a usage error or a missing records folder. `gh` is called through $RELAY_GH
+Exit: status 0 when written, 1 when a check fails; ready 0 after printing; 2 on a usage error or
+a missing records folder. `gh` is called through $RELAY_GH
 when set (a command line, for tests). Standard library only, Python 3.10+.
 """
 import argparse
@@ -224,6 +226,8 @@ def cmd_ready(a):
                 ready_parked(records, key, repo, out)
             elif st["state"] == "done":
                 ready_done(records, key, st, repo, a.checkout, out)
+            elif st["state"] == "blocked":
+                out["Waiting"].append(f"{key}: blocked: {st.get('doing', '')}")
         except (RuntimeError, ValueError, KeyError, TypeError) as e:
             out["Waiting"].append(f"{key}: lookup failed: {e}")
     if not have:

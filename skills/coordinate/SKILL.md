@@ -29,9 +29,9 @@ You are the coordinator. You order the work, write briefs, start and wake worker
 
 ## Scheduling
 
-- **Parallel to the maximum.** Every lane with no open hard dependency and no same-section wait on a running lane starts now; no cap. Propose the whole frontier and the chains behind it at once (A, B → C → D), never one lane at a time. On the user's yes, start what can start and park the rest.
+- **Parallel to the maximum.** Every lane whose `Depends on:` and `Waits for (same section):` issues are all closed as completed starts now; no cap. Propose the whole frontier and the chains behind it at once (A, B → C → D), never one lane at a time. On the user's yes, start what can start and park the rest.
 - **Hard dependency:** GitHub's blocked-by is the source; the brief's `Depends on:` and the roadmap copy it. Mark one with `gh api -X POST repos/<repo>/issues/<A>/dependencies/blocked_by -F issue_id=<B's numeric id>` (B's id: `gh api repos/<repo>/issues/<B> -q .id`), or let the user's `/to-tickets` run set them.
-- **Same-section wait:** the brief's `Waits for (same section):` line is the source (`ready` reads it); the roadmap and a line `Order: after #N, same section <file › section>` in the issue's body copy it. Either order works, so put the critical path first: the lane that blocks most, or is blocked least, goes first. Swap an order when it lets a lane start now, and update all three.
+- **Same-section wait:** the brief's `Waits for (same section):` line is the source (`ready` reads it); the roadmap and a line `Same-section wait: after #N, <file › section>` in the issue's body copy it. Either order works, so put the critical path first: the lane that blocks most, or is blocked least, goes first. Swap an order when it lets a lane start now, and update all three.
 - **Mechanical overlap** runs in parallel: each brief names who owns each shared file or section, and the brief of a lane adding an item to another lane's list says it adds that one row.
 - Recompute the frontier from blocked-by and the same-section lines before each wave and after each merge; the plan's last list may be stale.
 
@@ -57,7 +57,7 @@ Sessions start only in a turn the user typed in the desktop app, so start every 
 1. `ready` lists the lane under Ready for PR, and nothing for its key under Inconsistent or Waiting. A conflict or a PR body problem: message the worker to fix it, push, and write `done` again.
 2. Show the user the result and the PR body draft, and ask the PR-and-merge question.
 3. Open the PR: `gh pr create --head <branch> --title "<issue title>" --body-file <records>/pr-bodies/<key>.md`.
-4. On "merge once CI passes": run `gh pr checks <N> --watch` in the background; when it passes, merge with the command `ready` prints under Ready to merge (`gh pr merge <N> --merge --match-head-commit <sha>`) and tell the user after. A failed check or a moved head: ask again. Merging several: one at a time, rerunning `ready` before each, since each merge can make the next conflict.
+4. On "merge once CI passes": run `gh pr checks <N> --watch` in the background; when it passes, merge with `gh pr merge <N> --merge --match-head-commit <sha>`, the sha `ready` prints under Ready to merge, and tell the user after. A failed check or a moved head: ask again. Merging several: one at a time, rerunning `ready` before each, since each merge can make the next conflict.
 5. After the merge: move the lane from Now to `plan-history.md` (the PR's `Closes` lines close its issues), recompute the frontier, and send `GO #<key>` to every parked worker `ready` lists under Ready for GO. Edit a brief before its GO if needed: the worker rereads it on GO.
 
 ## Plan
