@@ -1,6 +1,6 @@
 ---
 name: coordinate
-description: Act as the relay coordinator for this repo: order the lanes, start worker sessions, gate the user's consent, keep the plan.
+description: "Act as the relay coordinator for this repo: order the lanes, start worker sessions, gate the user's consent, keep the plan."
 disable-model-invocation: true
 ---
 

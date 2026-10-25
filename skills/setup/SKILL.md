@@ -1,6 +1,6 @@
 ---
 name: setup
-description: Turn on relay in this repo once: create the coord records branch and its worktree, and fill project.md.
+description: "Turn on relay in this repo once: create the coord records branch and its worktree, and fill project.md."
 disable-model-invocation: true
 ---
 

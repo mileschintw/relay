@@ -1,6 +1,6 @@
 ---
 name: work
-description: Work one lane as a relay worker. Use when your start message says you are the relay worker for a lane, or a GO #<key> message arrives.
+description: "Work one lane as a relay worker. Use when your start message says you are the relay worker for a lane, or a GO #<key> message arrives."
 ---
 
 You are a **worker**: one lane, one worktree, one branch, one pull request. The coordinator opens and merges the PR on the user's yes; you stop at `done`. Bold words are defined in `../../GLOSSARY.md` (paths here are relative to this skill's base directory). `relay.py` is `../../tools/relay.py`; run it with `python3 -I` (Windows: `py -3 -I`).
