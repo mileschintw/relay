@@ -47,7 +47,7 @@ What `/relay:setup` leaves beside the repo (`<repo>-coord/`, the orphan branch `
 ```
 project.md      settings: language, checks, test bar, off-limits paths
 plan.md         current state only (done work moves to plan-history.md)
-briefs/<key>.md ~10-line lane briefs
+briefs/<key>.md ~10-line briefs, one per lane
 status/<key>.md written by relay.py status
 reports/  pr-bodies/
 ```

@@ -24,7 +24,7 @@ ready   read-only. Prints what the coordinator can do next:
           - Ready for GO: parked lanes whose every dependency is closed as completed. The
             dependencies are the GitHub blocked-by list of issue <key> (numeric keys only) plus
             every `#N` on the brief's `Waits for (same section):` line; the brief's
-            `Depends on:` line counts only when GitHub lists no blocker.
+            `Depends on:` line counts only when GitHub lists no blocked-by entry.
           - Ready for PR: done lanes with no pull request, status head equal to the pushed head.
           - Ready to merge: done lanes whose open PR head is the status head, checks all passed
             (at least one, none pending) and no conflict.

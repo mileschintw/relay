@@ -1,6 +1,6 @@
 # Verifying a large output
 
-For a lane whose product is a large document (an inventory, an audit, a list of hundreds of rows). A whole-document review does not converge on it: each round reads different parts first, so new findings are first reads, not regressions. Write the lane brief's Verification this way instead.
+For a lane whose product is a large document (an inventory, an audit, a list of hundreds of rows). A whole-document review does not converge on it: each round reads different parts first, so new findings are first reads, not regressions. Instead, add one line to the brief's *Lane tests*: "Verify as `<absolute path of this file>` says." The worker follows the steps below.
 
 1. **Machine-readable rows.** The output also comes as a TSV, one row per item: file, line(s), a short verbatim quote from the source (10–40 characters), kind, proposal, batch.
 2. **Scripts** (in the worker's scratchpad), run at the base commit, output in the report:
