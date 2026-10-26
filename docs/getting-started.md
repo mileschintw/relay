@@ -44,6 +44,21 @@ On another machine: `git fetch origin coord`, then, in the main checkout, `git w
 | Several real sessions in parallel, with your consent gated | relay |
 | Build a lane | `relay:work`, which calls `mattpocock-skills:tdd`, `mattpocock-skills:code-review`, `mattpocock-skills:writing-for-agents`, `mattpocock-skills:pr` |
 
+## relay or `/implement-spec`
+
+Both start every ticket on the frontier at once, with no cap, and both build each ticket with `tdd` and review it with `code-review`. So parallelism and quality steps don't decide between them. What differs is how long the work lives and who signs off on it.
+
+| | `/implement-spec` | relay |
+|---|---|---|
+| Unit of work | a subagent, gone when it finishes | a desktop-app session per lane, with its own worktree and branch, that you can open and talk to |
+| Output | one integration branch, at most one PR at the end | one PR per lane |
+| Your yes | once, to start the run | before each session, PR and merge |
+| Review | once, over the whole integration branch | per lane, scoped to its issues and brief |
+| State | none; an interrupted run starts over | the plan, `status/` and `reports/` on the `coord` branch, so another day, machine or coordinator can take over |
+
+- **`/implement-spec`:** a few tickets you want done fast, and you only want to review the final PR.
+- **relay:** each change reviewed and merged on its own, your yes at each step, or work that spans days or machines.
+
 ## Rules worth knowing
 
 - A yes covers only what it names; a yes passed on by another session does not count until you confirm it to the coordinator.
