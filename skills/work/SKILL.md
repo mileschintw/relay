@@ -21,11 +21,12 @@ When your start message says you are parked: read the brief, `project.md` and th
    - Before anything on `project.md`'s ask-first list, stop and ask the user with the exact scope; undo what you created afterwards.
 3. **Review until no blocker.** `relay.py status … --state review`. Run `mattpocock-skills:code-review` with `origin/<default>` as the fixed point and the issues plus your brief as the spec (it needs neither from the user), plus a `mattpocock-skills:writing-for-agents` review of changed agent-facing text. Fix blockers and review again; list everything else as notes and leave them.
    - A finding outside the lane's scope becomes a new issue (search for a duplicate first; `Refs #<issue>`). It does not block.
-4. **Checks.** Run `project.md`'s checks and the brief's lane tests; keep commands and output for the report. A failure: fix it, then back to step 3.
+4. **Checks.** Run `project.md`'s checks and the brief's lane tests; keep commands and output for the report. A failure: fix it, then back to step 3. A test that needs a pull request (a CI trigger, say): open none; write in the report how to confirm it after the merge.
 5. **PR body draft** at `<records>/pr-bodies/<key>.md`, in the `mattpocock-skills:pr` skill's shape, plus:
    - one `Closes #N` line per issue on the brief's *Closes* line, each alone on its line; anywhere else, related issues are `Refs #N` (no fix/close/resolve before a `#N`);
    - no title line (the coordinator passes the issue title separately);
-   - a *Review* section: each finding and how it was handled.
+   - a *Review* section: each finding and how it was handled;
+   - no name from the deny list `project.md` names, if it names one (`ready` reports hits by line).
 6. **Finish.** `git fetch`. If `origin/<default>` moved in a way that touches your files or the brief's *Before and after* line: *Catching up*, then rerun steps 3 and 4 for what changed. Write the report (*Report*). Check every clause of **Done when**; once all hold, run `relay.py status … --state done --doing "<one line>"`. The coordinator opens the PR from that head and merges it if CI passes and the head is unchanged. After `done`, the branch changes only when the coordinator asks for a fix: *Catching up*, rerun steps 3 and 4 for what changed, then `relay.py status … --state done` again.
 7. End your turn, with no background command still running, on a two-line summary naming the report file.
 

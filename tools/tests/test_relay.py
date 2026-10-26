@@ -145,6 +145,53 @@ class ReadyTests(Base):
                                       "mergeable": "MERGEABLE", "statusCheckRollup": ok}]}})
         self.assertIn(f"12: PR #5 --match-head-commit {head}", self.ready())
 
+    def test_closes_lines_match_the_brief(self):
+        (self.records / "briefs" / "12.md").write_text("Depends on: none\n- **Closes:** #12 #13\n")
+        head = self.branch("lane-12")
+        self.done("12", "lane-12", head, body="Closes #12\nCloses #12\nCloses #14\n\nBody.\n")
+        out = self.ready()
+        self.assertIn("no `Closes #13` line", out)
+        self.assertIn("lines [1, 2]: `Closes #12` more than once", out)
+        self.assertIn("line 3: `Closes #14`, but the brief's Closes does not list it", out)
+
+    def test_deny_list_reports_lines_only(self):
+        (self.records / "deny.txt").write_text("# names\nAcme(?:Corp)?\n")
+        (self.records / "project.md").write_text("- **Deny list:** `deny.txt`\n")
+        head = self.branch("lane-12")
+        self.done("12", "lane-12", head, body="Closes #12\n\nWorked on AcmeCorp data.\nacmeish\n")
+        out = self.ready()
+        self.assertIn("PR body lines [3]: a deny-list name", out)
+        self.assertNotIn("AcmeCorp", out)
+        (self.records / "project.md").write_text("- **Deny list:** none\n")
+        self.assertNotIn("deny-list", self.ready())
+
+    def test_dependency_closed_without_pr_holds_go(self):
+        self.gh({"issues": {"12": ["CLOSED", "COMPLETED", []]}})
+        self.park("13", "Depends on: #12\n")
+        out = self.ready()
+        self.assertIn("13: dependency #12 closed with no pull request", out)
+        self.assertIn("13: parked on #12 closed", out)
+        self.assertNotIn("Ready for GO", out)
+
+    def test_github_and_brief_depends_on_disagree(self):
+        self.gh({"blocked_by": {"13": [12]}, "issues": {"12": ["OPEN", None]}})
+        self.park("13", "Depends on: #11\n")
+        self.assertIn("13: GitHub blocked by #12, brief Depends on #11", self.ready())
+
+    def test_stale_status_of_a_working_lane(self):
+        self.branch("lane-12")
+        self.call("status", str(self.records), "12", "--state", "working", "--doing", "x",
+                  "--branch", "lane-12", "--head", "abcdef1")
+        self.assertIn("12: working, status head abcdef1, pushed head", self.ready())
+
+    def test_closed_unmerged_pr(self):
+        head = self.branch("lane-12")
+        self.done("12", "lane-12", head)
+        self.gh({"prs": {"lane-12": [{"number": 5, "state": "CLOSED", "headRefOid": head}]}})
+        out = self.ready()
+        self.assertIn("12: PR #5 closed without merging", out)
+        self.assertNotIn("Ready for PR", out)
+
     def test_pending_checks_and_no_checks_wait(self):
         head = self.branch("lane-12")
         self.done("12", "lane-12", head)

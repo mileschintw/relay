@@ -33,16 +33,17 @@ You are the coordinator. You order the work, write briefs, start and wake worker
 - **Hard dependency:** GitHub's blocked-by is the source; the brief's `Depends on:` and the roadmap copy it. Mark one with `gh api -X POST repos/<repo>/issues/<A>/dependencies/blocked_by -F issue_id=<B's numeric id>` (B's id: `gh api repos/<repo>/issues/<B> -q .id`), or let the user's `/to-tickets` run set them.
 - **Same-section wait:** the brief's `Waits for (same section):` line is the source (`ready` reads it); the roadmap and a line `Same-section wait: after #N, <file › section>` in the issue's body copy it. Either order works, so put the critical path first: the lane that blocks most, or is blocked least, goes first. Swap an order when it lets a lane start now, and update all three.
 - **Mechanical overlap** runs in parallel: each brief names who owns each shared file or section, and the brief of a lane adding an item to another lane's list says it adds that one row.
-- Recompute the frontier from blocked-by and the same-section lines before each wave and after each merge; the plan's last list may be stale.
+- Recompute the frontier before each wave and after each merge; the plan's last list may be stale. Parked lanes: `ready`'s Ready for GO. Issues with no lane yet: `gh issue list`, then each one's blocked-by (`gh api repos/<repo>/issues/<N>/dependencies/blocked_by -q '.[].number'`); one whose blockers a pull request closed as completed, with no same-section wait open, is on the frontier.
 
 ## Starting a lane
 
 Sessions start only in a turn the user typed in the desktop app, so start every lane of an approved chain in that same turn, the waiting ones parked. If the tool refuses, propose the lane as an `own_initiative` card (`app-limits.md`).
 
-1. Write `briefs/<key>.md` from `briefs/_template.md`: about ten lines, only what is specific to this lane, leaving out what `relay:work`, `project.md` and the issue already say. Cite old reports as maps, not specs. For a lane whose product is a large document (an inventory, hundreds of rows), read `large-outputs.md` first.
-2. Start the session with `start_session`: `initiation: "user_asked"`, `context: "fresh"`, `use_worktree: true` from the default branch (`source_branch`, so it never starts from your own branch) with `branch_name: lane-<key>`, `permission_mode` left out so it inherits yours (another mode holds your messages for approval), `title` `lane <key>: <issue title>`, and a `background` saying the repo, that lanes run in parallel through the records folder, and the user's go-ahead in their words. Its prompt:
+1. **Overlaps.** For each running lane, list the files its branch changes: `git diff --name-only origin/<default>...origin/<its branch>`. Compare them with the files this lane will touch: the same section is a same-section wait; anything else shared is a mechanical overlap, with each file's owner named in both briefs.
+2. Write `briefs/<key>.md` from `briefs/_template.md`: about ten lines, only what is specific to this lane, leaving out what `relay:work`, `project.md` and the issue already say. Cite old reports as maps, not specs. For a lane whose product is a large document (an inventory, hundreds of rows), read `large-outputs.md` first.
+3. Start the session with `start_session`: `initiation: "user_asked"`, `context: "fresh"`, `use_worktree: true` from the default branch (`source_branch`, so it never starts from your own branch) with `branch_name: lane-<key>`, `permission_mode` left out so it inherits yours (another mode holds your messages for approval), `title` `lane <key>: <issue title>`, and a `background` saying the repo, that lanes run in parallel through the records folder, and the user's go-ahead in their words. Its prompt:
    `You are the relay worker for lane <key>. Use the relay:work skill. Records folder: <path>. Brief: <path>/briefs/<key>.md.` and, for a parked lane, `You are parked until GO #<key>.`
-3. Run `list_sessions` and check its `cwd` is its own worktree (the app may put it in another session's). A shared one: note it in the plan, and run `git status` there before archiving either session. Record key, session id and state in the plan's Now table: `started` until its first status file, then the status file's state.
+4. Run `list_sessions` and check its `cwd` is its own worktree (the app may put it in another session's). A shared one: note it in the plan, and run `git status` there before archiving either session. Record key, session id and state in the plan's Now table: `started` until its first status file, then the status file's state.
 
 ## Following progress
 
@@ -58,7 +59,8 @@ Sessions start only in a turn the user typed in the desktop app, so start every 
 2. Show the user the result and the PR body draft, and ask the PR-and-merge question.
 3. Open the PR: `gh pr create --head <branch> --title "<issue title>" --body-file <records>/pr-bodies/<key>.md`.
 4. On "merge once CI passes": run `gh pr checks <N> --watch` in the background; when it passes, merge with `gh pr merge <N> --merge --match-head-commit <sha>`, the sha `ready` prints under Ready to merge, and tell the user after. A failed check or a moved head: ask again. Merging several: one at a time, rerunning `ready` before each, since each merge can make the next conflict.
-5. After the merge: move the lane from Now to `plan-history.md` (the PR's `Closes` lines close its issues), recompute the frontier, and send `GO #<key>` to every parked worker `ready` lists under Ready for GO. Edit a brief before its GO if needed: the worker rereads it on GO.
+5. **A draft changed after the PR opened** (a rerun's results, say): rerun `ready`, which checks the draft, then `gh pr edit <N> --body-file <records>/pr-bodies/<key>.md`.
+6. After the merge: move the lane from Now to `plan-history.md` (the PR's `Closes` lines close its issues), recompute the frontier, and send `GO #<key>` to every parked worker `ready` lists under Ready for GO. Edit a brief before its GO if needed: the worker rereads it on GO.
 
 ## Plan
 
@@ -73,4 +75,5 @@ Sessions start only in a turn the user typed in the desktop app, so start every 
 - **Before a compact, or handing over to a new coordinator:** `compact.md`.
 - **The user says they will be away** ("carry on while I sleep"): `unattended.md`.
 - **A tool refuses (a session, a card, a message), or a result contradicts this skill:** `app-limits.md`.
+- **A test session on another machine** (a Remote Control session the user started there): reach it by its `ListAgents` name with `SendMessage`, and ask it to send its report in numbered parts (1/N, 2/N, …). On each wake, check its state in `ListAgents`; idle or offline before every part arrived: ask it to resend the missing parts. Keep the alarm running until all parts are in, then save the report as `reports/<key>.md`.
 - **Before a release, or when the user asks:** have a fresh subagent sort the observations workers left unfiled in their reports into "still live, worth an issue", "not worth one" and "already handled", and give the user that list to choose from. Release steps are `project.md`'s, each outward step on the user's yes.

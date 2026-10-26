@@ -8,3 +8,4 @@ Measured, not documented; the app can change. When a tool result contradicts a l
 - A target session in a different permission mode may hold the message for the user's approval: start workers in your own mode.
 - When a note you expected is missing after a long run of notes with no user message, the app may have stopped delivering them: stop there and wait for the user.
 - `AskUserQuestion` answers in a worker's session are invisible to you (`list_events` does not show them).
+- Transcripts are deleted after 30 days by default. When the user wants statistics from a run (rounds, agents, models per step), copy the transcripts into the records folder's `snapshot/` before then, and put the date in the plan's Deadlines.

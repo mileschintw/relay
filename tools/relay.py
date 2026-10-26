@@ -21,7 +21,7 @@ status  writes <records>/status/<key>.md, a worker's status file, then reads it 
         detached HEAD with no --branch.
 
 ready   read-only. Prints what the coordinator can do next:
-          - Ready for GO: parked lanes whose every dependency is closed as completed. The
+          - Ready for GO: parked lanes whose every dependency a pull request closed as completed. The
             dependencies are the GitHub blocked-by list of issue <key> (numeric keys only) plus
             every `#N` on the brief's `Waits for (same section):` line; the brief's
             `Depends on:` line counts only when GitHub lists no blocked-by entry.
@@ -32,9 +32,14 @@ ready   read-only. Prints what the coordinator can do next:
             done lanes with a conflict, pending or failed checks, or a failed lookup.
           - No status yet: a brief with no status file.
           - Merged: done lanes whose PR merged (move them to plan-history.md).
-          - Inconsistent: a status head that is not the pushed one, done with no report file, a
-            PR head that is not the status head, a PR body draft with a closing keyword outside a
-            `Closes #N` line, a title line, or no `Closes` line.
+          - Inconsistent: a status head that is not the pushed one (any lane with a pushed branch);
+            done with no report file; a PR head that is not the status head; a PR closed without
+            merging; GitHub's blocked-by naming other issues than the brief's `Depends on:`; a
+            dependency closed as not planned or with no pull request (it also holds GO); a PR body
+            draft with a title line, a closing keyword outside a `Closes #N` line, or `Closes`
+            lines that are not exactly one per issue on the brief's `Closes:` line; a line matching
+            project.md's deny list (`- **Deny list:** <path>`, one regex per line, matched as a
+            whole word; printed by line number only).
           - Plan: a warning when plan.md has more lines than --plan-limit (default 200).
         --checkout <dir>: a local clone; `git fetch` there, then `git merge-tree` each Ready for
         PR / Ready to merge branch against the default branch; a conflict moves it to Waiting.
@@ -129,7 +134,9 @@ def cmd_status(a):
 
 # ready ----------------------------------------------------------------------------------------
 
-def check_pr_body(path):
+def check_pr_body(path, closes=None, deny=None):
+    """Problems with a PR body draft. closes: the issues the brief's Closes line lists (None or []:
+    not known). deny: regex patterns matched as whole words; a hit is reported by line number only."""
     p = pathlib.Path(path)
     if not p.exists():
         return ["no PR body draft"]
@@ -137,21 +144,66 @@ def check_pr_body(path):
     problems = []
     if lines and lines[0].startswith("# "):
         problems.append("PR body starts with a title line")
-    if not any(CLOSES_LINE.match(l) for l in lines):
-        problems.append("PR body has no `Closes #N` line")
+    found = {}
     for i, l in enumerate(lines, 1):
-        if CLOSING.search(l) and not CLOSES_LINE.match(l):
+        if CLOSES_LINE.match(l):
+            found.setdefault(int(re.search(r"\d+", l).group()), []).append(i)
+        elif CLOSING.search(l):
             problems.append(f"PR body line {i}: closing keyword outside a `Closes #N` line")
+    if not found:
+        problems.append("PR body has no `Closes #N` line")
+    if closes:
+        for n in closes:
+            if n not in found:
+                problems.append(f"PR body has no `Closes #{n}` line (the brief's Closes lists it)")
+            elif len(found[n]) > 1:
+                problems.append(f"PR body lines {found[n]}: `Closes #{n}` more than once")
+        for n, where in sorted(found.items()):
+            if n not in closes:
+                problems.append(f"PR body line {where[0]}: `Closes #{n}`, but the brief's Closes does not list it")
+    hits = sorted({i for i, l in enumerate(lines, 1) for pat in deny or []
+                   if re.search(rf"\b(?:{pat})\b", l, re.I)})
+    if hits:
+        problems.append(f"PR body lines {hits}: a deny-list name (lines only, never the name)")
     return problems
 
 
-def dependencies(records, key, repo):
+def deny_patterns(records):
+    """The patterns of the deny list project.md names (`- **Deny list:** <path>`), else []."""
+    project = records / "project.md"
+    if not project.exists():
+        return []
+    m = re.search(r"^- \*\*Deny list:\*\* `?([^`\n]+?)`?\s*$", project.read_text(encoding="utf-8"), re.M)
+    if not m or m.group(1).strip().strip('"').lower() == "none":
+        return []
+    path = pathlib.Path(m.group(1).strip())
+    path = path if path.is_absolute() else records / path
+    if not path.exists():
+        raise FileNotFoundError(f"project.md's deny list {path} does not exist")
+    pats = [l.strip() for l in path.read_text(encoding="utf-8").splitlines()
+            if l.strip() and not l.lstrip().startswith("#")]
+    for pat in pats:
+        re.compile(pat)
+    return pats
+
+
+def pushed_head(checkout, branch):
+    code, ls, _ = run(["git", "ls-remote", "origin", f"refs/heads/{branch}"], cwd=checkout)
+    return ls.split()[0] if ls.strip() else ""
+
+
+def dependencies(records, key, repo, out):
     deps, source = [], "github"
+    listed = brief_issues(records, key, "Depends on:") or []
     if key.isdigit():
         blocked = gh("api", f"repos/{repo}/issues/{key}/dependencies/blocked_by") or []
         deps = [b["number"] for b in blocked]
+        if deps and set(deps) != set(listed):
+            out["Inconsistent"].append(
+                f"{key}: GitHub blocked by {', '.join(f'#{d}' for d in sorted(deps))}, brief "
+                f"Depends on {', '.join(f'#{d}' for d in sorted(set(listed))) or 'none'}")
     if not deps:
-        deps, source = brief_issues(records, key, "Depends on:") or [], "brief"
+        deps, source = listed, "brief"
     waits = brief_issues(records, key, "Waits for (same section):") or []
     return sorted(set(deps) | set(waits)), source
 
@@ -206,7 +258,7 @@ def cmd_ready(a):
         n = len(plan.read_text(encoding="utf-8").splitlines())
         if n > a.plan_limit:
             out["Plan"].append(f"plan.md has {n} lines (limit {a.plan_limit}): prune it "
-                               "(move, never delete; the five kept kinds stay)")
+                               "(move, never delete; the kinds the top of plan.md names stay)")
     repo = a.repo
     if a.checkout:
         run(["git", "fetch", "-q", "origin"], cwd=a.checkout)
@@ -226,9 +278,14 @@ def cmd_ready(a):
                 ready_parked(records, key, repo, out)
             elif st["state"] == "done":
                 ready_done(records, key, st, repo, a.checkout, out)
-            elif st["state"] == "blocked":
-                out["Waiting"].append(f"{key}: blocked: {st.get('doing', '')}")
-        except (RuntimeError, ValueError, KeyError, TypeError) as e:
+            else:
+                if st["state"] == "blocked":
+                    out["Waiting"].append(f"{key}: blocked: {st.get('doing', '')}")
+                pushed = pushed_head(a.checkout, st["branch"])
+                if pushed and not pushed.startswith(st["head"]):
+                    out["Inconsistent"].append(f"{key}: {st['state']}, status head {st['head']}, pushed "
+                                               f"head {pushed[:12]} (the status file may be stale)")
+        except (RuntimeError, ValueError, KeyError, TypeError, OSError, re.error) as e:
             out["Waiting"].append(f"{key}: lookup failed: {e}")
     if not have:
         print("  (none)")
@@ -245,12 +302,20 @@ def cmd_ready(a):
 def ready_parked(records, key, repo, out):
     if not (records / "briefs" / f"{key}.md").exists():
         out["Inconsistent"].append(f"{key}: parked with no brief")
-    deps, source = dependencies(records, key, repo)
+    deps, source = dependencies(records, key, repo, out)
     open_deps = []
     for d in deps:
-        issue = gh("issue", "view", str(d), "--repo", repo, "--json", "state,stateReason")
-        if issue["state"].upper() != "CLOSED" or (issue.get("stateReason") or "").upper() != "COMPLETED":
-            open_deps.append(f"#{d} {issue['state'].lower()}")
+        issue = gh("issue", "view", str(d), "--repo", repo, "--json",
+                   "state,stateReason,closedByPullRequestsReferences")
+        reason = (issue.get("stateReason") or "").upper()
+        if issue["state"].upper() != "CLOSED":
+            open_deps.append(f"#{d} open")
+        elif reason not in ("", "COMPLETED"):
+            out["Inconsistent"].append(f"{key}: dependency #{d} closed as {reason.lower().replace('_', ' ')}")
+            open_deps.append(f"#{d} closed")
+        elif not issue.get("closedByPullRequestsReferences"):
+            out["Inconsistent"].append(f"{key}: dependency #{d} closed with no pull request")
+            open_deps.append(f"#{d} closed")
     if open_deps:
         out["Waiting"].append(f"{key}: parked on {', '.join(open_deps)}")
     else:
@@ -262,13 +327,13 @@ def ready_done(records, key, st, repo, checkout, out):
     branch, head = st["branch"], st["head"]
     if not (records / "reports" / f"{key}.md").exists():
         out["Inconsistent"].append(f"{key}: done with no report file")
-    code, ls, _ = run(["git", "ls-remote", "origin", f"refs/heads/{branch}"], cwd=checkout)
-    pushed = ls.split()[0] if ls.strip() else ""
+    pushed = pushed_head(checkout, branch)
     if not pushed.startswith(head):
         out["Inconsistent"].append(f"{key}: status head {head} is not the pushed head "
                                    f"{pushed[:12] or '(branch not pushed)'}")
         return
-    for problem in check_pr_body(st.get("PR body draft", "")):
+    for problem in check_pr_body(st.get("PR body draft", ""), brief_issues(records, key, "Closes:"),
+                                 deny_patterns(records)):
         out["Inconsistent"].append(f"{key}: {problem}")
     prs = gh("pr", "list", "--repo", repo, "--head", branch, "--state", "all", "--json",
              "number,state,headRefOid,mergeable,statusCheckRollup") or []
@@ -276,6 +341,9 @@ def ready_done(records, key, st, repo, checkout, out):
         out["Merged"].append(f"{key}: PR #{[p for p in prs if p['state'].upper() == 'MERGED'][0]['number']}")
         return
     pr = next((p for p in prs if p["state"].upper() == "OPEN"), None)
+    if pr is None and prs:
+        out["Inconsistent"].append(f"{key}: PR #{prs[0]['number']} closed without merging")
+        return
     files = conflicts(checkout, branch) if checkout else []
     if files:
         out["Waiting"].append(f"{key}: conflicts with the default branch: {', '.join(files)}")
