@@ -21,7 +21,7 @@ A worker started before its lane may begin; it waits for GO.
 The coordinator's message `GO #<key>` to a parked worker, sent once every issue on the brief's `Depends on:` and `Waits for (same section):` lines is closed as completed.
 
 **Hard dependency**
-Lane A needs lane B's result. GitHub's blocked-by on A's issue is the source; the brief's `Depends on:` and the roadmap copy it.
+Lane A needs lane B's result. The tracker's blocking link on A's issue (GitHub's blocked-by) is the source; the brief's `Depends on:` and the roadmap copy it.
 
 **Same-section wait**
 Lanes A and B change the same section of a file, though neither needs the other's result: one runs after the other, in either order. The brief's `Waits for (same section):` line is the source (`relay.py ready` reads it); the roadmap and the issue's `Same-section wait:` line copy it. Never blocked-by.

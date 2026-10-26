@@ -57,7 +57,7 @@ reports/  pr-bodies/
 | Path | What |
 |---|---|
 | `skills/setup` | `/relay:setup`: turn relay on in a repo |
-| `skills/coordinate` | `/relay:coordinate`: the coordinator; `unattended.md`, `compact.md`, `large-outputs.md`, `app-limits.md` are read on demand |
+| `skills/coordinate` | `/relay:coordinate`: the coordinator; `unattended.md`, `compact.md`, `large-outputs.md`, `cross-machine.md`, `app-limits.md` are read on demand |
 | `skills/work` | `relay:work`: what each worker follows |
 | `tools/relay.py` | `status` (a worker's status file), `ready` (what the coordinator can do next) |
 | `GLOSSARY.md` | the terms |

@@ -30,10 +30,10 @@ You are the coordinator. You order the work, write briefs, start and wake worker
 ## Scheduling
 
 - **Parallel to the maximum.** Every lane whose `Depends on:` and `Waits for (same section):` issues are all closed as completed starts now; no cap. Propose the whole frontier and the chains behind it at once (A, B → C → D), never one lane at a time. On the user's yes, start what can start and park the rest.
-- **Hard dependency:** GitHub's blocked-by is the source; the brief's `Depends on:` and the roadmap copy it. Mark one with `gh api -X POST repos/<repo>/issues/<A>/dependencies/blocked_by -F issue_id=<B's numeric id>` (B's id: `gh api repos/<repo>/issues/<B> -q .id`), or let the user's `/to-tickets` run set them.
+- **Hard dependency:** the tracker's blocking link is the source; the brief's `Depends on:` and the roadmap copy it. Mark one as the repo's `docs/agents/issue-tracker.md` says under *Blocking*, or let the user's `/to-tickets` run set them.
 - **Same-section wait:** the brief's `Waits for (same section):` line is the source (`ready` reads it); the roadmap and a line `Same-section wait: after #N, <file › section>` in the issue's body copy it. Either order works, so put the critical path first: the lane that blocks most, or is blocked least, goes first. Swap an order when it lets a lane start now, and update all three.
 - **Mechanical overlap** runs in parallel: each brief names who owns each shared file or section, and the brief of a lane adding an item to another lane's list says it adds that one row.
-- Recompute the frontier before each wave and after each merge; the plan's last list may be stale. Parked lanes: `ready`'s Ready for GO. Issues with no lane yet: `gh issue list`, then each one's blocked-by (`gh api repos/<repo>/issues/<N>/dependencies/blocked_by -q '.[].number'`); one whose blockers a pull request closed as completed, with no same-section wait open, is on the frontier.
+- Recompute the frontier before each wave and after each merge; the plan's last list may be stale. Parked lanes: `ready`'s Ready for GO. Issues with no lane yet: `docs/agents/issue-tracker.md`'s *Frontier query*, run over all open issues, plus relay's two conditions: a blocker counts as closed only when a pull request closed it as completed, and no same-section wait on it is open.
 
 ## Starting a lane
 
@@ -75,5 +75,5 @@ Sessions start only in a turn the user typed in the desktop app, so start every 
 - **Before a compact, or handing over to a new coordinator:** `compact.md`.
 - **The user says they will be away** ("carry on while I sleep"): `unattended.md`.
 - **A tool refuses (a session, a card, a message), or a result contradicts this skill:** `app-limits.md`.
-- **A test session on another machine** (a Remote Control session the user started there): reach it by its `ListAgents` name with `SendMessage`, and ask it to send its report in numbered parts (1/N, 2/N, …). On each wake, check its state in `ListAgents`; idle or offline before every part arrived: ask it to resend the missing parts. Keep the alarm running until all parts are in, then save the report as `reports/<key>.md`.
+- **A test session on another machine** (a Remote Control session the user started there): `cross-machine.md`.
 - **Before a release, or when the user asks:** have a fresh subagent sort the observations workers left unfiled in their reports into "still live, worth an issue", "not worth one" and "already handled", and give the user that list to choose from. Release steps are `project.md`'s, each outward step on the user's yes.
