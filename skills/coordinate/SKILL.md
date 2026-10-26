@@ -39,7 +39,7 @@ You are the coordinator. You order the work, write briefs, start and wake worker
 
 Sessions start only in a turn the user typed in the desktop app, so start every lane of an approved chain in that same turn, the waiting ones parked. If the tool refuses, propose the lane as an `own_initiative` card (`app-limits.md`).
 
-1. **Overlaps.** For each running lane, list the files its branch changes: `git diff --name-only origin/<default>...origin/<its branch>`. Compare them with the files this lane will touch: the same section is a same-section wait; anything else shared is a mechanical overlap, with each file's owner named in both briefs.
+1. **Overlaps.** For each running lane, list the files its branch changes: `git diff --name-only origin/<default>...origin/<its branch>`. Compare them with the files this lane will touch: the same section is a same-section wait; anything else shared is a mechanical overlap, with each file's owner named in both briefs. Two lanes that will each add the same new thing (a field, a message key, a type): write its exact name in both briefs, or make one lane depend on the other.
 2. Write `briefs/<key>.md` from `briefs/_template.md`: about ten lines, only what is specific to this lane, leaving out what `relay:work`, `project.md` and the issue already say. Cite old reports as maps, not specs. For a lane whose product is a large document (an inventory, hundreds of rows), read `large-outputs.md` first.
 3. Start the session with `start_session`: `initiation: "user_asked"`, `context: "fresh"`, `use_worktree: true` from the default branch (`source_branch`, so it never starts from your own branch) with `branch_name: lane-<key>`, `permission_mode` left out so it inherits yours (another mode holds your messages for approval), `title` `lane <key>: <issue title>`, and a `background` saying the repo, that lanes run in parallel through the records folder, and the user's go-ahead in their words. Its prompt:
    `You are the relay worker for lane <key>. Use the relay:work skill. Records folder: <path>. Brief: <path>/briefs/<key>.md.` and, for a parked lane, `You are parked until GO #<key>.`
@@ -56,7 +56,7 @@ Sessions start only in a turn the user typed in the desktop app, so start every 
 ## Finishing a lane
 
 1. `ready` lists the lane under Ready for PR, and nothing for its key under Inconsistent or Waiting. A conflict or a PR body problem: message the worker to fix it, push, and write `done` again.
-2. Show the user the result and the PR body draft, and ask the PR-and-merge question.
+2. Show the user the result, the PR body draft and any check the report names as not run (skipped, or main checkout only, with its command), and ask the PR-and-merge question.
 3. Open the PR: `gh pr create --head <branch> --title "<issue title>" --body-file <records>/pr-bodies/<key>.md`.
 4. On "merge once CI passes": run `gh pr checks <N> --watch` in the background; when it passes, merge with `gh pr merge <N> --merge --match-head-commit <sha>`, the sha `ready` prints under Ready to merge, and tell the user after. A failed check or a moved head: ask again. Merging several: one at a time, rerunning `ready` before each, since each merge can make the next conflict.
 5. **A draft changed after the PR opened** (a rerun's results, say): rerun `ready`, which checks the draft, then `gh pr edit <N> --body-file <records>/pr-bodies/<key>.md`.
