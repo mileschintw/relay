@@ -21,7 +21,7 @@ status  writes <records>/status/<key>.md, a worker's status file, then reads it 
         detached HEAD with no --branch.
 
 ready   read-only. Prints what the coordinator can do next:
-          - Ready for GO: parked lanes whose every dependency a pull request closed as completed. The
+          - Ready for GO: parked lanes whose every dependency is closed as completed. The
             dependencies are the GitHub blocked-by list of issue <key> (numeric keys only) plus
             every `#N` on the brief's `Waits for (same section):` line; the brief's
             `Depends on:` line counts only when GitHub lists no blocked-by entry.
@@ -32,10 +32,9 @@ ready   read-only. Prints what the coordinator can do next:
             done lanes with a conflict, pending or failed checks, or a failed lookup.
           - No status yet: a brief with no status file.
           - Merged: done lanes whose PR merged (move them to plan-history.md).
-          - Inconsistent: a status head that is not the pushed one (any lane with a pushed branch);
-            done with no report file; a PR head that is not the status head; a PR closed without
-            merging; GitHub's blocked-by naming other issues than the brief's `Depends on:`; a
-            dependency closed as not planned or with no pull request (it also holds GO); a PR body
+          - Inconsistent: a done lane's status head that is not the pushed one; done with no report
+            file; a PR head that is not the status head; a PR closed without merging; a dependency
+            closed as not planned (it also holds GO); a PR body
             draft with a title line, a closing keyword outside a `Closes #N` line, or `Closes`
             lines that are not exactly one per issue on the brief's `Closes:` line; a line matching
             project.md's deny list (`- **Deny list:** <path>`, one regex per line, matched as a
@@ -192,18 +191,13 @@ def pushed_head(checkout, branch):
     return ls.split()[0] if ls.strip() else ""
 
 
-def dependencies(records, key, repo, out):
+def dependencies(records, key, repo):
     deps, source = [], "github"
-    listed = brief_issues(records, key, "Depends on:") or []
     if key.isdigit():
         blocked = gh("api", f"repos/{repo}/issues/{key}/dependencies/blocked_by") or []
         deps = [b["number"] for b in blocked]
-        if deps and set(deps) != set(listed):
-            out["Inconsistent"].append(
-                f"{key}: GitHub blocked by {', '.join(f'#{d}' for d in sorted(deps))}, brief "
-                f"Depends on {', '.join(f'#{d}' for d in sorted(set(listed))) or 'none'}")
     if not deps:
-        deps, source = listed, "brief"
+        deps, source = brief_issues(records, key, "Depends on:") or [], "brief"
     waits = brief_issues(records, key, "Waits for (same section):") or []
     return sorted(set(deps) | set(waits)), source
 
@@ -278,13 +272,8 @@ def cmd_ready(a):
                 ready_parked(records, key, repo, out)
             elif st["state"] == "done":
                 ready_done(records, key, st, repo, a.checkout, out)
-            else:
-                if st["state"] == "blocked":
-                    out["Waiting"].append(f"{key}: blocked: {st.get('doing', '')}")
-                pushed = pushed_head(a.checkout, st["branch"])
-                if pushed and not pushed.startswith(st["head"]):
-                    out["Inconsistent"].append(f"{key}: {st['state']}, status head {st['head']}, pushed "
-                                               f"head {pushed[:12]} (the status file may be stale)")
+            elif st["state"] == "blocked":
+                out["Waiting"].append(f"{key}: blocked: {st.get('doing', '')}")
         except (RuntimeError, ValueError, KeyError, TypeError, OSError, re.error) as e:
             out["Waiting"].append(f"{key}: lookup failed: {e}")
     if not have:
@@ -302,19 +291,15 @@ def cmd_ready(a):
 def ready_parked(records, key, repo, out):
     if not (records / "briefs" / f"{key}.md").exists():
         out["Inconsistent"].append(f"{key}: parked with no brief")
-    deps, source = dependencies(records, key, repo, out)
+    deps, source = dependencies(records, key, repo)
     open_deps = []
     for d in deps:
-        issue = gh("issue", "view", str(d), "--repo", repo, "--json",
-                   "state,stateReason,closedByPullRequestsReferences")
+        issue = gh("issue", "view", str(d), "--repo", repo, "--json", "state,stateReason")
         reason = (issue.get("stateReason") or "").upper()
         if issue["state"].upper() != "CLOSED":
             open_deps.append(f"#{d} open")
         elif reason not in ("", "COMPLETED"):
             out["Inconsistent"].append(f"{key}: dependency #{d} closed as {reason.lower().replace('_', ' ')}")
-            open_deps.append(f"#{d} closed")
-        elif not issue.get("closedByPullRequestsReferences"):
-            out["Inconsistent"].append(f"{key}: dependency #{d} closed with no pull request")
             open_deps.append(f"#{d} closed")
     if open_deps:
         out["Waiting"].append(f"{key}: parked on {', '.join(open_deps)}")

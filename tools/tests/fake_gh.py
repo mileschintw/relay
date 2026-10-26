@@ -2,10 +2,9 @@
 
 {"repo": "o/r",
  "blocked_by": {"12": [11]},
- "issues": {"11": ["CLOSED", "COMPLETED"], "12": ["CLOSED", "COMPLETED", []]},
+ "issues": {"11": ["CLOSED", "COMPLETED"]},
  "prs": {"<branch>": [{"number": 5, "state": "OPEN", "headRefOid": "<sha>",
                        "mergeable": "MERGEABLE", "statusCheckRollup": [...]}]}}
-An issue's optional third item lists the PRs that closed it (default [99] when closed).
 """
 import json
 import os
@@ -21,9 +20,8 @@ elif a[0] == "api" and a[1].endswith("/dependencies/blocked_by"):
 elif a[:2] == ["issue", "view"]:
     if a[2] not in data.get("issues", {}):
         sys.exit(f"issue {a[2]} not found")
-    state, reason, *prs = data["issues"][a[2]]
-    refs = [{"number": n} for n in (prs[0] if prs else ([99] if state == "CLOSED" else []))]
-    print(json.dumps({"state": state, "stateReason": reason, "closedByPullRequestsReferences": refs}))
+    state, reason = data["issues"][a[2]]
+    print(json.dumps({"state": state, "stateReason": reason}))
 elif a[:2] == ["pr", "list"]:
     print(json.dumps(data.get("prs", {}).get(a[a.index("--head") + 1], [])))
 else:

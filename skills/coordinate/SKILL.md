@@ -33,7 +33,7 @@ You are the coordinator. You order the work, write briefs, start and wake worker
 - **Hard dependency:** the tracker's blocking link is the source; the brief's `Depends on:` and the roadmap copy it. Mark one as the repo's `docs/agents/issue-tracker.md` says under *Blocking*, or let the user's `/to-tickets` run set them.
 - **Same-section wait:** the brief's `Waits for (same section):` line is the source (`ready` reads it); the roadmap and a line `Same-section wait: after #N, <file › section>` in the issue's body copy it. Either order works, so put the critical path first: the lane that blocks most, or is blocked least, goes first. Swap an order when it lets a lane start now, and update all three.
 - **Mechanical overlap** runs in parallel: each brief names who owns each shared file or section, and the brief of a lane adding an item to another lane's list says it adds that one row.
-- Recompute the frontier before each wave and after each merge; the plan's last list may be stale. Parked lanes: `ready`'s Ready for GO. Issues with no lane yet: `docs/agents/issue-tracker.md`'s *Frontier query*, run over all open issues, plus relay's two conditions: a blocker counts as closed only when a pull request closed it as completed, and no same-section wait on it is open.
+- Recompute the frontier before each wave and after each merge; the plan's last list may be stale. Parked lanes: `ready`'s Ready for GO. Issues with no lane yet: `docs/agents/issue-tracker.md`'s *Frontier query*, run over all open issues, plus relay's two conditions: a blocker counts as closed only when closed as completed (not as not planned), and no same-section wait on it is open.
 
 ## Starting a lane
 
