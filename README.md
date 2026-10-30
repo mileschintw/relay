@@ -54,13 +54,25 @@ reports/  pr-bodies/
 
 ## Layout
 
+Only `plugin/` is installed; everything else is for developing relay.
+
 | Path | What |
 |---|---|
-| `skills/setup` | `/relay:setup`: turn relay on in a repo |
-| `skills/coordinate` | `/relay:coordinate`: the coordinator; `unattended.md`, `compact.md`, `large-outputs.md`, `cross-machine.md`, `app-limits.md` are read on demand |
-| `skills/work` | `relay:work`: what each worker follows |
-| `tools/relay.py` | `status` (a worker's status file), `ready` (what the coordinator can do next) |
-| `GLOSSARY.md` | the terms |
+| `plugin/skills/setup` | `/relay:setup`: turn relay on in a repo |
+| `plugin/skills/coordinate` | `/relay:coordinate`: the coordinator; `unattended.md`, `compact.md`, `large-outputs.md`, `cross-machine.md`, `app-limits.md` are read on demand |
+| `plugin/skills/work` | `relay:work`: what each worker follows |
+| `plugin/tools/relay.py` | `status` (a worker's status file), `ready` (what the coordinator can do next) |
+| `plugin/GLOSSARY.md` | the terms |
+| `.claude-plugin/marketplace.json` | the catalog; its entry installs `plugin/` from the `release` branch |
+| `tests/` | `python3 -I tests/test_relay.py` |
 | `docs/getting-started.md` | the longer walkthrough and how relay splits work with mattpocock-skills |
 
-Tests: `python3 -I tools/tests/test_relay.py`
+## Releasing
+
+`main` is where work lands; installs come from `release`, so a merge to `main` reaches no one until it is released.
+
+1. On `main`, raise `version` in `plugin/.claude-plugin/plugin.json` (users get a new copy only when it changes; keep `version` out of `marketplace.json`).
+2. `claude plugin validate .` and the tests pass.
+3. `git push origin main:release` (fast-forward only), then tag `relay--v<version>`.
+
+`marketplace.json` is read from `main`, so a change to it reaches users on their next marketplace update, without a release. To try unreleased skills locally: `claude --plugin-dir plugin`.

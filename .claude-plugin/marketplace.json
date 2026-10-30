@@ -1,8 +1,12 @@
 {
   "name": "relay",
-  "owner": { "name": "local" },
-  "metadata": { "description": "The relay plugin, installed from this folder", "version": "0.1.0" },
+  "owner": { "name": "mileschintw" },
+  "metadata": { "description": "relay: lightweight multi-session coordination for Claude Code" },
   "plugins": [
-    { "name": "relay", "source": "./", "description": "Lightweight multi-session coordination for Claude Code" }
+    {
+      "name": "relay",
+      "source": { "source": "git-subdir", "url": "mileschintw/relay", "path": "plugin", "ref": "release" },
+      "description": "Lightweight multi-session coordination for Claude Code"
+    }
   ]
 }

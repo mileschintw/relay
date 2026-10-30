@@ -5,7 +5,7 @@ relay coordinates several Claude Code desktop-app sessions on one repo: a **coor
 ## Install (once per machine)
 
 1. Install mattpocock-skills (`/plugin` → claude-plugins-official → mattpocock-skills).
-2. Add the repo as a marketplace and install relay (a local clone works too: `/plugin marketplace add <path of the clone>`):
+2. Add the repo as a marketplace and install relay (this installs the `release` branch; to try a local clone's `main`, start Claude Code with `--plugin-dir <clone>/plugin` instead):
    ```
    /plugin marketplace add mileschintw/relay
    /plugin install relay@relay
