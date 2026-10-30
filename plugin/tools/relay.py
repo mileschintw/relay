@@ -40,8 +40,9 @@ ready   read-only. Prints what the coordinator can do next:
             project.md's deny list (`- **Deny list:** <path>`, one regex per line, matched as a
             whole word; printed by line number only).
           - Records: invalid UTF-8, or a control character other than tab, LF and a CR right
-            before LF, in plan.md, briefs/*.md or pr-bodies/*.md, by file and line. Checked
-            before anything else reads those files, so a bad byte is a warning, not a crash.
+            before LF, in plan.md, briefs/*.md or pr-bodies/*.md, by file and line (for invalid
+            UTF-8, the first bad byte only). Checked first, so a bad byte is a warning, never a
+            crash; a lane whose brief or PR body draft has one also shows as lookup failed.
           - Plan: a warning when plan.md has more lines than --plan-limit (default 200).
         --checkout <dir>: a local clone; `git fetch` there, then `git merge-tree` each Ready for
         PR / Ready to merge branch against the default branch; a conflict moves it to Waiting.
@@ -247,8 +248,11 @@ def check_encoding(path, name):
     except UnicodeDecodeError as e:
         line = data.count(b"\n", 0, e.start) + 1
         return [f"{name} line {line}: invalid UTF-8 (byte {data[e.start]:#04x})"]
-    return [f"{name} line {text.count(chr(10), 0, m.start()) + 1}: "
-            f"control character U+{ord(m.group()):04X}" for m in CONTROL.finditer(text)]
+    out = []
+    for m in CONTROL.finditer(text):
+        line = text.count("\n", 0, m.start()) + 1
+        out.append(f"{name} line {line}: control character U+{ord(m.group()):04X}")
+    return out
 
 
 def cmd_ready(a):

@@ -232,6 +232,16 @@ class ReadyTests(Base):
         self.assertNotIn("plan.md line 1", out)
         self.assertNotIn("plan.md line 3", out)
 
+    def test_invalid_utf8_in_brief_and_pr_body_warns(self):
+        self.park("13", "Depends on: none\n")
+        (self.records / "briefs" / "13.md").write_bytes(b"Depends on: none\n\xc3(\n")
+        head = self.branch("lane-12")
+        self.done("12", "lane-12", head)
+        (self.records / "pr-bodies" / "12.md").write_bytes(b"Closes #12\n\n\xff\n")
+        out = self.ready()
+        self.assertIn("briefs/13.md line 2: invalid UTF-8 (byte 0xc3)", out)
+        self.assertIn("pr-bodies/12.md line 3: invalid UTF-8 (byte 0xff)", out)
+
     def test_clean_records_print_no_records_section(self):
         (self.records / "plan.md").write_text("# Plan\n\tindented\n")
         self.assertNotIn("Records:", self.ready())
