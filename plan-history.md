@@ -22,3 +22,11 @@ Finished work moved out of `plan.md`, newest first, for checking only; the plan 
 | 1 | #1 Parents, never lanes | local_1579b864-86a9-486d-90c2-506674ab72a7 | claude/lane-1-6a0c93 @ a0c9377 | #17 |
 
 - No CI: user chose 「開 PR，本機檢查過就合併」; coordinator ran tests (28 OK) and plugin validate on a0c9377 merged onto main before merging. GO #2, GO #3 sent 16:47; lane 7 asked to resolve its conflict with lane 1.
+
+## 2026-10-30 16:52 -0700, lane 11 merged (coordinator local_75cc31e5-4bd1-45b1-92a6-8c63fa48ec22)
+
+| Key | Issue | Session | Branch @ head | PR |
+|---|---|---|---|---|
+| 11 | #11 Deny list `none.` | local_68c615d2-7e40-43ab-82da-77985a357b61 | claude/lane-11-f4e84e @ 75435e4 | #18 |
+
+- No CI: user chose 「開 PR，本機檢查過就合併」; coordinator ran tests (29 OK) and plugin validate on 75435e4 merged onto main.
