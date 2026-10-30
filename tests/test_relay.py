@@ -247,12 +247,14 @@ class ParentTests(Base):
             (self.records / "briefs" / f"{key}.md").write_text("Depends on: none\n")
             self.call("status", str(self.records), key, "--state", "parked", "--doing", "parked")
 
-    def family(self, completed):
-        self.gh({"issues": {n: ["OPEN", None] for n in ("1", "2", "3", "4")},
-                 "sub_issues": {"1": {"total": 3, "completed": completed}}})
+    def parent_with_children(self, *children, **extra):
+        """Open issue 1 with sub-issues 2, 3 and 4 in the given [state, reason] pairs."""
+        issues = {"1": ["OPEN", None]}
+        issues.update({str(n): c for n, c in enumerate(children, 2)})
+        self.gh({"issues": issues, "children": {"1": ["2", "3", "4"]}, **extra})
 
     def test_only_children_on_the_frontier(self):
-        self.family(0)
+        self.parent_with_children(*[["OPEN", None]] * 3)
         out = self.ready()
         for key in ("2", "3", "4"):
             self.assertIn(f"{key}: send `GO #{key}`", out)
@@ -260,11 +262,28 @@ class ParentTests(Base):
         self.assertIn("1: issue #1 is a parent, never a lane", out)
 
     def test_parents_listed_with_child_counts(self):
-        self.family(1)
-        self.assertIn("Parents:\n  #1 issue 1: 2 open, 1 closed children", self.ready())
-        self.family(3)
-        self.assertIn("#1 issue 1: 0 open, 3 closed children; every child is closed: "
-                      "ask the user before closing #1", self.ready())
+        self.parent_with_children(["OPEN", None], ["CLOSED", "COMPLETED"], ["OPEN", None])
+        self.assertIn("Parents:\n  #1 issue 1: 2 open, 1 closed children\n", self.ready())
+        self.parent_with_children(*[["CLOSED", "COMPLETED"]] * 3)
+        self.assertIn("#1 issue 1: 0 open, 3 closed children; every child closed as completed",
+                      self.ready())
+        self.parent_with_children(["CLOSED", "COMPLETED"], ["CLOSED", "NOT_PLANNED"],
+                                  ["CLOSED", "COMPLETED"])
+        self.assertIn("0 open, 3 closed children; every child closed, 1 not as completed",
+                      self.ready())
+
+    def test_working_lane_on_a_parent_is_inconsistent(self):
+        self.call("status", str(self.records), "1", "--state", "working", "--doing", "x",
+                  "--branch", "lane-1", "--head", "abcdef1")
+        self.parent_with_children(*[["OPEN", None]] * 3)
+        self.assertIn("1: issue #1 is a parent, never a lane", self.ready())
+
+    def test_failed_lookup_holds_go(self):
+        self.parent_with_children(*[["OPEN", None]] * 3, broken=["/sub_issues"])
+        out = self.ready()
+        self.assertIn("Parents:\n  lookup failed:", out)
+        self.assertIn("2: parked; no GO while the Parents lookup fails", out)
+        self.assertNotIn("Ready for GO", out)
 
 
 if __name__ == "__main__":
