@@ -2,9 +2,12 @@
 
 {"repo": "o/r",
  "blocked_by": {"12": [11]},
- "issues": {"11": ["CLOSED", "COMPLETED"]},
+ "issues": {"10": ["OPEN", null], "11": ["CLOSED", "COMPLETED"]},
+ "children": {"10": ["11"]},
+ "broken": ["/sub_issues"],
  "prs": {"<branch>": [{"number": 5, "state": "OPEN", "headRefOid": "<sha>",
                        "mergeable": "MERGEABLE", "statusCheckRollup": [...]}]}}
+children: an issue's sub-issues. broken: a call with an argument containing one of these fails.
 """
 import json
 import os
@@ -12,11 +15,33 @@ import sys
 
 data = json.load(open(os.environ["RELAY_FAKE_GH"], encoding="utf-8"))
 a = sys.argv[1:]
+issues = data.get("issues", {})
+children = data.get("children", {})
+
+
+def rest(n):
+    state, reason = issues[n]
+    return {"number": int(n), "state": state.lower(), "state_reason": (reason or "").lower() or None}
+
+
+if any(b in x for b in data.get("broken", []) for x in a):
+    sys.exit(f"fake gh: broken {a}")
 if a[:2] == ["repo", "view"]:
     print(json.dumps({"nameWithOwner": data["repo"]}))
 elif a[0] == "api" and a[1].endswith("/dependencies/blocked_by"):
     n = a[1].split("/")[-3]
     print(json.dumps([{"number": b} for b in data.get("blocked_by", {}).get(n, [])]))
+elif a[0] == "api" and any("/issues?state=open" in x for x in a):
+    for n, (state, _) in issues.items():
+        if state == "OPEN":
+            kids = [rest(c) for c in children.get(n, [])]
+            done = sum(k["state_reason"] == "completed" for k in kids)
+            print(json.dumps({"number": int(n), "title": f"issue {n}",
+                              "sub_issues_summary": {"total": len(kids), "completed": done}}))
+elif a[0] == "api" and any("/sub_issues" in x for x in a):
+    n = next(x for x in a if "/sub_issues" in x).split("/")[-2]
+    for c in children.get(n, []):
+        print(json.dumps({k: v for k, v in rest(c).items() if k != "number"}))
 elif a[:2] == ["issue", "view"]:
     if a[2] not in data.get("issues", {}):
         sys.exit(f"issue {a[2]} not found")
