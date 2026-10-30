@@ -3,7 +3,7 @@ name: test
 on:
   pull_request:
   push:
-    branches: [main, claude/lane-16-3bf73f]
+    branches: [main]
 
 jobs:
   test:
