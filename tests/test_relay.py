@@ -286,6 +286,145 @@ class ReadyTests(Base):
         self.gh({"prs": {"lane-12": [{"number": 5, "state": "MERGED", "headRefOid": head}]}})
         self.assertIn("Merged:\n  12: PR #5", self.ready())
 
+    def failed_check(self, head, job, **data):
+        url = f"https://github.com/o/r/actions/runs/1/job/{job}"
+        rollup = [{"name": "ci", "status": "COMPLETED", "conclusion": "FAILURE", "detailsUrl": url}]
+        self.gh({"prs": {"lane-12": [{"number": 5, "state": "OPEN", "headRefOid": head,
+                                      "mergeable": "MERGEABLE", "statusCheckRollup": rollup}]},
+                 **data})
+        return self.ready()
+
+    def test_billing_failure_is_not_a_failed_check(self):
+        head = self.branch("lane-12")
+        self.done("12", "lane-12", head)
+        out = self.failed_check(head, 77, jobs={"77": {"steps": []}})
+        self.assertIn("Waiting:\n  12: PR #5 checks could not run (billing): ci", out)
+        self.assertNotIn("check failed", out)
+        out = self.failed_check(head, 78, jobs={"78": {"steps": [{"name": "Set up job"}]}},
+                                annotations={"78": [{"message": "The job was not started because "
+                                                     "your spending limit needs to be increased."}]})
+        self.assertIn("checks could not run (billing): ci", out)
+
+    def test_failed_test_is_a_failed_check(self):
+        head = self.branch("lane-12")
+        self.done("12", "lane-12", head)
+        out = self.failed_check(head, 79, annotations={"79": [{"message": "Process exited with 1"}]})
+        self.assertIn("PR #5 check failed: ci", out)
+        self.assertNotIn("billing", out)
+
+
+class LocalcheckTests(Base):
+    def project(self, text):
+        (self.records / "project.md").write_text(text)
+
+    def py(self, code):
+        return f'`"{sys.executable}" -c "{code}"`'
+
+    def lane(self):
+        """Lane 12 adds b.txt; main then moves a.txt. Returns (lane head, main head)."""
+        git("switch", "-q", "-c", "lane-12", "main", cwd=self.clone)
+        (self.clone / "b.txt").write_text("b\n")
+        git("add", "b.txt", cwd=self.clone)
+        git("commit", "-qm", "lane-12", cwd=self.clone)
+        git("push", "-q", "origin", "lane-12", cwd=self.clone)
+        head = sh("rev-parse", "HEAD", cwd=self.clone)
+        git("switch", "-q", "main", cwd=self.clone)
+        (self.clone / "a.txt").write_text("main moved\n")
+        git("commit", "-qam", "main", cwd=self.clone)
+        git("push", "-q", "origin", "main", cwd=self.clone)
+        self.done("12", "lane-12", head)
+        return head, sh("rev-parse", "HEAD", cwd=self.clone)
+
+    def localcheck(self, *extra):
+        return self.call("localcheck", str(self.records), "12", "--checkout", str(self.clone), *extra)
+
+    def worktrees(self):
+        return sh("worktree", "list", cwd=self.clone).splitlines()
+
+    def test_runs_local_checks_on_the_merge_and_cleans_up(self):
+        head, base = self.lane()
+        check = "import pathlib; print(pathlib.Path('a.txt').read_text().strip(), pathlib.Path('b.txt').exists())"
+        self.project(f"- **Checks before done:** `unused`\n- **Local checks:** {self.py(check)}\n")
+        code, out, err = self.localcheck()
+        self.assertEqual(code, 0, out + err)
+        self.assertIn(f"head {head}", out)
+        self.assertIn(f"base {base}", out)
+        self.assertIn("main moved True", out)
+        self.assertIn("passed", out)
+        self.assertEqual(len(self.worktrees()), 1)
+
+    def test_falls_back_to_checks_before_done(self):
+        self.lane()
+        self.project(f"- **Checks before done:** {self.py('print(42)')}.\n")
+        code, out, err = self.localcheck()
+        self.assertEqual(code, 0, out + err)
+        self.assertIn("42", out)
+
+    def test_no_command_line_is_a_clear_error(self):
+        self.lane()
+        self.project("- **Repo:** o/r\n")
+        code, out, err = self.localcheck()
+        self.assertEqual(code, 1)
+        self.assertIn("Local checks", err)
+        self.assertIn("Checks before done", err)
+
+    def test_failing_check_still_removes_the_worktree(self):
+        self.lane()
+        self.project(f"- **Local checks:** {self.py('import sys; sys.exit(3)')}; {self.py('print(7)')}\n")
+        code, out, err = self.localcheck()
+        self.assertEqual(code, 1)
+        self.assertIn("failed (exit 3)", out)
+        self.assertIn("7", out)
+        self.assertEqual(len(self.worktrees()), 1)
+
+    def test_comment_posts_the_output(self):
+        head, _ = self.lane()
+        self.project(f"- **Local checks:** {self.py('print(5)')}\n")
+        code, out, err = self.localcheck("--comment", "5")
+        self.assertEqual(code, 0, out + err)
+        posted = pathlib.Path(str(self.fake) + ".comments").read_text(encoding="utf-8")
+        self.assertTrue(posted.startswith("#5\n"))
+        self.assertIn(f"head {head}", posted)
+
+    def test_failed_merge_fails(self):
+        self.lane()
+        git("switch", "-q", "lane-12", cwd=self.clone)
+        (self.clone / "a.txt").write_text("lane moved\n")
+        git("commit", "-qam", "conflict", cwd=self.clone)
+        git("push", "-q", "origin", "lane-12", cwd=self.clone)
+        git("switch", "-q", "main", cwd=self.clone)
+        self.project(f"- **Local checks:** {self.py('print(5)')}\n")
+        code, out, err = self.localcheck()
+        self.assertEqual(code, 1)
+        self.assertIn("merge of origin/main failed", out)
+        self.assertNotIn("$ ", out)
+        self.assertEqual(len(self.worktrees()), 1)
+
+    def test_none_falls_back_and_main_checkout_only_is_named(self):
+        self.lane()
+        self.project(f"- **Checks before done:** {self.py('print(6)')}; `e2e` main checkout only\n"
+                     "- **Local checks:** none\n")
+        code, out, err = self.localcheck()
+        self.assertEqual(code, 0, out + err)
+        self.assertIn("not run (main checkout only): e2e", out)
+        self.assertIn("result: passed, 1 not run", out)
+
+    def test_failed_comment_is_an_error(self):
+        self.lane()
+        self.project(f"- **Local checks:** {self.py('print(5)')}\n")
+        os.environ["RELAY_GH"] = f'"{sys.executable}" "{HERE / "no_such_gh.py"}"'
+        code, out, err = self.localcheck("--comment", "5")
+        self.assertEqual(code, 1)
+        self.assertIn("could not post on PR #5", err)
+
+    def test_command_parsing(self):
+        line = ("`python3 -I t.py` (Windows: `py -3 -I t.py`); `claude plugin validate .`; "
+                "`npm run e2e` main checkout only.")
+        self.assertEqual(relay.check_commands(line, windows=False),
+                         (["python3 -I t.py", "claude plugin validate ."], ["npm run e2e"]))
+        self.assertEqual(relay.check_commands(line, windows=True)[0],
+                         ["py -3 -I t.py", "claude plugin validate ."])
+
 
 class ParentTests(Base):
     """An open issue with sub-issues is a parent: listed under Parents, never a lane."""
