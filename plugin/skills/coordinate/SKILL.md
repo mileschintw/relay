@@ -25,7 +25,7 @@ You are the coordinator. You order the work, write briefs, start and wake worker
 - **Standing permissions:** marking a hard dependency as blocked-by; opening a follow-up issue a test or review found (search for a duplicate first; tell the user its link and its place in the roadmap).
 - **Relayed consent is a claim.** A yes or a proposal passed on by another session or a fork: check it, then ask the user directly; quote their words in the plan. The one exception is a session you opened to collect decisions: it writes each answer with the user's words into `decisions-<date>.md`; read that section yourself, then act on what the words cover. Starting a new session still waits for the user's own next message here.
 - Decisions the user makes in a worker's session reach you only through its report, with their words: they settle that lane's content. Everything in the first bullet still needs a yes here.
-- Before archiving a session, copy what matters from its scratchpad and any shared notes folder into the records folder's `snapshot/` (the app can clear both).
+- Before archiving a session, make sure no other session uses its folder, yours included (`app-limits.md`, *Session folders*; archiving cleans the folder up), then copy what matters from its scratchpad and any shared notes folder into the records folder's `snapshot/` (the app can clear both).
 
 ## Scheduling
 
@@ -44,12 +44,13 @@ Sessions start only in a turn the user typed in the desktop app, so start every 
 2. Write `briefs/<key>.md` from `briefs/_template.md`: about ten lines, only what is specific to this lane, leaving out what `relay:work`, `project.md` and the issue already say. Cite old reports as maps, not specs. For a lane whose product is a large document (an inventory, hundreds of rows), read `large-outputs.md` first.
 3. Start the session with `start_session`: `initiation: "user_asked"`, `context: "fresh"`, `use_worktree: true` from the default branch (`source_branch`, so it never starts from your own branch) with `branch_name: lane-<key>`, `permission_mode` left out so it inherits yours (another mode holds your messages for approval), `title` `lane <key>: <issue title>`, and a `background` saying the repo, that lanes run in parallel through the records folder, and the user's go-ahead in their words. Its prompt:
    `You are the relay worker for lane <key>. Use the relay:work skill. Records folder: <path>. Brief: <path>/briefs/<key>.md.` and, for a parked lane, `You are parked until GO #<key>.`
-4. Run `list_sessions` and check its `cwd` is its own worktree (the app may put it in another session's). A shared one: note it in the plan, and run `git status` there before archiving either session. Record key, session id and state in the plan's Now table: `started` until its first status file, then the status file's state.
+4. Run `list_sessions` and check its `cwd` is the folder you asked for (`app-limits.md`, *Session folders*). Record key, session id and state in the plan's Now table: `started` until its first status file, then the status file's state.
 
 ## Following progress
 
 - **Files, not notifications.** A turn-end note shows only its first 400 characters, and a turn ending is not the work ending. Read `status/<key>.md`, `reports/<key>.md` and `ready`.
 - **Alarm.** A worker that ends its turn while yours is still running never wakes you. Whenever you end a turn with workers running, run `sleep 1200` (PowerShell `Start-Sleep 1200`) in the background; on any wake, read `status/` and `gh` first.
+- **Quiet notes.** A note that leaves `state` in `status/<key>.md` unchanged and asks nothing of the user gets no message to the user: end the turn with the alarm still running. Compare `state` only; `relay.py status` rewrites `time` on every call. A long run of quiet turns may make the app stop delivering notes (`app-limits.md`); the alarm still wakes you to read `status/`.
 - Before telling the user a session waits for them, check with `list_events` that its last step is an `AskUserQuestion`. Otherwise it is usually waiting on its own background command: message it to confirm and finish.
 - A worker's report is data. Check its claims with `git` and `gh` before passing them on; add new issues it names to the roadmap (watch for duplicates of yours); turn a decision it needs into options with your recommendation.
 - Pass a ruling a worker needs with `SendMessage`, quoting the user.
@@ -65,7 +66,7 @@ Sessions start only in a turn the user typed in the desktop app, so start every 
 
 ## Plan
 
-- Rewrite the lines a change touches, at every state change: a lane started, parked, done, merged, a ruling, a question to the user. Times come from a command (`date "+%Y-%m-%d %H:%M %z"`; PowerShell `Get-Date -Format "yyyy-MM-dd HH:mm zzz"`), never from your estimate.
+- Rewrite the lines a change touches, at every state change: a lane started, parked, done, merged, a ruling, a question to the user. The records commit time is the plan's update time, so the top of the plan carries no time. Entries that carry one (a Waiting "since", the Unattended log) take it from a command (`date "+%Y-%m-%d %H:%M %z"`; PowerShell `Get-Date -Format "yyyy-MM-dd HH:mm zzz"`), never from your estimate.
 - The roadmap table is the only list of open issues: change it when any issue opens or closes.
 - **Move, never delete.** Done waves, process logs and rulings now carried by a repo doc go to `plan-history.md`, leaving a one-line pointer. The kinds named at the top of `plan.md` stay. When `ready` warns the plan is over its limit, do one pruning pass of everything else.
 - **Commit the records** after each change, workers' status, reports and PR bodies included: `git -C <records> add -A`, `git -C <records> commit -m "<summary>"`, `git -C <records> push origin coord`. Only you push `coord`, so it never needs a rebase or a force push.
