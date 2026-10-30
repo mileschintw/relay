@@ -11,6 +11,9 @@ A session that works one lane: its own worktree, its own branch, one pull reques
 **Lane**
 One unit of parallel work: one issue, or a few small issues closed by one PR, with its brief, its worker and its branch. Named by its **key**: the number of the first issue it closes. Work with no issue gets one opened first, on the user's yes.
 
+**Parent**
+An open issue with sub-issues. Its children carry the work; the parent itself is never a lane.
+
 **Brief**
 `briefs/<key>.md`: about ten lines, only what is specific to one lane. A worker reads it with `relay:work` and `project.md`, which hold everything the lanes share.
 

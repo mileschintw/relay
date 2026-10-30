@@ -32,6 +32,9 @@ ready   read-only. Prints what the coordinator can do next:
             done lanes with a conflict, pending or failed checks, or a failed lookup.
           - No status yet: a brief with no status file.
           - Merged: done lanes whose PR merged (move them to plan-history.md).
+          - Parents: open issues with sub-issues (GitHub's sub_issues_summary), with their open and
+            closed child counts. A parent is never a lane: a status file keyed on one is
+            Inconsistent and gets no GO.
           - Inconsistent: a done lane's status head that is not the pushed one; done with no report
             file; a PR head that is not the status head; a PR closed without merging; a dependency
             closed as not planned (it also holds GO); a PR body
@@ -69,11 +72,13 @@ def run(cmd, cwd=None):
     return p.returncode, p.stdout, p.stderr
 
 
-def gh(*args):
+def gh(*args, jsonl=False):
     base = [t.strip('"') for t in shlex.split(os.environ.get("RELAY_GH", "gh"), posix=False)]
     code, out, err = run(base + list(args))
     if code:
         raise RuntimeError(f"gh {' '.join(args)}: {err.strip() or out.strip()}")
+    if jsonl:
+        return [json.loads(line) for line in out.splitlines() if line.strip()]
     return json.loads(out) if out.strip() else None
 
 
@@ -242,7 +247,7 @@ def cmd_ready(a):
         print(f"no records folder at {records}", file=sys.stderr)
         return 2
     out = {k: [] for k in ("Ready for GO", "Ready for PR", "Ready to merge", "Waiting",
-                           "No status yet", "Merged", "Inconsistent", "Could not parse", "Plan")}
+                           "No status yet", "Merged", "Parents", "Inconsistent", "Could not parse", "Plan")}
     have = {p.stem for p in status_dir.glob("*.md")}
     for b in sorted((records / "briefs").glob("*.md")):
         if not b.stem.startswith("_") and b.stem not in have:
@@ -256,6 +261,7 @@ def cmd_ready(a):
     repo = a.repo
     if a.checkout:
         run(["git", "fetch", "-q", "origin"], cwd=a.checkout)
+    parents = ready_parents(repo, out)
     print("Lanes:")
     for path in sorted(status_dir.glob("*.md")):
         key = path.stem
@@ -265,6 +271,9 @@ def cmd_ready(a):
             out["Could not parse"].append(f"{key}: missing or bad {missing or ['state']}")
             continue
         print(f"  {key}: {st['state']}, {st['branch']} @ {st['head']}, {st['time']}")
+        if key.isdigit() and int(key) in parents:
+            out["Inconsistent"].append(f"{key}: issue #{key} is a parent, never a lane")
+            continue
         try:
             if repo is None and (st["state"] in ("parked", "done")):
                 repo = gh("repo", "view", "--json", "nameWithOwner")["nameWithOwner"]
@@ -286,6 +295,31 @@ def cmd_ready(a):
     if not any(out.values()):
         print("Nothing to do.")
     return 0
+
+
+def ready_parents(repo, out):
+    """Open issues with sub-issues (GitHub's sub_issues_summary), listed under Parents with their
+    child counts; returns their numbers. A parent is never a lane."""
+    jq = ".[] | select(.pull_request == null) | {number, title, sub_issues_summary}"
+    try:
+        repo = repo or gh("repo", "view", "--json", "nameWithOwner")["nameWithOwner"]
+        issues = gh("api", "--paginate", f"repos/{repo}/issues?state=open&per_page=100",
+                    "--jq", jq, jsonl=True)
+    except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
+        out["Parents"].append(f"lookup failed: {e}")
+        return set()
+    parents = set()
+    for i in issues:
+        summary = i.get("sub_issues_summary") or {}
+        total, closed = summary.get("total") or 0, summary.get("completed") or 0
+        if not total:
+            continue
+        parents.add(i["number"])
+        line = f"#{i['number']} {i['title']}: {total - closed} open, {closed} closed children"
+        if closed >= total:
+            line += f"; every child is closed: ask the user before closing #{i['number']}"
+        out["Parents"].append(line)
+    return parents
 
 
 def ready_parked(records, key, repo, out):

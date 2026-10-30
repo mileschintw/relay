@@ -238,5 +238,34 @@ class ReadyTests(Base):
         self.assertIn("Merged:\n  12: PR #5", self.ready())
 
 
+class ParentTests(Base):
+    """An open issue with sub-issues is a parent: listed under Parents, never a lane."""
+
+    def setUp(self):
+        super().setUp()
+        for key in ("1", "2", "3", "4"):
+            (self.records / "briefs" / f"{key}.md").write_text("Depends on: none\n")
+            self.call("status", str(self.records), key, "--state", "parked", "--doing", "parked")
+
+    def family(self, completed):
+        self.gh({"issues": {n: ["OPEN", None] for n in ("1", "2", "3", "4")},
+                 "sub_issues": {"1": {"total": 3, "completed": completed}}})
+
+    def test_only_children_on_the_frontier(self):
+        self.family(0)
+        out = self.ready()
+        for key in ("2", "3", "4"):
+            self.assertIn(f"{key}: send `GO #{key}`", out)
+        self.assertNotIn("GO #1", out)
+        self.assertIn("1: issue #1 is a parent, never a lane", out)
+
+    def test_parents_listed_with_child_counts(self):
+        self.family(1)
+        self.assertIn("Parents:\n  #1 issue 1: 2 open, 1 closed children", self.ready())
+        self.family(3)
+        self.assertIn("#1 issue 1: 0 open, 3 closed children; every child is closed: "
+                      "ask the user before closing #1", self.ready())
+
+
 if __name__ == "__main__":
     unittest.main()

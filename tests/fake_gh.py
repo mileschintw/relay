@@ -2,7 +2,8 @@
 
 {"repo": "o/r",
  "blocked_by": {"12": [11]},
- "issues": {"11": ["CLOSED", "COMPLETED"]},
+ "issues": {"10": ["OPEN", null], "11": ["CLOSED", "COMPLETED"]},
+ "sub_issues": {"10": {"total": 3, "completed": 1}},
  "prs": {"<branch>": [{"number": 5, "state": "OPEN", "headRefOid": "<sha>",
                        "mergeable": "MERGEABLE", "statusCheckRollup": [...]}]}}
 """
@@ -17,6 +18,12 @@ if a[:2] == ["repo", "view"]:
 elif a[0] == "api" and a[1].endswith("/dependencies/blocked_by"):
     n = a[1].split("/")[-3]
     print(json.dumps([{"number": b} for b in data.get("blocked_by", {}).get(n, [])]))
+elif a[0] == "api" and any("/issues?state=open" in x for x in a):
+    for n, (state, _) in data.get("issues", {}).items():
+        if state == "OPEN":
+            summary = {"total": 0, "completed": 0, **data.get("sub_issues", {}).get(n, {})}
+            print(json.dumps({"number": int(n), "title": f"issue {n}",
+                              "sub_issues_summary": summary}))
 elif a[:2] == ["issue", "view"]:
     if a[2] not in data.get("issues", {}):
         sys.exit(f"issue {a[2]} not found")
