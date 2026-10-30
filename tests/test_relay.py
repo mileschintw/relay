@@ -165,6 +165,24 @@ class ReadyTests(Base):
         (self.records / "project.md").write_text("- **Deny list:** none\n")
         self.assertNotIn("deny-list", self.ready())
 
+    def test_deny_list_none_and_trailing_period(self):
+        project = self.records / "project.md"
+        for value in ("none.", "none", '"none"', "`none`", "`none`.", "None.", '"none."'):
+            project.write_text(f"- **Deny list:** {value}\n")
+            self.assertEqual(relay.deny_patterns(self.records), [], value)
+        (self.records / "deny.txt").write_text("Acme\n")
+        for value in ("deny.txt", "deny.txt.", "`deny.txt`.", '"deny.txt".'):
+            project.write_text(f"- **Deny list:** {value}\n")
+            self.assertEqual(relay.deny_patterns(self.records), ["Acme"], value)
+        for value in ("missing.txt.", "..", "`deny.txt` (see notes)"):
+            project.write_text(f"- **Deny list:** {value}\n")
+            with self.assertRaisesRegex(FileNotFoundError, "is not a file"):
+                relay.deny_patterns(self.records)
+        project.write_text("- **Deny list:** none.\n")
+        head = self.branch("lane-12")
+        self.done("12", "lane-12", head)
+        self.assertIn("Ready for PR:\n  12: lane-12", self.ready())
+
     def test_closed_unmerged_pr(self):
         head = self.branch("lane-12")
         self.done("12", "lane-12", head)

@@ -179,17 +179,20 @@ def check_pr_body(path, closes=None, deny=None):
 
 
 def deny_patterns(records):
-    """The patterns of the deny list project.md names (`- **Deny list:** <path>`), else []."""
+    """The patterns of the deny list project.md names (`- **Deny list:** <path>`), else [].
+    One trailing period, as the template's lines end, is dropped: `none.` means none."""
     project = records / "project.md"
     if not project.exists():
         return []
-    m = re.search(r"^- \*\*Deny list:\*\* `?([^`\n]+?)`?\s*$", project.read_text(encoding="utf-8"), re.M)
-    if not m or m.group(1).strip().strip('"').lower() == "none":
+    m = re.search(r"^- \*\*Deny list:\*\*[ \t]*(.*?)\s*$", project.read_text(encoding="utf-8"), re.M)
+    value = m.group(1).strip('`"') if m else ""
+    value = (value[:-1] if value.endswith(".") else value).strip().strip('`"')
+    if value.lower() in ("", "none"):
         return []
-    path = pathlib.Path(m.group(1).strip())
+    path = pathlib.Path(value)
     path = path if path.is_absolute() else records / path
-    if not path.exists():
-        raise FileNotFoundError(f"project.md's deny list {path} does not exist")
+    if not path.is_file():
+        raise FileNotFoundError(f"project.md's deny list {path} is not a file")
     pats = [l.strip() for l in path.read_text(encoding="utf-8").splitlines()
             if l.strip() and not l.lstrip().startswith("#")]
     for pat in pats:
