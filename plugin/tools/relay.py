@@ -60,10 +60,11 @@ ready   read-only. Prints what the coordinator can do next:
 roadmap read-only. Prints a table, one row per open issue: `| #N title | blocked-by | files |`,
         ready to copy into the plan's Roadmap. Blocked-by is GitHub's list, a closed blocker
         marked `(closed)`. Files come from the issue body's `## Files`
-        section only: one bullet per path, `New:` marks a file the lane creates, a trailing
-        `(...)` scopes the change; other lines in the section are skipped, and it ends at the
-        next `#`/`##` heading. A parent (an issue with sub-issues) shows `parent`. An issue with
-        no section shows as missing, listed again under the table; paths are never inferred.
+        section only: one top-level bullet per path, `New:` marks a file the lane creates, a
+        trailing `(...)` scopes the change; other lines in the section, nested bullets and fenced
+        blocks are skipped, and it ends at the next `#`/`##` heading. A parent (an issue with
+        sub-issues) shows `parent`. An issue with no section, or one with no bullet, shows as
+        missing, listed again under the table; paths are never inferred.
 
 localcheck  the checks CI would run, for when it cannot (billing, quota). In --checkout (default
         the current folder): `git fetch`, a detached worktree at the lane's pushed head (from its
@@ -76,9 +77,8 @@ localcheck  the checks CI would run, for when it cannot (billing, quota). In --c
 
 Exit: status 0 when written, 1 when a check fails; ready 0 after printing; roadmap 0 after
 printing, 1 when a lookup fails; localcheck 0 when every command passed, else 1 (a command, the
-merge, a lookup or the comment failed); 2 on a usage error or
-a missing records folder. `gh` is called through $RELAY_GH
-when set (a command line, for tests). Standard library only, Python 3.10+.
+merge, a lookup or the comment failed); 2 on a usage error or a missing records folder. `gh` is
+called through $RELAY_GH when set (a command line, for tests). Standard library only, Python 3.10+.
 """
 import argparse
 import datetime
@@ -480,7 +480,8 @@ def ready_done(records, key, st, repo, checkout, out):
 
 def parse_files(body):
     """The `## Files` section of an issue body: [{path, new, scope}], or None with no section.
-    Only bullets count; other lines inside the section are skipped, and so is a fenced block.
+    Only top-level bullets count (a `[ ]` checkbox dropped); other lines inside the section,
+    nested bullets and fenced blocks are skipped.
     The section ends at the next `#` or `##` heading."""
     items, inside, fence = None, False, False
     for line in (body or "").splitlines():
@@ -489,14 +490,14 @@ def parse_files(body):
             continue
         if fence:
             continue
-        if re.match(r"#{1,2}\s", line):
+        if re.match(r" {0,3}#{1,2}\s", line):
             if inside:
                 break
-            inside = re.fullmatch(r"##\s+Files\s*", line, re.I) is not None
+            inside = re.fullmatch(r" {0,3}##\s+Files:?\s*", line, re.I) is not None
             if inside:
                 items = []
             continue
-        m = re.match(r"\s*[-*+]\s+(.*\S)", line) if inside else None
+        m = re.match(r" ?[-*+]\s+(?:\[[ xX]\]\s+)?(.*\S)", line) if inside else None
         if not m:
             continue
         rest = m.group(1)
@@ -506,10 +507,19 @@ def parse_files(body):
         if not p:
             continue
         scope = rest[p.end():].strip()
-        if scope.startswith("(") and scope.endswith(")"):
+        if scope.startswith("(") and scope.endswith(")") and balanced(scope[1:-1]):
             scope = scope[1:-1].strip()
         items.append({"path": p.group(1) or p.group(2), "new": bool(new), "scope": scope})
     return items
+
+
+def balanced(text):
+    depth = 0
+    for ch in text:
+        depth += (ch == "(") - (ch == ")")
+        if depth < 0:
+            return False
+    return depth == 0
 
 
 def cmd_roadmap(a):
@@ -528,8 +538,8 @@ def cmd_roadmap(a):
             files = parse_files(issue.get("body"))
             if (issue.get("sub_issues_summary") or {}).get("total"):
                 cell = "parent"
-            elif files is None:
-                cell = "**missing: no `## Files` section**"
+            elif not files:
+                cell = f"**missing: {'no' if files is None else 'an empty'} `## Files` section**"
                 missing.append(f"#{n}")
             else:
                 cell = "; ".join(("New: " if f["new"] else "") + f["path"]

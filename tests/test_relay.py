@@ -513,6 +513,17 @@ class FilesTests(unittest.TestCase):
         self.assertIsNone(relay.parse_files(None))
         self.assertEqual(relay.parse_files("## Files\n\nNone yet.\n## Next\n- a.py\n"), [])
 
+    def test_indented_heading_ends_section_and_checkbox_is_dropped(self):
+        self.assertEqual(relay.parse_files(" ## Files:\n- [ ] a.py\n  ## Next\n- b.py\n"),
+                         [{"path": "a.py", "new": False, "scope": ""}])
+
+    def test_nested_bullets_skipped_subheading_kept_and_scope_parens_balanced(self):
+        body = "## Files\n- a.py (a) and (b)\n  - add foo\n### Tests\n- c.py (x (y))\n"
+        self.assertEqual(relay.parse_files(body), [
+            {"path": "a.py", "new": False, "scope": "(a) and (b)"},
+            {"path": "c.py", "new": False, "scope": "x (y)"},
+        ])
+
 
 class RoadmapTests(Base):
     def roadmap(self):
@@ -523,10 +534,10 @@ class RoadmapTests(Base):
     def test_rows_with_blocked_by_and_files(self):
         self.gh({"issues": {"2": ["OPEN", None], "5": ["OPEN", None], "6": ["OPEN", None],
                             "7": ["CLOSED", "COMPLETED"], "1": ["CLOSED", "COMPLETED"],
-                            "8": ["OPEN", None]},
+                            "8": ["OPEN", None], "9": ["OPEN", None]},
                  "blocked_by": {"2": [1, 4]},
                  "bodies": {"2": FILES_BODY, "5": "## Problem\n\nNo files here.\n",
-                            "8": "## Files\n\n- a|b.py\n",
+                            "8": "## Files\n\n- a|b.py\n", "9": "## Files\n\nTBD.\n",
                             "6": "A parent: its children are the lanes.\n"},
                  "children": {"6": ["7"]}})
         out = self.roadmap()
@@ -539,7 +550,14 @@ class RoadmapTests(Base):
         self.assertIn("| #6 issue 6 | none | parent |", out)
         self.assertNotIn("#7", out)
         self.assertNotIn("not/a/file.py", out)
-        self.assertIn("Missing `## Files`: #5", out)
+        self.assertIn("Missing `## Files`: #5, #9", out)
+        self.assertIn("| #9 issue 9 | none | **missing: an empty `## Files` section** |", out)
+
+    def test_repo_defaults_to_gh_repo_view(self):
+        self.gh({"issues": {"3": ["OPEN", None]}, "bodies": {"3": "## Files\n- a.py\n"}})
+        code, out, err = self.call("roadmap")
+        self.assertEqual(code, 0, err)
+        self.assertIn("| #3 issue 3 | none | a.py |", out)
 
     def test_failed_lookup_exits_1(self):
         self.gh({"issues": {"2": ["OPEN", None]}, "broken": ["/dependencies/"]})
