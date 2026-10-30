@@ -9,7 +9,8 @@
  "broken": ["/sub_issues"],
  "prs": {"<branch>": [{"number": 5, "state": "OPEN", "headRefOid": "<sha>",
                        "mergeable": "MERGEABLE", "statusCheckRollup": [...]}]}}
-children: an issue's sub-issues. bodies, comments: an issue's body and comments. broken: a call with an argument containing one of these fails.
+children: an issue's sub-issues. bodies, comments: an issue's body and comments.
+broken: a call with an argument containing one of these fails.
 """
 import json
 import os

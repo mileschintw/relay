@@ -14,7 +14,7 @@ You are the coordinator. You order the work, write briefs, start and wake worker
 2. **Who you are.** If Handover's worktree path and title are yours (the same session, after a compact), skip to step 5. Your own session id is not shown to you: Handover records your title and worktree, and the id once a tool result shows it.
 3. **Check the plan against the world.** Run `ready`, then compare the plan with `gh issue list`, `gh pr list`, `git branch -r`, `list_sessions`, `status/` and `reports/`. Fix every line that disagrees and write yourself into Handover. A plan whose Roadmap has no rows: fill it from the open issues (blocked-by, the files each will touch, Order, Kind) and replace every placeholder. A previous coordinator's workers report to it, not to you: read their files, and reach them with `SendMessage` to their `local_…` id. Check: every Now row matches a session in `list_sessions`; every open issue has one Roadmap row (a parent's: *Scheduling*, **Parent**); every open PR and `lane-*` branch maps to a lane; nothing under Inconsistent is unexplained.
 4. Commit and push the records (*Plan*).
-5. **Mode.** If Handover says unattended and the user's message that started this turn keeps it on, follow `unattended.md`. Otherwise set the mode to normal (commit the records if it changed), then report briefly: where things stand, what waits for the user (the two Waiting sections, Deadlines), and the frontier with the chains behind it (*Scheduling*). Wait for their yes.
+5. **Mode.** If Handover says unattended and the user's message that started this turn keeps it on, follow `unattended.md`. Otherwise set the mode to normal, copy each block `ready` lists under Owner notes that is not there yet into *Waiting for the user's decision*, with its link (commit the records if either changed), then report briefly: where things stand, what waits for the user (the two Waiting sections, Deadlines, owner notes), and the frontier with the chains behind it (*Scheduling*). Wait for their yes.
 
 ## Consent
 
@@ -62,7 +62,12 @@ Sessions start only in a turn the user typed in the desktop app, so start every 
 3. Open the PR: `gh pr create --head <branch> --title "<issue title>" --body-file <records>/pr-bodies/<key>.md`.
 4. On "merge once CI passes": run `gh pr checks <N> --watch` in the background; when it passes, merge with `gh pr merge <N> --merge --match-head-commit <sha>`, the sha `ready` prints under Ready to merge, and tell the user after. A failed check or a moved head: ask again. Merging several: one at a time, rerunning `ready` before each, since each merge can make the next conflict.
 5. **A draft changed after the PR opened** (a rerun's results, say): rerun `ready`, which checks the draft, then `gh pr edit <N> --body-file <records>/pr-bodies/<key>.md`.
-6. After the merge: move the lane from Now to `plan-history.md` (the PR's `Closes` lines close its issues), recompute the frontier, and send `GO #<key>` to every parked worker `ready` lists under Ready for GO. Edit a brief before its GO if needed: the worker rereads it on GO.
+6. After the merge: move the lane from Now to `plan-history.md` (the PR's `Closes` lines close its issues), recompute the frontier, copy new Owner notes from `ready` as in *First turn* step 5, and send `GO #<key>` to every parked worker `ready` lists under Ready for GO. Edit a brief before its GO if needed: the worker rereads it on GO.
+7. **Roadmap empty:** no lane left in Now and no open row in the Roadmap. Hand control back: report the two Waiting sections, Deadlines and the owner notes, and schedule nothing more. On the user's yes, close out:
+   - **Sessions:** snapshot each finished session (*Consent*, last bullet: top-level scratchpad files only, test copies skipped), then ask one question to archive them all, applying `app-limits.md`, *Session folders*.
+   - **Temporary rulings:** give each ruling tied to a passing condition ("CI minutes are used up, run checks locally") an end condition in the plan, so the next coordinator drops it.
+   - **Instruction file:** mark `compact-instruction.md` as not in use.
+   - **Handover:** write yourself out of Handover with the date, commit the records, and give the user `/relay:coordinate` for next time.
 
 ## Plan
 

@@ -14,6 +14,9 @@ One unit of parallel work: one issue, or a few small issues closed by one PR, wi
 **Parent**
 An open issue with sub-issues (its children).
 
+**Owner note**
+Work only the user can do, recorded on a parent: a block in the parent's body or a comment on it, from a line that starts with the marker `**Owner action after this set:**` to the end of that body or comment. The marker is the only trigger (`relay.py ready` lists each under Owner notes). Owner-only work is filed this way, never as a lane or an issue blocked by the set.
+
 **Brief**
 `briefs/<key>.md`: about ten lines, only what is specific to one lane. A worker reads it with `relay:work` and `project.md`, which hold everything the lanes share.
 
