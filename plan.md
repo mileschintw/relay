@@ -6,7 +6,7 @@ Current state only. Done work moves to `plan-history.md` with a one-line pointer
 
 ## Handover
 
-- **Coordinator:** title unknown (relay-coordinate session), worktree D:\Repos\relay\.claude\worktrees\relay-coordinate-5b7cc3, id unknown, mode normal.
+- **Coordinator:** title unknown (relay-coordinate session), worktree D:\Repos\relay\.claude\worktrees\relay-coordinate-5b7cc3, id local_75cc31e5-4bd1-45b1-92a6-8c63fa48ec22, mode normal.
 - **Standing instructions:** none.
 - **Unattended log:** none.
 
@@ -18,6 +18,15 @@ none
 
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
+| 1 | #1 | local_1579b864-86a9-486d-90c2-506674ab72a7 (claude/lane-1-6a0c93) | started | |
+| 7 | #7 | local_96015864-484e-43fd-ba63-f56257c25613 (claude/lane-7-51e899) | started | |
+| 8 | #8 | local_9e8221b7-77e6-4302-86d2-c4718149667c (claude/lane-8-2f7128) | started | |
+| 9 | #9 | local_a3b2b8ca-87e8-4f47-aceb-469820317bbd (claude/lane-9-0742ae) | started | |
+| 10 | #10 | local_7c15cfb3-aec1-478e-94a2-d299ce83092c (claude/lane-10-700d4c) | started | |
+| 2 | #2 | local_fb37449e-58c9-49eb-b7f4-6878eebd3515 (claude/lane-2-ccd448) | started, parked | GO #2 after #1 merges |
+| 3 | #3 | local_9bd0484c-821d-4349-9663-678666c9e033 (claude/lane-3-af9107) | started, parked | GO #3 after #1 merges |
+
+Started 2026-10-30 16:29 -0700 on the user's "Start wave 1" (16:28).
 
 ## Roadmap
 
@@ -41,7 +50,6 @@ none
 
 ## Waiting for the user's decision
 
-- Go-ahead for wave 1: start lanes #1, #7, #8, #9, #10 now, with #2 and #3 parked until #1 merges; since 2026-10-30 16:08 -0700 (wave widened after triage).
 - Archive the finished triage session triage-7-10 (local_25b74a50-b6f9-40d5-86ad-82eae30d7c7f)? Its results are in `decisions-2026-10-30.md`.
 
 ## Deadlines
