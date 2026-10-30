@@ -10,4 +10,4 @@ What relay needs to know about this project. The coordinator and every worker re
 - **Ask the user first, with the exact scope:** creating accounts or VMs, installing into the user's real profile, large downloads, signing in to outside sites, spending money; changing `.claude-plugin/marketplace.json` (it reaches users on their next marketplace update, with no release).
 - **Unattended, never:** pushing to `release` or pushing a release tag.
 - **Release:** README.md, section "Releasing".
-- **Deny list:** none.
+- **Deny list:** none

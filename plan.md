@@ -41,6 +41,7 @@ Every open issue, once. "Order" is the wave (1 = can start now). "Kind" is `free
 | #8 Check every session's cwd; never archive one sharing the coordinator's folder | 1 | none | none | coordinate app-limits.md (the two rules; intro line), coordinate SKILL.md (Starting a lane step 4; Consent archive bullet) | free |
 | #9 Drop Last updated; `ready` warns on control characters | 1 | none | none | setup templates/plan.md (Last updated line), coordinate SKILL.md (Plan), relay.py (`ready` encoding check, before any other read), test_relay.py | free |
 | #10 Quiet notes for unchanged turn ends | 1 | none | none | coordinate SKILL.md (Following progress), work SKILL.md (Status) | free |
+| #11 Deny list `none.` read as a path | 1 (no lane yet) | none | none | relay.py (`deny_patterns`), test_relay.py | free |
 
 Mechanical overlap: `plugin/tools/relay.py` (docstring, `cmd_ready` sections) and `tests/test_relay.py` with #1, #2, #3, #7, #9; `tests/fake_gh.py` with #1, #2, #3, #7; `plugin/GLOSSARY.md` with #1, #2, #3; `setup/templates/plan.md` #1 (Roadmap Kind) and #9 (Last updated line); `app-limits.md` #8 and, only if it adds a note-delivery line, #10. #8 owns the archive rule; #3's close-out points at `app-limits.md` (comment on #3). Triage of #7–#10: `decisions-2026-10-30.md`.
 
@@ -50,6 +51,8 @@ none
 
 ## Waiting for the user's decision
 
+- PR-and-merge for lanes 8 and 10 (both Ready for PR); since 2026-10-30 16:40 -0700.
+- Records workaround for #11: `project.md` Deny list changed from `none.` to `none` (same meaning) so `ready` stops failing every done lane; done by the coordinator 2026-10-30 16:40 -0700, tell the user.
 - Archive the finished triage session triage-7-10 (local_25b74a50-b6f9-40d5-86ad-82eae30d7c7f)? Its results are in `decisions-2026-10-30.md`.
 
 ## Deadlines
