@@ -480,10 +480,10 @@ def ready_done(records, key, st, repo, checkout, out):
 
 def parse_files(body):
     """The `## Files` section of an issue body: [{path, new, scope}], or None with no section.
-    Only top-level bullets count (a `[ ]` checkbox dropped); other lines inside the section,
-    nested bullets and fenced blocks are skipped.
+    Only top-level bullets count (the first bullet's indent; a `[ ]` checkbox dropped); other
+    lines inside the section, nested bullets and fenced blocks are skipped.
     The section ends at the next `#` or `##` heading."""
-    items, inside, fence = None, False, False
+    items, inside, fence, top = None, False, False, None
     for line in (body or "").splitlines():
         if line.lstrip().startswith("```"):
             fence = not fence
@@ -497,10 +497,13 @@ def parse_files(body):
             if inside:
                 items = []
             continue
-        m = re.match(r" ?[-*+]\s+(?:\[[ xX]\]\s+)?(.*\S)", line) if inside else None
+        m = re.match(r"(\s*)[-*+]\s+(?:\[[ xX]\]\s+)?(.*\S)", line) if inside else None
         if not m:
             continue
-        rest = m.group(1)
+        top = len(m.group(1)) if top is None else top
+        if len(m.group(1)) > top:
+            continue
+        rest = m.group(2)
         new = re.match(r"new:\s*", rest, re.I)
         rest = rest[new.end():] if new else rest
         p = re.match(r"`([^`]+)`|([^\s(]+)", rest)

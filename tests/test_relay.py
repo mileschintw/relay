@@ -524,6 +524,10 @@ class FilesTests(unittest.TestCase):
             {"path": "c.py", "new": False, "scope": "x (y)"},
         ])
 
+    def test_indented_list_is_top_level_from_its_first_bullet(self):
+        body = "## Files\n  - a.py\n    - a note\n  - b.py\n"
+        self.assertEqual([f["path"] for f in relay.parse_files(body)], ["a.py", "b.py"])
+
 
 class RoadmapTests(Base):
     def roadmap(self):
