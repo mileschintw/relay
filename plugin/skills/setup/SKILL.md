@@ -22,4 +22,9 @@ Set up relay's records for the repo in the current folder. Each step ends on its
    - orphan branch: `Multi-session work: records in the worktree on branch coord (find it with git worktree list; never merged); the coordinator runs /relay:coordinate, workers follow relay:work.`
    - separate repo: the same line, naming the records as `../<folder>-coord` beside the main checkout, cloned from `<url>`. It is the only way the coordinator and other machines find them, so it is required.
    Check: orphan branch: the user accepted or declined it; separate repo: the line is committed.
-8. Tell the user, in the language they chose: the records path; that `/relay:coordinate` in a new desktop-app session starts a coordinator; and, for another machine, running `/relay:setup` there (step 1 attaches the existing records; for a separate repo, `git clone -b coord <url> ../<folder>-coord` beside the main checkout).
+8. Files convention. Propose this paragraph for the repo's `docs/agents/issue-tracker.md`, committed the way the repo commits doc changes:
+   ```markdown
+   **Files section:** an issue that will become a lane ends with a `## Files` section, one bullet per file it will touch: `- path/to/file (short scope)`, with `New:` before a file it creates. relay reads it to fill its roadmap and to tell which lanes can run in parallel, so list the paths here even when the rest of the ticket stays free of them.
+   ```
+   Check: the paragraph is committed, or the user declined it.
+9. Tell the user, in the language they chose: the records path; that `/relay:coordinate` in a new desktop-app session starts a coordinator; and, for another machine, running `/relay:setup` there (step 1 attaches the existing records; for a separate repo, `git clone -b coord <url> ../<folder>-coord` beside the main checkout).
