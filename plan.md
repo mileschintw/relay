@@ -16,12 +16,11 @@ Current state only. Done work moves to `plan-history.md` with a one-line pointer
 
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
-| 1 | #1 | local_1579b864-86a9-486d-90c2-506674ab72a7 (claude/lane-1-6a0c93) | done @ a0c9377, Ready for PR (main merged in) | |
-| 7 | #7 | local_96015864-484e-43fd-ba63-f56257c25613 (claude/lane-7-51e899) | done @ 6141451, Ready for PR; conflicts with lane 1 in relay.py and fake_gh.py, so merges after lane 1 and resolves | |
-| 11 | #11 | local_68c615d2-7e40-43ab-82da-77985a357b61 (claude/lane-11-f4e84e) | started (user: "Start lane 11", 16:41) | |
-| 16 | #16 | local_2fe47f57-11a8-4d72-a4e7-2c91bd1aa81c (claude/lane-16-3bf73f) | started (user: "Start lane 16", 16:44) | |
-| 2 | #2 | local_fb37449e-58c9-49eb-b7f4-6878eebd3515 (claude/lane-2-ccd448) | parked | GO #2 after #1 merges |
-| 3 | #3 | local_9bd0484c-821d-4349-9663-678666c9e033 (claude/lane-3-af9107) | parked | GO #3 after #1 merges |
+| 7 | #7 | local_96015864-484e-43fd-ba63-f56257c25613 (claude/lane-7-51e899) | done @ 6141451, Ready for PR; conflicts with lane 1 in relay.py and fake_gh.py, asked to merge main and resolve after #17 (16:47); user approved merge on local checks | |
+| 11 | #11 | local_68c615d2-7e40-43ab-82da-77985a357b61 (claude/lane-11-f4e84e) | done @ 75435e4, Ready for PR | |
+| 16 | #16 | local_2fe47f57-11a8-4d72-a4e7-2c91bd1aa81c (claude/lane-16-3bf73f) | blocked @ f0e1173: GitHub Actions jobs refused (account billing/spending limit) | |
+| 2 | #2 | local_fb37449e-58c9-49eb-b7f4-6878eebd3515 (claude/lane-2-ccd448) | GO sent 16:47 | |
+| 3 | #3 | local_9bd0484c-821d-4349-9663-678666c9e033 (claude/lane-3-af9107) | GO sent 16:47 | |
 
 Started 2026-10-30 16:29 -0700 on the user's "Start wave 1" (16:28). Lanes 8, 9, 10 merged → `plan-history.md`.
 
@@ -31,9 +30,8 @@ Every open issue, once. "Order" is the wave (1 = can start now). "Kind" is `free
 
 | Issue | Order | Blocked by (GitHub) | Same-section wait | Files it owns | Kind |
 |---|---|---|---|---|---|
-| #1 Treat issues with sub-issues as parents | 1 | none | none | relay.py (`ready` parents), fake_gh.py, test_relay.py, coordinate SKILL.md (First turn step 3; Scheduling frontier bullet), setup templates/plan.md, GLOSSARY.md (**Parent**) | free |
-| #2 Issue-body `## Files` section | 2 | none | after #1, coordinate SKILL.md › First turn step 3 | relay.py (new roadmap command), fake_gh.py, test_relay.py, coordinate SKILL.md (First turn step 3; Starting a lane step 1), setup SKILL.md, README.md (Layout row), GLOSSARY.md | free |
-| #3 Hand back when the roadmap empties; owner notes | 2 | #1 | none | relay.py (`ready` owner notes), fake_gh.py, test_relay.py, coordinate SKILL.md (First turn step 5; Finishing a lane step 6), GLOSSARY.md (owner-note marker) | free |
+| #2 Issue-body `## Files` section | 1 (lane 2, GO sent) | none | after #1, coordinate SKILL.md › First turn step 3 | relay.py (new roadmap command), fake_gh.py, test_relay.py, coordinate SKILL.md (First turn step 3; Starting a lane step 1), setup SKILL.md, README.md (Layout row), GLOSSARY.md | free |
+| #3 Hand back when the roadmap empties; owner notes | 1 (lane 3, GO sent) | #1 (closed) | none | relay.py (`ready` owner notes), fake_gh.py, test_relay.py, coordinate SKILL.md (First turn step 5; Finishing a lane step 6), GLOSSARY.md (owner-note marker) | free |
 | #7 Local checks fallback (`relay.py localcheck`) | 1 | none | none | relay.py (`localcheck`; `checks_state`/`ready_done` billing case), fake_gh.py (`pr comment`, billing rollup), test_relay.py, coordinate SKILL.md (Finishing a lane step 4), setup templates/project.md (Local checks line) | free |
 | #11 Deny list `none.` read as a path | 1 (lane 11) | none | none | relay.py (`deny_patterns`), test_relay.py | free |
 | #16 Run the test suite in CI on pull requests (filed from session local_4a270d8d-79d2-4faa-b7f2-c35503c4c316 on the user's 「可以，開issue，然後通知main session把issue排進計畫中」) | 1 (lane 16) | none | none | New: .github/workflows/test.yml | free |
@@ -49,7 +47,8 @@ none
 
 - Archive finished sessions: triage-7-10 (local_25b74a50-b6f9-40d5-86ad-82eae30d7c7f), lane-8, lane-9, lane-10 (merged); since 2026-10-30 16:40 -0700.
 - Lane for #12 (no lane yet; still `needs-triage`, no `## Files`); since 2026-10-30 16:40 -0700.
-- PR-and-merge for lanes 1 and 7 (repo still has no CI; lane 7 must resolve against lane 1 after it merges); since 2026-10-30 16:45 -0700.
+- PR-and-merge for lane 11 (Ready for PR); since 2026-10-30 16:47 -0700.
+- Lane 16 blocked: GitHub Actions refuses jobs (account billing/spending limit), user-only fix; since 2026-10-30 16:46 -0700.
 
 ## Deadlines
 
