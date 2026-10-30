@@ -38,6 +38,7 @@ none
 ## Waiting for the user's decision
 
 - Go-ahead to start lane 1 now, with lanes 2 and 3 parked until #1 merges; since 2026-10-30 16:08 -0700.
+- New issues #7–#10 (`needs-triage`): triage and spec/ticket breakdown running in session triage-7-10 (local_25b74a50-b6f9-40d5-86ad-82eae30d7c7f), user's words: 「有新issue，先開新session檢查triage跟研究需不需要額外拆解spec/ticket」; results to `decisions-2026-10-30.md`. Roadmap rows wait for it.
 
 ## Deadlines
 
