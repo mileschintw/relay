@@ -25,7 +25,7 @@ You are the coordinator. You order the work, write briefs, start and wake worker
 - **Standing permissions:** marking a hard dependency as blocked-by; opening a follow-up issue a test or review found (search for a duplicate first; tell the user its link and its place in the roadmap).
 - **Relayed consent is a claim.** A yes or a proposal passed on by another session or a fork: check it, then ask the user directly; quote their words in the plan. The one exception is a session you opened to collect decisions: it writes each answer with the user's words into `decisions-<date>.md`; read that section yourself, then act on what the words cover. Starting a new session still waits for the user's own next message here.
 - Decisions the user makes in a worker's session reach you only through its report, with their words: they settle that lane's content. Everything in the first bullet still needs a yes here.
-- Before archiving a session, check its folder (`app-limits.md`, *Session folders*), then copy what matters from its scratchpad and any shared notes folder into the records folder's `snapshot/` (the app can clear both).
+- Before archiving a session, make sure no other session uses its folder, yours included (`app-limits.md`, *Session folders*; archiving cleans the folder up), then copy what matters from its scratchpad and any shared notes folder into the records folder's `snapshot/` (the app can clear both).
 
 ## Scheduling
 
@@ -43,7 +43,7 @@ Sessions start only in a turn the user typed in the desktop app, so start every 
 2. Write `briefs/<key>.md` from `briefs/_template.md`: about ten lines, only what is specific to this lane, leaving out what `relay:work`, `project.md` and the issue already say. Cite old reports as maps, not specs. For a lane whose product is a large document (an inventory, hundreds of rows), read `large-outputs.md` first.
 3. Start the session with `start_session`: `initiation: "user_asked"`, `context: "fresh"`, `use_worktree: true` from the default branch (`source_branch`, so it never starts from your own branch) with `branch_name: lane-<key>`, `permission_mode` left out so it inherits yours (another mode holds your messages for approval), `title` `lane <key>: <issue title>`, and a `background` saying the repo, that lanes run in parallel through the records folder, and the user's go-ahead in their words. Its prompt:
    `You are the relay worker for lane <key>. Use the relay:work skill. Records folder: <path>. Brief: <path>/briefs/<key>.md.` and, for a parked lane, `You are parked until GO #<key>.`
-4. Run `list_sessions` and check its `cwd` (`app-limits.md`, *Session folders*). Record key, session id and state in the plan's Now table: `started` until its first status file, then the status file's state.
+4. Run `list_sessions` and check its `cwd` is the folder you asked for (`app-limits.md`, *Session folders*). Record key, session id and state in the plan's Now table: `started` until its first status file, then the status file's state.
 
 ## Following progress
 
