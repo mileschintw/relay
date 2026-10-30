@@ -477,6 +477,8 @@ def cmd_localcheck(a):
         shutil.rmtree(wt, ignore_errors=True)
         run(["git", "worktree", "prune"], cwd=checkout)
     report = "\n".join(lines)
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(errors="replace")  # check output may hold what the console cannot
     print(report)
     if a.comment:
         repo = a.repo or gh("repo", "view", "--json", "nameWithOwner")["nameWithOwner"]
