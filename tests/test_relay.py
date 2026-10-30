@@ -317,5 +317,79 @@ class ParentTests(Base):
         self.assertNotIn("Ready for GO", out)
 
 
+FILES_BODY = """## Problem
+
+- not/a/file.py (a bullet outside the section)
+
+## Files
+
+- plugin/skills/coordinate/app-limits.md (the two rules; its intro line, which says `SKILL.md`)
+
+A prose line between bullets, as in #8's body.
+- New: `plugin/tools/roadmap.py` (strategy validation only)
+* docs/plain.md
+- new: `tests/a b.md`
+
+```
+## not a heading inside a fence
+- fenced/not-a-file.md
+```
+
+## Acceptance
+
+- [ ] after/the/section.md
+"""
+
+
+class FilesTests(unittest.TestCase):
+    def test_parses_paths_new_marks_and_scopes(self):
+        self.assertEqual(relay.parse_files(FILES_BODY), [
+            {"path": "plugin/skills/coordinate/app-limits.md", "new": False,
+             "scope": "the two rules; its intro line, which says `SKILL.md`"},
+            {"path": "plugin/tools/roadmap.py", "new": True, "scope": "strategy validation only"},
+            {"path": "docs/plain.md", "new": False, "scope": ""},
+            {"path": "tests/a b.md", "new": True, "scope": ""},
+        ])
+
+    def test_no_section_is_none_and_empty_section_is_empty(self):
+        self.assertIsNone(relay.parse_files("## Problem\n\n- a.py\n"))
+        self.assertIsNone(relay.parse_files(None))
+        self.assertEqual(relay.parse_files("## Files\n\nNone yet.\n## Next\n- a.py\n"), [])
+
+
+class RoadmapTests(Base):
+    def roadmap(self):
+        code, out, err = self.call("roadmap", "--repo", "o/r")
+        self.assertEqual(code, 0, err)
+        return out
+
+    def test_rows_with_blocked_by_and_files(self):
+        self.gh({"issues": {"2": ["OPEN", None], "5": ["OPEN", None], "6": ["OPEN", None],
+                            "7": ["CLOSED", "COMPLETED"], "1": ["CLOSED", "COMPLETED"],
+                            "8": ["OPEN", None]},
+                 "blocked_by": {"2": [1, 4]},
+                 "bodies": {"2": FILES_BODY, "5": "## Problem\n\nNo files here.\n",
+                            "8": "## Files\n\n- a|b.py\n",
+                            "6": "A parent: its children are the lanes.\n"},
+                 "children": {"6": ["7"]}})
+        out = self.roadmap()
+        self.assertIn("| #8 issue 8 | none | a\\|b.py |", out)
+        self.assertIn("| #2 issue 2 | #1 (closed), #4 | plugin/skills/coordinate/app-limits.md (the two "
+                      "rules; its intro line, which says `SKILL.md`); New: plugin/tools/roadmap.py "
+                      "(strategy validation only); docs/plain.md; New: tests/a b.md |",
+                      out)
+        self.assertIn("| #5 issue 5 | none | **missing: no `## Files` section** |", out)
+        self.assertIn("| #6 issue 6 | none | parent |", out)
+        self.assertNotIn("#7", out)
+        self.assertNotIn("not/a/file.py", out)
+        self.assertIn("Missing `## Files`: #5", out)
+
+    def test_failed_lookup_exits_1(self):
+        self.gh({"issues": {"2": ["OPEN", None]}, "broken": ["/dependencies/"]})
+        code, _, err = self.call("roadmap", "--repo", "o/r")
+        self.assertEqual(code, 1)
+        self.assertIn("broken", err)
+
+
 if __name__ == "__main__":
     unittest.main()

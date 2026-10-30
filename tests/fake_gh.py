@@ -4,10 +4,12 @@
  "blocked_by": {"12": [11]},
  "issues": {"10": ["OPEN", null], "11": ["CLOSED", "COMPLETED"]},
  "children": {"10": ["11"]},
+ "bodies": {"10": "## Files\\n\\n- a.py\\n"},
  "broken": ["/sub_issues"],
  "prs": {"<branch>": [{"number": 5, "state": "OPEN", "headRefOid": "<sha>",
                        "mergeable": "MERGEABLE", "statusCheckRollup": [...]}]}}
-children: an issue's sub-issues. broken: a call with an argument containing one of these fails.
+children: an issue's sub-issues. bodies: issue bodies (default empty).
+broken: a call with an argument containing one of these fails.
 """
 import json
 import os
@@ -30,13 +32,15 @@ if a[:2] == ["repo", "view"]:
     print(json.dumps({"nameWithOwner": data["repo"]}))
 elif a[0] == "api" and a[1].endswith("/dependencies/blocked_by"):
     n = a[1].split("/")[-3]
-    print(json.dumps([{"number": b} for b in data.get("blocked_by", {}).get(n, [])]))
+    print(json.dumps([rest(str(b)) if str(b) in issues else {"number": b}
+                      for b in data.get("blocked_by", {}).get(n, [])]))
 elif a[0] == "api" and any("/issues?state=open" in x for x in a):
     for n, (state, _) in issues.items():
         if state == "OPEN":
             kids = [rest(c) for c in children.get(n, [])]
             done = sum(k["state_reason"] == "completed" for k in kids)
             print(json.dumps({"number": int(n), "title": f"issue {n}",
+                              "body": data.get("bodies", {}).get(n, ""),
                               "sub_issues_summary": {"total": len(kids), "completed": done}}))
 elif a[0] == "api" and any("/sub_issues" in x for x in a):
     n = next(x for x in a if "/sub_issues" in x).split("/")[-2]

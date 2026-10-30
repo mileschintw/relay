@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""relay: the two scripted steps of multi-session coordination (see skills/coordinate).
+"""relay: the scripted steps of multi-session coordination (see skills/coordinate).
 
   python3 -I relay.py status <records> <key> --state <state> --doing <text>
                              [--branch <b>] [--head <sha>] [--pr-body <path>]
   python3 -I relay.py ready <records> [--repo <owner/name>] [--checkout <dir>] [--plan-limit <n>]
+  python3 -I relay.py roadmap [--repo <owner/name>]
 (Windows: py -3 -I ...)
 
 <records> is the records folder (the `coord` worktree): plan.md, briefs/, status/, reports/,
@@ -52,7 +53,16 @@ ready   read-only. Prints what the coordinator can do next:
         PR / Ready to merge branch against the default branch; a conflict moves it to Waiting.
         --repo defaults to what `gh repo view` finds from the current folder.
 
-Exit: status 0 when written, 1 when a check fails; ready 0 after printing; 2 on a usage error or
+roadmap read-only. Prints a table, one row per open issue: `| #N title | blocked-by | files |`,
+        ready to copy into the plan's Roadmap. Blocked-by is GitHub's list, a closed blocker
+        marked `(closed)`. Files come from the issue body's `## Files`
+        section only: one bullet per path, `New:` marks a file the lane creates, a trailing
+        `(...)` scopes the change; other lines in the section are skipped, and it ends at the
+        next `#`/`##` heading. A parent (an issue with sub-issues) shows `parent`. An issue with
+        no section shows as missing, listed again under the table; paths are never inferred.
+
+Exit: status 0 when written, 1 when a check fails; ready 0 after printing; roadmap 0 after
+printing, 1 when a lookup fails; 2 on a usage error or
 a missing records folder. `gh` is called through $RELAY_GH
 when set (a command line, for tests). Standard library only, Python 3.10+.
 """
@@ -417,6 +427,78 @@ def ready_done(records, key, st, repo, checkout, out):
         out["Ready to merge"].append(f"{key}: PR #{pr['number']} --match-head-commit {pr['headRefOid']}")
 
 
+# roadmap --------------------------------------------------------------------------------------
+
+def parse_files(body):
+    """The `## Files` section of an issue body: [{path, new, scope}], or None with no section.
+    Only bullets count; other lines inside the section are skipped, and so is a fenced block.
+    The section ends at the next `#` or `##` heading."""
+    items, inside, fence = None, False, False
+    for line in (body or "").splitlines():
+        if line.lstrip().startswith("```"):
+            fence = not fence
+            continue
+        if fence:
+            continue
+        if re.match(r"#{1,2}\s", line):
+            if inside:
+                break
+            inside = re.fullmatch(r"##\s+Files\s*", line, re.I) is not None
+            if inside:
+                items = []
+            continue
+        m = re.match(r"\s*[-*+]\s+(.*\S)", line) if inside else None
+        if not m:
+            continue
+        rest = m.group(1)
+        new = re.match(r"new:\s*", rest, re.I)
+        rest = rest[new.end():] if new else rest
+        p = re.match(r"`([^`]+)`|([^\s(]+)", rest)
+        if not p:
+            continue
+        scope = rest[p.end():].strip()
+        if scope.startswith("(") and scope.endswith(")"):
+            scope = scope[1:-1].strip()
+        items.append({"path": p.group(1) or p.group(2), "new": bool(new), "scope": scope})
+    return items
+
+
+def cmd_roadmap(a):
+    """One Roadmap row per open issue: blocked-by and the `## Files` paths, never guessed."""
+    issue_jq = ".[] | select(.pull_request == null) | {number, title, body, sub_issues_summary}"
+    try:
+        repo = a.repo or gh("repo", "view", "--json", "nameWithOwner")["nameWithOwner"]
+        issues = gh("api", "--paginate", f"repos/{repo}/issues?state=open&per_page=100",
+                    "--jq", issue_jq, jsonl=True)
+        rows, missing = [], []
+        for issue in sorted(issues, key=lambda i: i["number"]):
+            n = issue["number"]
+            blocked = gh("api", f"repos/{repo}/issues/{n}/dependencies/blocked_by") or []
+            blocked = ", ".join(f"#{b['number']}" + (" (closed)" if b.get("state") == "closed" else "")
+                                for b in blocked) or "none"
+            files = parse_files(issue.get("body"))
+            if (issue.get("sub_issues_summary") or {}).get("total"):
+                cell = "parent"
+            elif files is None:
+                cell = "**missing: no `## Files` section**"
+                missing.append(f"#{n}")
+            else:
+                cell = "; ".join(("New: " if f["new"] else "") + f["path"]
+                                 + (f" ({f['scope']})" if f["scope"] else "") for f in files)
+            title, cell = (s.replace("|", "\\|").replace("\n", " ")
+                           for s in (f"#{n} {issue['title']}", cell))
+            rows.append(f"| {title} | {blocked} | {cell} |")
+    except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
+        return fail(f"roadmap lookup failed: {e}")
+    print("| Issue | Blocked by (GitHub) | Files it owns |")
+    print("|---|---|---|")
+    for row in rows:
+        print(row)
+    if missing:
+        print(f"\nMissing `## Files`: {', '.join(missing)}")
+    return 0
+
+
 def fail(msg):
     print(msg, file=sys.stderr)
     return 1
@@ -438,8 +520,10 @@ def main(argv=None):
     r.add_argument("--repo")
     r.add_argument("--checkout")
     r.add_argument("--plan-limit", type=int, default=200)
+    m = sub.add_parser("roadmap", help="print each open issue's blocked-by and `## Files`")
+    m.add_argument("--repo")
     a = p.parse_args(argv)
-    return cmd_status(a) if a.cmd == "status" else cmd_ready(a)
+    return {"status": cmd_status, "ready": cmd_ready, "roadmap": cmd_roadmap}[a.cmd](a)
 
 
 if __name__ == "__main__":
