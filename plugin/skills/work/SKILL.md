@@ -38,6 +38,7 @@ When your start message says you are parked: read the brief, `project.md` and th
 Run `relay.py status` from your lane's worktree (it reads the branch and head there) at each milestone, never by hand. The coordinator reads this file and your report, not your turn-end note.
 
 - **Blocked** on a decision only the user or the coordinator can make, or needing an off-limits file: `--state blocked`, the options in the report, and a `SendMessage` to the coordinator's id with one short question. Once answered, set the state back to the step you were on.
+- **Waiting on your own background runs:** at each turn end, rerun `relay.py status` with the same `--state` and a `--doing` naming what still runs (`"still running <X>, <Y>"`). The coordinator then tells waiting from a stall without reading your transcript.
 - A finding that changes another lane's work (a broken check, a shared file): one short `SendMessage` to the coordinator, and carry on.
 
 ## Report
