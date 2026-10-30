@@ -1,4 +1,4 @@
-"""Tests for relay.py: python3 -I tools/tests/test_relay.py (Windows: py -3 -I ...)."""
+"""Tests for relay.py: python3 -I tests/test_relay.py (Windows: py -3 -I ...)."""
 import io
 import json
 import os
@@ -10,7 +10,7 @@ import unittest
 from contextlib import redirect_stdout, redirect_stderr
 
 HERE = pathlib.Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE.parent))
+sys.path.insert(0, str(HERE.parent / "plugin" / "tools"))
 import relay  # noqa: E402
 
 
