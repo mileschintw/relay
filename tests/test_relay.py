@@ -215,6 +215,27 @@ class ReadyTests(Base):
         (self.records / "plan.md").write_text("x\n" * 201)
         self.assertIn("plan.md has 201 lines", self.ready())
 
+    def test_invalid_utf8_in_plan_warns(self):
+        (self.records / "plan.md").write_bytes(b"# Plan\n\nbad \xff byte\n" + b"x\n" * 201)
+        out = self.ready()
+        self.assertIn("Records:\n  plan.md line 3: invalid UTF-8", out)
+        self.assertIn("plan.md has 204 lines", out)
+
+    def test_control_characters_named_by_file_and_line(self):
+        (self.records / "plan.md").write_bytes(b"# Plan\r\nrelease\r-0.3.0\n\tok\r\n")
+        (self.records / "briefs" / "4.md").write_text("Depends on: none\nbell\x07\n")
+        (self.records / "pr-bodies" / "4.md").write_text("Closes #4\n\nesc\x1b[0m\n")
+        out = self.ready()
+        self.assertIn("plan.md line 2: control character U+000D", out)
+        self.assertIn("briefs/4.md line 2: control character U+0007", out)
+        self.assertIn("pr-bodies/4.md line 3: control character U+001B", out)
+        self.assertNotIn("plan.md line 1", out)
+        self.assertNotIn("plan.md line 3", out)
+
+    def test_clean_records_print_no_records_section(self):
+        (self.records / "plan.md").write_text("# Plan\n\tindented\n")
+        self.assertNotIn("Records:", self.ready())
+
     def test_fresh_records_and_brief_without_status(self):
         for d in ("status", "reports", "pr-bodies"):
             (self.records / d).rmdir()

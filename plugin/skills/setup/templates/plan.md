@@ -1,7 +1,5 @@
 # Plan
 
-Last updated: <time from the command in relay:coordinate › Plan>
-
 Current state only. Done work moves to `plan-history.md` with a one-line pointer here; nothing is deleted. These always stay in this file: the sessions in **Now**, **Rulings** not yet carried by a repo doc, both **Waiting for the user** sections, **Deadlines**, and the user's standing instructions under **Handover**.
 
 ## Handover

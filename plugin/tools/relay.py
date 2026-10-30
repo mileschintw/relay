@@ -39,6 +39,9 @@ ready   read-only. Prints what the coordinator can do next:
             lines that are not exactly one per issue on the brief's `Closes:` line; a line matching
             project.md's deny list (`- **Deny list:** <path>`, one regex per line, matched as a
             whole word; printed by line number only).
+          - Records: invalid UTF-8, or a control character other than tab, LF and a CR right
+            before LF, in plan.md, briefs/*.md or pr-bodies/*.md, by file and line. Checked
+            before anything else reads those files, so a bad byte is a warning, not a crash.
           - Plan: a warning when plan.md has more lines than --plan-limit (default 200).
         --checkout <dir>: a local clone; `git fetch` there, then `git merge-tree` each Ready for
         PR / Ready to merge branch against the default branch; a conflict moves it to Waiting.
@@ -62,6 +65,7 @@ STATES = ("parked", "working", "blocked", "review", "done")
 FIELDS = ("state", "branch", "head", "PR body draft", "time", "doing")
 CLOSING = re.compile(r"\b(close[sd]?|fix(e[sd])?|resolve[sd]?)\b:?\s*#\d+", re.I)
 CLOSES_LINE = re.compile(r"^Closes #\d+\s*$")
+CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]|\r(?!\n)")
 
 
 def run(cmd, cwd=None):
@@ -235,6 +239,18 @@ def checks_state(rollup):
     return "passed"
 
 
+def check_encoding(path, name):
+    """Warnings for invalid UTF-8 or a stray control character in a hand-written record."""
+    data = path.read_bytes()
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError as e:
+        line = data.count(b"\n", 0, e.start) + 1
+        return [f"{name} line {line}: invalid UTF-8 (byte {data[e.start]:#04x})"]
+    return [f"{name} line {text.count(chr(10), 0, m.start()) + 1}: "
+            f"control character U+{ord(m.group()):04X}" for m in CONTROL.finditer(text)]
+
+
 def cmd_ready(a):
     records = pathlib.Path(a.records)
     status_dir = records / "status"
@@ -242,14 +258,18 @@ def cmd_ready(a):
         print(f"no records folder at {records}", file=sys.stderr)
         return 2
     out = {k: [] for k in ("Ready for GO", "Ready for PR", "Ready to merge", "Waiting",
-                           "No status yet", "Merged", "Inconsistent", "Could not parse", "Plan")}
+                           "No status yet", "Merged", "Inconsistent", "Could not parse", "Records", "Plan")}
+    plan = records / "plan.md"
+    for path in [plan, *sorted((records / "briefs").glob("*.md")),
+                 *sorted((records / "pr-bodies").glob("*.md"))]:
+        if path.is_file():
+            out["Records"] += check_encoding(path, path.relative_to(records).as_posix())
     have = {p.stem for p in status_dir.glob("*.md")}
     for b in sorted((records / "briefs").glob("*.md")):
         if not b.stem.startswith("_") and b.stem not in have:
             out["No status yet"].append(f"{b.stem}: a brief but no status file (not started, or not yet run)")
-    plan = records / "plan.md"
     if plan.exists():
-        n = len(plan.read_text(encoding="utf-8").splitlines())
+        n = len(plan.read_text(encoding="utf-8", errors="replace").splitlines())
         if n > a.plan_limit:
             out["Plan"].append(f"plan.md has {n} lines (limit {a.plan_limit}): prune it "
                                "(move, never delete; the kinds the top of plan.md names stay)")
