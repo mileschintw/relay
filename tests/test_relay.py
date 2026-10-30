@@ -83,6 +83,7 @@ class Base(unittest.TestCase):
 
 class StatusTests(Base):
     def test_writes_and_reads_back(self):
+        self.fail("deliberately broken (lane 16 CI check)")
         code, out, _ = self.call("status", str(self.records), "12", "--state", "working",
                                  "--doing", "step 2")
         self.assertEqual(code, 0)
