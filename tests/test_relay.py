@@ -165,6 +165,24 @@ class ReadyTests(Base):
         (self.records / "project.md").write_text("- **Deny list:** none\n")
         self.assertNotIn("deny-list", self.ready())
 
+    def test_deny_list_none_and_trailing_period(self):
+        project = self.records / "project.md"
+        for value in ("none.", "none", '"none"', "`none`", "`none`.", "None.", '"none."'):
+            project.write_text(f"- **Deny list:** {value}\n")
+            self.assertEqual(relay.deny_patterns(self.records), [], value)
+        (self.records / "deny.txt").write_text("Acme\n")
+        for value in ("deny.txt", "deny.txt.", "`deny.txt`.", '"deny.txt".'):
+            project.write_text(f"- **Deny list:** {value}\n")
+            self.assertEqual(relay.deny_patterns(self.records), ["Acme"], value)
+        for value in ("missing.txt.", "..", "`deny.txt` (see notes)"):
+            project.write_text(f"- **Deny list:** {value}\n")
+            with self.assertRaisesRegex(FileNotFoundError, "is not a file"):
+                relay.deny_patterns(self.records)
+        project.write_text("- **Deny list:** none.\n")
+        head = self.branch("lane-12")
+        self.done("12", "lane-12", head)
+        self.assertIn("Ready for PR:\n  12: lane-12", self.ready())
+
     def test_closed_unmerged_pr(self):
         head = self.branch("lane-12")
         self.done("12", "lane-12", head)
@@ -267,6 +285,54 @@ class ReadyTests(Base):
         self.done("12", "lane-12", head)
         self.gh({"prs": {"lane-12": [{"number": 5, "state": "MERGED", "headRefOid": head}]}})
         self.assertIn("Merged:\n  12: PR #5", self.ready())
+
+
+class ParentTests(Base):
+    """An open issue with sub-issues is a parent: listed under Parents, never a lane."""
+
+    def setUp(self):
+        super().setUp()
+        for key in ("1", "2", "3", "4"):
+            (self.records / "briefs" / f"{key}.md").write_text("Depends on: none\n")
+            self.call("status", str(self.records), key, "--state", "parked", "--doing", "parked")
+
+    def parent_with_children(self, *children, **extra):
+        """Open issue 1 with sub-issues 2, 3 and 4 in the given [state, reason] pairs."""
+        issues = {"1": ["OPEN", None]}
+        issues.update({str(n): c for n, c in enumerate(children, 2)})
+        self.gh({"issues": issues, "children": {"1": ["2", "3", "4"]}, **extra})
+
+    def test_only_children_on_the_frontier(self):
+        self.parent_with_children(*[["OPEN", None]] * 3)
+        out = self.ready()
+        for key in ("2", "3", "4"):
+            self.assertIn(f"{key}: send `GO #{key}`", out)
+        self.assertNotIn("GO #1", out)
+        self.assertIn("1: issue #1 is a parent, never a lane", out)
+
+    def test_parents_listed_with_child_counts(self):
+        self.parent_with_children(["OPEN", None], ["CLOSED", "COMPLETED"], ["OPEN", None])
+        self.assertIn("Parents:\n  #1 issue 1: 2 open, 1 closed children\n", self.ready())
+        self.parent_with_children(*[["CLOSED", "COMPLETED"]] * 3)
+        self.assertIn("#1 issue 1: 0 open, 3 closed children; every child closed as completed",
+                      self.ready())
+        self.parent_with_children(["CLOSED", "COMPLETED"], ["CLOSED", "NOT_PLANNED"],
+                                  ["CLOSED", "COMPLETED"])
+        self.assertIn("0 open, 3 closed children; every child closed, 1 not as completed",
+                      self.ready())
+
+    def test_working_lane_on_a_parent_is_inconsistent(self):
+        self.call("status", str(self.records), "1", "--state", "working", "--doing", "x",
+                  "--branch", "lane-1", "--head", "abcdef1")
+        self.parent_with_children(*[["OPEN", None]] * 3)
+        self.assertIn("1: issue #1 is a parent, never a lane", self.ready())
+
+    def test_failed_lookup_holds_go(self):
+        self.parent_with_children(*[["OPEN", None]] * 3, broken=["/sub_issues"])
+        out = self.ready()
+        self.assertIn("Parents:\n  lookup failed:", out)
+        self.assertIn("2: parked; no GO while the Parents lookup fails", out)
+        self.assertNotIn("Ready for GO", out)
 
 
 if __name__ == "__main__":

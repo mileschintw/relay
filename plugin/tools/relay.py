@@ -32,6 +32,10 @@ ready   read-only. Prints what the coordinator can do next:
             done lanes with a conflict, pending or failed checks, or a failed lookup.
           - No status yet: a brief with no status file.
           - Merged: done lanes whose PR merged (move them to plan-history.md).
+          - Parents: open issues with sub-issues (GitHub's sub_issues_summary), with their
+            children's open and closed counts, and whether every child closed as completed. A
+            parent is never a lane: a status file keyed on one is Inconsistent and gets no GO.
+            While this lookup fails, parked lanes wait instead of getting GO.
           - Inconsistent: a done lane's status head that is not the pushed one; done with no report
             file; a PR head that is not the status head; a PR closed without merging; a dependency
             closed as not planned (it also holds GO); a PR body
@@ -74,11 +78,13 @@ def run(cmd, cwd=None):
     return p.returncode, p.stdout, p.stderr
 
 
-def gh(*args):
+def gh(*args, jsonl=False):
     base = [t.strip('"') for t in shlex.split(os.environ.get("RELAY_GH", "gh"), posix=False)]
     code, out, err = run(base + list(args))
     if code:
         raise RuntimeError(f"gh {' '.join(args)}: {err.strip() or out.strip()}")
+    if jsonl:
+        return [json.loads(line) for line in out.splitlines() if line.strip()]
     return json.loads(out) if out.strip() else None
 
 
@@ -173,17 +179,20 @@ def check_pr_body(path, closes=None, deny=None):
 
 
 def deny_patterns(records):
-    """The patterns of the deny list project.md names (`- **Deny list:** <path>`), else []."""
+    """The patterns of the deny list project.md names (`- **Deny list:** <path>`), else [].
+    One trailing period, as the template's lines end, is dropped: `none.` means none."""
     project = records / "project.md"
     if not project.exists():
         return []
-    m = re.search(r"^- \*\*Deny list:\*\* `?([^`\n]+?)`?\s*$", project.read_text(encoding="utf-8"), re.M)
-    if not m or m.group(1).strip().strip('"').lower() == "none":
+    m = re.search(r"^- \*\*Deny list:\*\*[ \t]*(.*?)\s*$", project.read_text(encoding="utf-8"), re.M)
+    value = m.group(1).strip('`"') if m else ""
+    value = (value[:-1] if value.endswith(".") else value).strip().strip('`"')
+    if value.lower() in ("", "none"):
         return []
-    path = pathlib.Path(m.group(1).strip())
+    path = pathlib.Path(value)
     path = path if path.is_absolute() else records / path
-    if not path.exists():
-        raise FileNotFoundError(f"project.md's deny list {path} does not exist")
+    if not path.is_file():
+        raise FileNotFoundError(f"project.md's deny list {path} is not a file")
     pats = [l.strip() for l in path.read_text(encoding="utf-8").splitlines()
             if l.strip() and not l.lstrip().startswith("#")]
     for pat in pats:
@@ -262,7 +271,8 @@ def cmd_ready(a):
         print(f"no records folder at {records}", file=sys.stderr)
         return 2
     out = {k: [] for k in ("Ready for GO", "Ready for PR", "Ready to merge", "Waiting",
-                           "No status yet", "Merged", "Inconsistent", "Could not parse", "Records", "Plan")}
+                           "No status yet", "Merged", "Parents", "Inconsistent", "Could not parse",
+                           "Records", "Plan")}
     plan = records / "plan.md"
     for path in [plan, *sorted((records / "briefs").glob("*.md")),
                  *sorted((records / "pr-bodies").glob("*.md"))]:
@@ -280,6 +290,7 @@ def cmd_ready(a):
     repo = a.repo
     if a.checkout:
         run(["git", "fetch", "-q", "origin"], cwd=a.checkout)
+    repo, parents = ready_parents(repo, out)
     print("Lanes:")
     for path in sorted(status_dir.glob("*.md")):
         key = path.stem
@@ -289,6 +300,12 @@ def cmd_ready(a):
             out["Could not parse"].append(f"{key}: missing or bad {missing or ['state']}")
             continue
         print(f"  {key}: {st['state']}, {st['branch']} @ {st['head']}, {st['time']}")
+        if parents is None and st["state"] == "parked":
+            out["Waiting"].append(f"{key}: parked; no GO while the Parents lookup fails")
+            continue
+        if key.isdigit() and int(key) in (parents or ()):
+            out["Inconsistent"].append(f"{key}: issue #{key} is a parent, never a lane")
+            continue
         try:
             if repo is None and (st["state"] in ("parked", "done")):
                 repo = gh("repo", "view", "--json", "nameWithOwner")["nameWithOwner"]
@@ -310,6 +327,36 @@ def cmd_ready(a):
     if not any(out.values()):
         print("Nothing to do.")
     return 0
+
+
+def ready_parents(repo, out):
+    """Open issues with sub-issues (GitHub's sub_issues_summary), listed under Parents with their
+    children's open and closed counts. Returns (repo, the parents' numbers), or (repo, None) when
+    the lookup fails. A parent is never a lane."""
+    issue_jq = ".[] | select(.pull_request == null) | {number, title, sub_issues_summary}"
+    parents = set()
+    try:
+        repo = repo or gh("repo", "view", "--json", "nameWithOwner")["nameWithOwner"]
+        for issue in gh("api", "--paginate", f"repos/{repo}/issues?state=open&per_page=100",
+                        "--jq", issue_jq, jsonl=True):
+            if not (issue.get("sub_issues_summary") or {}).get("total"):
+                continue
+            n = issue["number"]
+            children = gh("api", "--paginate", f"repos/{repo}/issues/{n}/sub_issues?per_page=100",
+                          "--jq", ".[] | {state, state_reason}", jsonl=True)
+            still_open = sum(c["state"] == "open" for c in children)
+            closed = len(children) - still_open
+            line = f"#{n} {issue['title']}: {still_open} open, {closed} closed children"
+            if children and not still_open:
+                other = sum(c.get("state_reason") != "completed" for c in children)
+                line += (f"; every child closed, {other} not as completed" if other
+                         else "; every child closed as completed")
+            parents.add(n)
+            out["Parents"].append(line)
+    except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
+        out["Parents"].append(f"lookup failed: {e}")
+        return repo, None
+    return repo, parents
 
 
 def ready_parked(records, key, repo, out):
