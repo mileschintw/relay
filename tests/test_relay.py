@@ -165,6 +165,25 @@ class ReadyTests(Base):
         (self.records / "project.md").write_text("- **Deny list:** none\n")
         self.assertNotIn("deny-list", self.ready())
 
+    def test_deny_list_none_and_trailing_period(self):
+        project = self.records / "project.md"
+        for value in ("none.", "none", '"none"', "`none`", "`none`.", "None.", '"none."'):
+            project.write_text(f"- **Deny list:** {value}\n")
+            self.assertEqual(relay.deny_patterns(self.records), [], value)
+        (self.records / "deny.txt").write_text("Acme\n")
+        for value in ("deny.txt", "deny.txt.", "`deny.txt`.", '"deny.txt".'):
+            project.write_text(f"- **Deny list:** {value}\n")
+            self.assertEqual(relay.deny_patterns(self.records), ["Acme"], value)
+        # A file whose name really ends in a period wins (Windows drops that period,
+        # so there the write replaces deny.txt).
+        (self.records / "deny.txt.").write_text("Other\n")
+        project.write_text("- **Deny list:** deny.txt.\n")
+        expected = ["Other"] if (self.records / "deny.txt.").exists() else ["Acme"]
+        self.assertEqual(relay.deny_patterns(self.records), expected)
+        project.write_text("- **Deny list:** missing.txt.\n")
+        with self.assertRaisesRegex(FileNotFoundError, r"missing\.txt does not exist"):
+            relay.deny_patterns(self.records)
+
     def test_closed_unmerged_pr(self):
         head = self.branch("lane-12")
         self.done("12", "lane-12", head)

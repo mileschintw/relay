@@ -173,15 +173,29 @@ def check_pr_body(path, closes=None, deny=None):
 
 
 def deny_patterns(records):
-    """The patterns of the deny list project.md names (`- **Deny list:** <path>`), else []."""
+    """The patterns of the deny list project.md names (`- **Deny list:** <path>`), else [].
+
+    The value may be quoted or backticked and end in a period, as the template's lines do:
+    `none.` means none, and `deny.txt.` means deny.txt unless a file named `deny.txt.` exists."""
     project = records / "project.md"
     if not project.exists():
         return []
-    m = re.search(r"^- \*\*Deny list:\*\* `?([^`\n]+?)`?\s*$", project.read_text(encoding="utf-8"), re.M)
-    if not m or m.group(1).strip().strip('"').lower() == "none":
+    m = re.search(r"^- \*\*Deny list:\*\*[ \t]*(.*?)\s*$", project.read_text(encoding="utf-8"), re.M)
+    if not m:
         return []
-    path = pathlib.Path(m.group(1).strip())
+    def unquote(s):
+        return s.strip().strip("`\"'").strip()
+    literal = unquote(m.group(1))
+    value = unquote(literal[:-1]) if literal.endswith(".") else literal
+    if value.lower() in ("", "none"):
+        return []
+    path = pathlib.Path(value)
     path = path if path.is_absolute() else records / path
+    if literal != value and not any(c in literal for c in "`\"'"):
+        as_written = pathlib.Path(literal)
+        as_written = as_written if as_written.is_absolute() else records / as_written
+        if as_written.is_file():
+            path = as_written
     if not path.exists():
         raise FileNotFoundError(f"project.md's deny list {path} does not exist")
     pats = [l.strip() for l in path.read_text(encoding="utf-8").splitlines()
