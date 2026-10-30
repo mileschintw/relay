@@ -259,7 +259,7 @@ def never_started(check, repo):
         if not job.get("steps"):
             return True
         notes = gh("api", f"repos/{repo}/check-runs/{m.group(1)}/annotations") or []
-    except (RuntimeError, ValueError):
+    except (RuntimeError, ValueError, OSError):
         return False
     return any(NOT_STARTED.search(n.get("message") or "") for n in notes)
 
@@ -508,7 +508,7 @@ def cmd_localcheck(a):
         try:
             repo = a.repo or gh("repo", "view", "--json", "nameWithOwner")["nameWithOwner"]
             gh_raw("pr", "comment", str(a.comment), "--repo", repo, "--body-file", str(body))
-        except (RuntimeError, ValueError, KeyError, TypeError) as e:
+        except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
             return fail(f"could not post on PR #{a.comment}: {e}")
         finally:
             body.unlink()
