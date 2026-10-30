@@ -30,3 +30,12 @@ Finished work moved out of `plan.md`, newest first, for checking only; the plan 
 | 11 | #11 Deny list `none.` | local_68c615d2-7e40-43ab-82da-77985a357b61 | claude/lane-11-f4e84e @ 75435e4 | #18 |
 
 - No CI: user chose 「開 PR，本機檢查過就合併」; coordinator ran tests (29 OK) and plugin validate on 75435e4 merged onto main.
+
+## 2026-10-30 16:53 -0700, lane 7 merged (coordinator local_75cc31e5-4bd1-45b1-92a6-8c63fa48ec22)
+
+| Key | Issue | Session | Branch @ head | PR |
+|---|---|---|---|---|
+| 7 | #7 `relay.py localcheck` | local_96015864-484e-43fd-ba63-f56257c25613 | claude/lane-7-51e899 @ 40eb713 | #19 |
+
+- Resolved its conflict with lane 1 at 40eb713. User's 「解完衝突、本機檢查過就合併」; coordinator ran tests (40 OK) and plugin validate on 40eb713 merged onto main.
+- Lane 16's Actions billing block cleared after the repo was made public (16:50, per lane 16's status); user had said 「我讓他重試了」.
