@@ -5,6 +5,8 @@
                              [--branch <b>] [--head <sha>] [--pr-body <path>]
   python3 -I relay.py ready <records> [--repo <owner/name>] [--checkout <dir>] [--plan-limit <n>]
   python3 -I relay.py roadmap [--repo <owner/name>]
+  python3 -I relay.py localcheck <records> <key> [--checkout <dir>] [--repo <owner/name>]
+                                 [--comment <N>]
 (Windows: py -3 -I ...)
 
 <records> is the records folder (the `coord` worktree): plan.md, briefs/, status/, reports/,
@@ -30,7 +32,9 @@ ready   read-only. Prints what the coordinator can do next:
           - Ready to merge: done lanes whose open PR head is the status head, checks all passed
             (at least one, none pending) and no conflict.
           - Waiting: parked lanes with an open dependency; blocked lanes, with their `doing` line;
-            done lanes with a conflict, pending or failed checks, or a failed lookup.
+            done lanes with a conflict, pending or failed checks, or a failed lookup. A failed
+            check whose job never started (no steps, or an annotation saying it was not started:
+            billing, a spending limit) shows as `checks could not run (billing)`, not `check failed`.
           - No status yet: a brief with no status file.
           - Merged: done lanes whose PR merged (move them to plan-history.md).
           - Parents: open issues with sub-issues (GitHub's sub_issues_summary), with their
@@ -61,8 +65,18 @@ roadmap read-only. Prints a table, one row per open issue: `| #N title | blocked
         next `#`/`##` heading. A parent (an issue with sub-issues) shows `parent`. An issue with
         no section shows as missing, listed again under the table; paths are never inferred.
 
+localcheck  the checks CI would run, for when it cannot (billing, quota). In --checkout (default
+        the current folder): `git fetch`, a detached worktree at the lane's pushed head (from its
+        status file's branch) with core.longpaths on, merge the default branch into it, run
+        project.md's `Local checks:` line, else its `Checks before done:` line, then remove the
+        worktree, even when a check fails. Commands are the backticked items of the line, split on
+        `;`; `(Windows: `...`)` replaces an item's command on Windows; items marked "main checkout
+        only" are listed as not run. Prints the head and base shas and each command's output;
+        --comment <N> also posts that output on PR <N>.
+
 Exit: status 0 when written, 1 when a check fails; ready 0 after printing; roadmap 0 after
-printing, 1 when a lookup fails; 2 on a usage error or
+printing, 1 when a lookup fails; localcheck 0 when every command passed, else 1 (a command, the
+merge, a lookup or the comment failed); 2 on a usage error or
 a missing records folder. `gh` is called through $RELAY_GH
 when set (a command line, for tests). Standard library only, Python 3.10+.
 """
@@ -73,8 +87,10 @@ import os
 import pathlib
 import re
 import shlex
+import shutil
 import subprocess
 import sys
+import tempfile
 
 STATES = ("parked", "working", "blocked", "review", "done")
 FIELDS = ("state", "branch", "head", "PR body draft", "time", "doing")
@@ -88,11 +104,17 @@ def run(cmd, cwd=None):
     return p.returncode, p.stdout, p.stderr
 
 
-def gh(*args, jsonl=False):
+def gh_raw(*args):
+    """gh's stdout as text; RuntimeError when it fails."""
     base = [t.strip('"') for t in shlex.split(os.environ.get("RELAY_GH", "gh"), posix=False)]
     code, out, err = run(base + list(args))
     if code:
         raise RuntimeError(f"gh {' '.join(args)}: {err.strip() or out.strip()}")
+    return out
+
+
+def gh(*args, jsonl=False):
+    out = gh_raw(*args)
     if jsonl:
         return [json.loads(line) for line in out.splitlines() if line.strip()]
     return json.loads(out) if out.strip() else None
@@ -189,17 +211,20 @@ def check_pr_body(path, closes=None, deny=None):
 
 
 def deny_patterns(records):
-    """The patterns of the deny list project.md names (`- **Deny list:** <path>`), else []."""
+    """The patterns of the deny list project.md names (`- **Deny list:** <path>`), else [].
+    One trailing period, as the template's lines end, is dropped: `none.` means none."""
     project = records / "project.md"
     if not project.exists():
         return []
-    m = re.search(r"^- \*\*Deny list:\*\* `?([^`\n]+?)`?\s*$", project.read_text(encoding="utf-8"), re.M)
-    if not m or m.group(1).strip().strip('"').lower() == "none":
+    m = re.search(r"^- \*\*Deny list:\*\*[ \t]*(.*?)\s*$", project.read_text(encoding="utf-8"), re.M)
+    value = m.group(1).strip('`"') if m else ""
+    value = (value[:-1] if value.endswith(".") else value).strip().strip('`"')
+    if value.lower() in ("", "none"):
         return []
-    path = pathlib.Path(m.group(1).strip())
+    path = pathlib.Path(value)
     path = path if path.is_absolute() else records / path
-    if not path.exists():
-        raise FileNotFoundError(f"project.md's deny list {path} does not exist")
+    if not path.is_file():
+        raise FileNotFoundError(f"project.md's deny list {path} is not a file")
     pats = [l.strip() for l in path.read_text(encoding="utf-8").splitlines()
             if l.strip() and not l.lstrip().startswith("#")]
     for pat in pats:
@@ -243,17 +268,41 @@ def conflicts(checkout, branch):
     return [f"merge-tree failed: {err.strip()}"]
 
 
-def checks_state(rollup):
+NOT_STARTED = re.compile(r"was not started|spending limit|payments have failed", re.I)
+
+
+def never_started(check, repo):
+    """True when a failed check's job never ran: no steps, or an annotation saying it was not
+    started (billing, a spending limit). The rollup alone says only FAILURE. A failed lookup
+    counts as a real failure."""
+    m = re.search(r"/job/(\d+)", check.get("detailsUrl") or "")
+    if not (m and repo):
+        return False
+    try:
+        job = gh("api", f"repos/{repo}/actions/jobs/{m.group(1)}") or {}
+        if not job.get("steps"):
+            return True
+        notes = gh("api", f"repos/{repo}/check-runs/{m.group(1)}/annotations") or []
+    except (RuntimeError, ValueError, OSError):
+        return False
+    return any(NOT_STARTED.search(n.get("message") or "") for n in notes)
+
+
+def checks_state(rollup, repo=None):
     if not rollup:
         return "no checks reported"
+    billing = []
     for c in rollup:
         status = (c.get("status") or "COMPLETED").upper()
         result = (c.get("conclusion") or c.get("state") or "").upper()
+        name = c.get("name") or c.get("context")
         if status != "COMPLETED" or result in ("", "PENDING", "EXPECTED", "QUEUED"):
             return "checks pending"
         if result not in ("SUCCESS", "NEUTRAL", "SKIPPED"):
-            return f"check failed: {c.get('name') or c.get('context')}"
-    return "passed"
+            if not never_started(c, repo):
+                return f"check failed: {name}"
+            billing.append(name)
+    return f"checks could not run (billing): {', '.join(billing)}" if billing else "passed"
 
 
 def check_encoding(path, name):
@@ -418,7 +467,7 @@ def ready_done(records, key, st, repo, checkout, out):
         out["Inconsistent"].append(f"{key}: PR #{pr['number']} head {pr['headRefOid'][:12]} "
                                    f"is not the status head {head}")
         return
-    checks = checks_state(pr.get("statusCheckRollup"))
+    checks = checks_state(pr.get("statusCheckRollup"), repo)
     if pr.get("mergeable", "").upper() == "CONFLICTING":
         out["Waiting"].append(f"{key}: PR #{pr['number']} has a merge conflict")
     elif checks != "passed":
@@ -499,6 +548,127 @@ def cmd_roadmap(a):
     return 0
 
 
+# localcheck -----------------------------------------------------------------------------------
+
+def longpaths_env():
+    """os.environ plus core.longpaths=true for every git the checks run, after any GIT_CONFIG_* set."""
+    n = int(os.environ.get("GIT_CONFIG_COUNT") or 0)
+    return {**os.environ, "GIT_CONFIG_COUNT": str(n + 1),
+            f"GIT_CONFIG_KEY_{n}": "core.longpaths", f"GIT_CONFIG_VALUE_{n}": "true"}
+
+
+def project_line(records, label):
+    """The text after `- **<label>:**` in project.md, or None."""
+    project = records / "project.md"
+    if not project.exists():
+        return None
+    m = re.search(rf"^- \*\*{re.escape(label)}:\*\*(.*)$", project.read_text(encoding="utf-8"), re.M)
+    value = m.group(1).strip() if m else ""
+    return value if value.strip("`\". ").lower() not in ("", "none") else None
+
+
+def check_commands(line, windows=None):
+    """(commands, skipped) from a project.md checks line: `;`-separated items, each command in
+    backticks. A `(Windows: `...`)` in an item replaces its command on Windows; an item marked
+    "main checkout only" is skipped."""
+    windows = os.name == "nt" if windows is None else windows
+    items, cur, tick = [], "", False
+    for ch in line:
+        tick ^= ch == "`"
+        if ch == ";" and not tick:
+            items.append(cur)
+            cur = ""
+        else:
+            cur += ch
+    items.append(cur)
+    commands, skipped = [], []
+    for item in items:
+        spans = re.findall(r"`([^`]+)`", item)
+        if not spans:
+            continue
+        win = re.search(r"\(Windows:\s*`([^`]+)`", item)
+        cmd = win.group(1) if win and windows else spans[0]
+        (skipped if "main checkout only" in item else commands).append(cmd)
+    return commands, skipped
+
+
+def cmd_localcheck(a):
+    records = pathlib.Path(a.records)
+    if not records.is_dir():
+        print(f"no records folder at {records}", file=sys.stderr)
+        return 2
+    checkout = os.path.abspath(a.checkout)
+    line = project_line(records, "Local checks") or project_line(records, "Checks before done")
+    if line is None:
+        return fail(f"{records / 'project.md'} has no `- **Local checks:**` line and no "
+                    "`- **Checks before done:**` line: add the command that runs the checks")
+    commands, skipped = check_commands(line)
+    if not commands:
+        return fail(f"no backticked command on project.md's checks line: {line}")
+    status = records / "status" / f"{a.key}.md"
+    st = parse_status(status.read_text(encoding="utf-8")) if status.exists() else {}
+    branch = st.get("branch", "none")
+    if branch == "none":
+        return fail(f"lane {a.key} has no branch in {status}")
+    run(["git", "fetch", "-q", "origin"], cwd=checkout)
+    head = pushed_head(checkout, branch)
+    if not head:
+        return fail(f"branch {branch} is not pushed")
+    default = default_branch(checkout)
+    _, base, _ = run(["git", "rev-parse", default], cwd=checkout)
+    base = base.strip()
+    lines = [f"relay localcheck, lane {a.key}: {branch}", f"head {head}", f"base {base} ({default})"]
+    if not head.startswith(st.get("head", "")):
+        lines.append(f"warning: the status head {st.get('head')} is not this head")
+    env = longpaths_env()
+    wt = tempfile.mkdtemp(prefix="relay-lc-")
+    ok = False
+    try:
+        code, _, err = run(["git", "-c", "core.longpaths=true", "worktree", "add", "-q", "--detach",
+                            wt, head], cwd=checkout)
+        if code:
+            return fail(f"git worktree add failed: {err.strip()}")
+        code, out, err = run(["git", "-c", "core.longpaths=true", "-c", "user.name=relay", "-c",
+                              "user.email=relay@localhost", "merge", "-q", "--no-edit", base], cwd=wt)
+        if code:
+            lines.append(f"merge of {default} failed:\n{(out + err).strip()}")
+        else:
+            ok = True
+            for cmd in commands:
+                p = subprocess.run(cmd, shell=True, cwd=wt, env=env, capture_output=True,
+                                   text=True, encoding="utf-8", errors="replace")
+                lines += ["", f"$ {cmd}", (p.stdout + p.stderr).rstrip(),
+                          "passed" if p.returncode == 0 else f"failed (exit {p.returncode})"]
+                ok = ok and p.returncode == 0
+        lines += [f"not run (main checkout only): {c}" for c in skipped]
+        result = "passed" if ok else "failed"
+        if ok and skipped:
+            result += f", {len(skipped)} not run: run them in the main checkout before the merge"
+        lines += ["", f"result: {result}"]
+    finally:
+        run(["git", "-c", "core.longpaths=true", "worktree", "remove", "--force", wt], cwd=checkout)
+        shutil.rmtree(wt, ignore_errors=True)
+        run(["git", "worktree", "prune"], cwd=checkout)
+        if os.path.exists(wt):
+            print(f"warning: could not remove {wt}", file=sys.stderr)
+    report = "\n".join(lines)
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(errors="replace")  # check output may hold what the console cannot
+    print(report)
+    if a.comment:
+        body = pathlib.Path(wt + ".md")
+        body.write_text(f"```\n{report}\n```\n", encoding="utf-8")
+        try:
+            repo = a.repo or gh("repo", "view", "--json", "nameWithOwner")["nameWithOwner"]
+            gh_raw("pr", "comment", str(a.comment), "--repo", repo, "--body-file", str(body))
+        except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
+            return fail(f"could not post on PR #{a.comment}: {e}")
+        finally:
+            body.unlink()
+        print(f"posted on PR #{a.comment}")
+    return 0 if ok else 1
+
+
 def fail(msg):
     print(msg, file=sys.stderr)
     return 1
@@ -520,10 +690,17 @@ def main(argv=None):
     r.add_argument("--repo")
     r.add_argument("--checkout")
     r.add_argument("--plan-limit", type=int, default=200)
+    c = sub.add_parser("localcheck", help="run the project's checks on a lane merged with the default branch")
+    c.add_argument("records")
+    c.add_argument("key")
+    c.add_argument("--checkout", default=".")
+    c.add_argument("--repo")
+    c.add_argument("--comment", type=int, metavar="N")
     m = sub.add_parser("roadmap", help="print each open issue's blocked-by and `## Files`")
     m.add_argument("--repo")
     a = p.parse_args(argv)
-    return {"status": cmd_status, "ready": cmd_ready, "roadmap": cmd_roadmap}[a.cmd](a)
+    return {"status": cmd_status, "ready": cmd_ready, "roadmap": cmd_roadmap,
+            "localcheck": cmd_localcheck}[a.cmd](a)
 
 
 if __name__ == "__main__":
