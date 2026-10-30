@@ -16,8 +16,9 @@ Current state only. Done work moves to `plan-history.md` with a one-line pointer
 
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
-| 1 | #1 | local_1579b864-86a9-486d-90c2-506674ab72a7 (claude/lane-1-6a0c93) | working | |
-| 7 | #7 | local_96015864-484e-43fd-ba63-f56257c25613 (claude/lane-7-51e899) | working | |
+| 1 | #1 | local_1579b864-86a9-486d-90c2-506674ab72a7 (claude/lane-1-6a0c93) | done @ e1a58e4, conflicts with main (relay.py, from #15); asked to merge main 16:40 | |
+| 7 | #7 | local_96015864-484e-43fd-ba63-f56257c25613 (claude/lane-7-51e899) | review | |
+| 11 | #11 | local_68c615d2-7e40-43ab-82da-77985a357b61 (claude/lane-11-f4e84e) | started (user: "Start lane 11", 16:41) | |
 | 2 | #2 | local_fb37449e-58c9-49eb-b7f4-6878eebd3515 (claude/lane-2-ccd448) | parked | GO #2 after #1 merges |
 | 3 | #3 | local_9bd0484c-821d-4349-9663-678666c9e033 (claude/lane-3-af9107) | parked | GO #3 after #1 merges |
 
@@ -33,7 +34,7 @@ Every open issue, once. "Order" is the wave (1 = can start now). "Kind" is `free
 | #2 Issue-body `## Files` section | 2 | none | after #1, coordinate SKILL.md › First turn step 3 | relay.py (new roadmap command), fake_gh.py, test_relay.py, coordinate SKILL.md (First turn step 3; Starting a lane step 1), setup SKILL.md, README.md (Layout row), GLOSSARY.md | free |
 | #3 Hand back when the roadmap empties; owner notes | 2 | #1 | none | relay.py (`ready` owner notes), fake_gh.py, test_relay.py, coordinate SKILL.md (First turn step 5; Finishing a lane step 6), GLOSSARY.md (owner-note marker) | free |
 | #7 Local checks fallback (`relay.py localcheck`) | 1 | none | none | relay.py (`localcheck`; `checks_state`/`ready_done` billing case), fake_gh.py (`pr comment`, billing rollup), test_relay.py, coordinate SKILL.md (Finishing a lane step 4), setup templates/project.md (Local checks line) | free |
-| #11 Deny list `none.` read as a path | 1 (no lane yet) | none | none | relay.py (`deny_patterns`), test_relay.py | free |
+| #11 Deny list `none.` read as a path | 1 (lane 11) | none | none | relay.py (`deny_patterns`), test_relay.py | free |
 | #12 Invalid UTF-8 in a status file crashes `ready` (filed by lane 9, `needs-triage`, no `## Files`) | 1 (no lane yet; #9 merged) | none | none | relay.py (`cmd_ready` status reads), test_relay.py | free |
 
 Mechanical overlap: `plugin/tools/relay.py` (docstring, `cmd_ready` sections) and `tests/test_relay.py` with #1, #2, #3, #7, #11, #12; `tests/fake_gh.py` with #1, #2, #3, #7; `plugin/GLOSSARY.md` with #1, #2, #3. #8 (merged) owns the archive rule in `app-limits.md` › Session folders; #3 points at it. Triage of #7–#10: `decisions-2026-10-30.md`.
@@ -45,7 +46,7 @@ none
 ## Waiting for the user's decision
 
 - Archive finished sessions: triage-7-10 (local_25b74a50-b6f9-40d5-86ad-82eae30d7c7f), lane-8, lane-9, lane-10 (merged); since 2026-10-30 16:40 -0700.
-- Lanes for #11 and #12 (no lane yet; #12 still `needs-triage`); since 2026-10-30 16:40 -0700.
+- Lane for #12 (no lane yet; still `needs-triage`, no `## Files`); since 2026-10-30 16:40 -0700.
 
 ## Deadlines
 
