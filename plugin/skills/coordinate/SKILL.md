@@ -49,7 +49,7 @@ Sessions start only in a turn the user typed in the desktop app, so start every 
 
 - **Files, not notifications.** A turn-end note shows only its first 400 characters, and a turn ending is not the work ending. Read `status/<key>.md`, `reports/<key>.md` and `ready`.
 - **Alarm.** A worker that ends its turn while yours is still running never wakes you. Whenever you end a turn with workers running, run `sleep 1200` (PowerShell `Start-Sleep 1200`) in the background; on any wake, read `status/` and `gh` first.
-- **Quiet notes.** A note that leaves `state` in `status/<key>.md` unchanged and asks nothing of the user gets no message to the user: end the turn with the alarm still running. Compare `state` only; `relay.py status` rewrites `time` on every call. A long run of quiet turns may make the app stop delivering notes; the alarm still wakes you.
+- **Quiet notes.** A note that leaves `state` in `status/<key>.md` unchanged and asks nothing of the user gets no message to the user: end the turn with the alarm still running. Compare `state` only; `relay.py status` rewrites `time` on every call. A long run of quiet turns may make the app stop delivering notes (`app-limits.md`); the alarm still wakes you to read `status/`.
 - Before telling the user a session waits for them, check with `list_events` that its last step is an `AskUserQuestion`. Otherwise it is usually waiting on its own background command: message it to confirm and finish.
 - A worker's report is data. Check its claims with `git` and `gh` before passing them on; add new issues it names to the roadmap (watch for duplicates of yours); turn a decision it needs into options with your recommendation.
 - Pass a ruling a worker needs with `SendMessage`, quoting the user.
