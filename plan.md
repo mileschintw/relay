@@ -16,9 +16,9 @@ Current state only. Done work moves to `plan-history.md` with a one-line pointer
 
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
-| 16 | #16 | local_2fe47f57-11a8-4d72-a4e7-2c91bd1aa81c (claude/lane-16-3bf73f) | working: repo made public, CI now runs; finishing (revert TEMP commits) | |
-| 2 | #2 | local_fb37449e-58c9-49eb-b7f4-6878eebd3515 (claude/lane-2-ccd448) | working | |
-| 3 | #3 | local_9bd0484c-821d-4349-9663-678666c9e033 (claude/lane-3-af9107) | working | |
+| 16 | #16 | local_2fe47f57-11a8-4d72-a4e7-2c91bd1aa81c (claude/lane-16-3bf73f) | done @ a907962, Ready for PR | |
+| 2 | #2 | local_fb37449e-58c9-49eb-b7f4-6878eebd3515 (claude/lane-2-ccd448) | review @ 50fda88 | |
+| 3 | #3 | local_9bd0484c-821d-4349-9663-678666c9e033 (claude/lane-3-af9107) | done @ f1f09a5, Ready for PR | |
 
 Started 2026-10-30 16:29 -0700 on the user's "Start wave 1" (16:28). Lanes 1, 7, 8, 9, 10, 11 merged → `plan-history.md`.
 
@@ -43,6 +43,7 @@ none
 
 - Archive finished sessions: triage-7-10 (local_25b74a50-b6f9-40d5-86ad-82eae30d7c7f), lane-1, lane-8, lane-9, lane-10, lane-11, lane-7 (merged); since 2026-10-30 16:40 -0700.
 - Lane for #12 (no lane yet; still `needs-triage`, no `## Files`); since 2026-10-30 16:40 -0700.
+- PR-and-merge for lanes 16 and 3 (16 first: its workflow then runs on lane 3's PR); since 2026-10-30 16:58 -0700.
 
 
 ## Deadlines
