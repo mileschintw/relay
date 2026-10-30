@@ -337,6 +337,37 @@ class LocalcheckTests(Base):
         self.assertTrue(posted.startswith("#5\n"))
         self.assertIn(f"head {head}", posted)
 
+    def test_failed_merge_fails(self):
+        self.lane()
+        git("switch", "-q", "lane-12", cwd=self.clone)
+        (self.clone / "a.txt").write_text("lane moved\n")
+        git("commit", "-qam", "conflict", cwd=self.clone)
+        git("push", "-q", "origin", "lane-12", cwd=self.clone)
+        git("switch", "-q", "main", cwd=self.clone)
+        self.project(f"- **Local checks:** {self.py('print(5)')}\n")
+        code, out, err = self.localcheck()
+        self.assertEqual(code, 1)
+        self.assertIn("merge of origin/main failed", out)
+        self.assertNotIn("$ ", out)
+        self.assertEqual(len(self.worktrees()), 1)
+
+    def test_none_falls_back_and_main_checkout_only_is_named(self):
+        self.lane()
+        self.project(f"- **Checks before done:** {self.py('print(6)')}; `e2e` main checkout only\n"
+                     "- **Local checks:** none\n")
+        code, out, err = self.localcheck()
+        self.assertEqual(code, 0, out + err)
+        self.assertIn("not run (main checkout only): e2e", out)
+        self.assertIn("result: passed, 1 not run", out)
+
+    def test_failed_comment_is_an_error(self):
+        self.lane()
+        self.project(f"- **Local checks:** {self.py('print(5)')}\n")
+        os.environ["RELAY_GH"] = f'"{sys.executable}" "{HERE / "no_such_gh.py"}"'
+        code, out, err = self.localcheck("--comment", "5")
+        self.assertEqual(code, 1)
+        self.assertIn("could not post on PR #5", err)
+
     def test_command_parsing(self):
         line = ("`python3 -I t.py` (Windows: `py -3 -I t.py`); `claude plugin validate .`; "
                 "`npm run e2e` main checkout only.")

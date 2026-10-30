@@ -58,7 +58,7 @@ localcheck  the checks CI would run, for when it cannot (billing, quota). In --c
         --comment <N> also posts that output on PR <N>.
 
 Exit: status 0 when written, 1 when a check fails; ready 0 after printing; localcheck 0 when every
-command passed, 1 when one failed, the merge failed or no checks line; 2 on a usage error or
+command passed, else 1 (a command, the merge, a lookup or the comment failed); 2 on a usage error or
 a missing records folder. `gh` is called through $RELAY_GH
 when set (a command line, for tests). Standard library only, Python 3.10+.
 """
@@ -85,11 +85,17 @@ def run(cmd, cwd=None):
     return p.returncode, p.stdout, p.stderr
 
 
-def gh(*args):
+def gh_raw(*args):
+    """gh's stdout as text; RuntimeError when it fails."""
     base = [t.strip('"') for t in shlex.split(os.environ.get("RELAY_GH", "gh"), posix=False)]
     code, out, err = run(base + list(args))
     if code:
         raise RuntimeError(f"gh {' '.join(args)}: {err.strip() or out.strip()}")
+    return out
+
+
+def gh(*args):
+    out = gh_raw(*args)
     return json.loads(out) if out.strip() else None
 
 
@@ -238,19 +244,23 @@ def conflicts(checkout, branch):
     return [f"merge-tree failed: {err.strip()}"]
 
 
-NOT_STARTED = re.compile(r"not started|spending limit|payments have failed|billing", re.I)
+NOT_STARTED = re.compile(r"was not started|spending limit|payments have failed", re.I)
 
 
 def never_started(check, repo):
     """True when a failed check's job never ran: no steps, or an annotation saying it was not
-    started (billing, a spending limit). The rollup alone says only FAILURE."""
+    started (billing, a spending limit). The rollup alone says only FAILURE. A failed lookup
+    counts as a real failure."""
     m = re.search(r"/job/(\d+)", check.get("detailsUrl") or "")
     if not (m and repo):
         return False
-    job = gh("api", f"repos/{repo}/actions/jobs/{m.group(1)}") or {}
-    if not job.get("steps"):
-        return True
-    notes = gh("api", f"repos/{repo}/check-runs/{m.group(1)}/annotations") or []
+    try:
+        job = gh("api", f"repos/{repo}/actions/jobs/{m.group(1)}") or {}
+        if not job.get("steps"):
+            return True
+        notes = gh("api", f"repos/{repo}/check-runs/{m.group(1)}/annotations") or []
+    except (RuntimeError, ValueError):
+        return False
     return any(NOT_STARTED.search(n.get("message") or "") for n in notes)
 
 
@@ -387,7 +397,11 @@ def ready_done(records, key, st, repo, checkout, out):
 
 # localcheck -----------------------------------------------------------------------------------
 
-LONGPATHS = {"GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": "core.longpaths", "GIT_CONFIG_VALUE_0": "true"}
+def longpaths_env():
+    """os.environ plus core.longpaths=true for every git the checks run, after any GIT_CONFIG_* set."""
+    n = int(os.environ.get("GIT_CONFIG_COUNT") or 0)
+    return {**os.environ, "GIT_CONFIG_COUNT": str(n + 1),
+            f"GIT_CONFIG_KEY_{n}": "core.longpaths", f"GIT_CONFIG_VALUE_{n}": "true"}
 
 
 def project_line(records, label):
@@ -427,6 +441,9 @@ def check_commands(line, windows=None):
 
 def cmd_localcheck(a):
     records = pathlib.Path(a.records)
+    if not records.is_dir():
+        print(f"no records folder at {records}", file=sys.stderr)
+        return 2
     checkout = os.path.abspath(a.checkout)
     line = project_line(records, "Local checks") or project_line(records, "Checks before done")
     if line is None:
@@ -450,7 +467,7 @@ def cmd_localcheck(a):
     lines = [f"relay localcheck, lane {a.key}: {branch}", f"head {head}", f"base {base} ({default})"]
     if not head.startswith(st.get("head", "")):
         lines.append(f"warning: the status head {st.get('head')} is not this head")
-    env = {**os.environ, **LONGPATHS}
+    env = longpaths_env()
     wt = tempfile.mkdtemp(prefix="relay-lc-")
     ok = False
     try:
@@ -458,8 +475,8 @@ def cmd_localcheck(a):
                             wt, head], cwd=checkout)
         if code:
             return fail(f"git worktree add failed: {err.strip()}")
-        code, out, err = run(["git", "-c", "user.name=relay", "-c", "user.email=relay@localhost",
-                              "merge", "-q", "--no-edit", base], cwd=wt)
+        code, out, err = run(["git", "-c", "core.longpaths=true", "-c", "user.name=relay", "-c",
+                              "user.email=relay@localhost", "merge", "-q", "--no-edit", base], cwd=wt)
         if code:
             lines.append(f"merge of {default} failed:\n{(out + err).strip()}")
         else:
@@ -471,33 +488,32 @@ def cmd_localcheck(a):
                           "passed" if p.returncode == 0 else f"failed (exit {p.returncode})"]
                 ok = ok and p.returncode == 0
         lines += [f"not run (main checkout only): {c}" for c in skipped]
-        lines += ["", f"result: {'passed' if ok else 'failed'}"]
+        result = "passed" if ok else "failed"
+        if ok and skipped:
+            result += f", {len(skipped)} not run: run them in the main checkout before the merge"
+        lines += ["", f"result: {result}"]
     finally:
-        run(["git", "worktree", "remove", "--force", wt], cwd=checkout)
+        run(["git", "-c", "core.longpaths=true", "worktree", "remove", "--force", wt], cwd=checkout)
         shutil.rmtree(wt, ignore_errors=True)
         run(["git", "worktree", "prune"], cwd=checkout)
+        if os.path.exists(wt):
+            print(f"warning: could not remove {wt}", file=sys.stderr)
     report = "\n".join(lines)
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(errors="replace")  # check output may hold what the console cannot
     print(report)
     if a.comment:
-        repo = a.repo or gh("repo", "view", "--json", "nameWithOwner")["nameWithOwner"]
         body = pathlib.Path(wt + ".md")
         body.write_text(f"```\n{report}\n```\n", encoding="utf-8")
         try:
-            gh_text("pr", "comment", str(a.comment), "--repo", repo, "--body-file", str(body))
+            repo = a.repo or gh("repo", "view", "--json", "nameWithOwner")["nameWithOwner"]
+            gh_raw("pr", "comment", str(a.comment), "--repo", repo, "--body-file", str(body))
+        except (RuntimeError, ValueError, KeyError, TypeError) as e:
+            return fail(f"could not post on PR #{a.comment}: {e}")
         finally:
             body.unlink()
         print(f"posted on PR #{a.comment}")
     return 0 if ok else 1
-
-
-def gh_text(*args):
-    base = [t.strip('"') for t in shlex.split(os.environ.get("RELAY_GH", "gh"), posix=False)]
-    code, out, err = run(base + list(args))
-    if code:
-        raise RuntimeError(f"gh {' '.join(args)}: {err.strip() or out.strip()}")
-    return out
 
 
 def fail(msg):
