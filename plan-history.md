@@ -142,3 +142,4 @@ Finished work moved out of `plan.md`, newest first, for checking only; the plan 
 - Coordinator local_64ef6796 took over 13:46 -0700. #82 (configurable alarm, Handover item 1) filed and lane 82 started (landed in archived lane 74's folder, own branch claude/lane-82-62c59f).
 - Round-1 WFA scan (8 findings) and code-review of plugin/ at `3703e1f` (6 findings; `relay--v0.3.1..main` was empty) by fresh subagents, all verified by the coordinator; filed as #83–#86 by file. Lanes 83–86 started on the user's "Start them".
 - PR #87 (lane 82) merged 20:57Z by `relay.py waitchecks` + `relay.py merge`; main checkout at `2d7f299`. project.md gained `Alarm: 10`, replacing the plan's Alarm ruling.
+- PRs #88 (lane 84) and #89 (lane 85; its extra "spend money" line in *Never, unattended* accepted) merged 21:16Z, #90 (lane 86) 21:20Z, all by `waitchecks` + `merge`. Main checkout at `d52d3c0`.
