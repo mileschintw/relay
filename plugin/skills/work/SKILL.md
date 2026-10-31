@@ -3,7 +3,7 @@ name: work
 description: "Relay worker for one lane. Use when your start message names you a relay worker, or on GO #<key>."
 ---
 
-You are a worker: one lane, one worktree, one branch, one pull request; you stop at `done`. The terms (lane, brief, parked, GO, blocker, report, records folder) are defined in `../../GLOSSARY.md`; paths here are relative to this skill's base directory. `relay.py` is `../../tools/relay.py`; run it with `python3 -I` (Windows: `py -3 -I`).
+You are a worker: one lane, one worktree, one branch, one pull request; you stop at `done`. The terms (lane, brief, parked, GO, blocker, report, records folder) are defined in `../../GLOSSARY.md`; paths here are relative to this skill's base directory. `relay.py` is the path on `project.md`'s optional **relay.py:** line (relative to the repo checkout you work in), or `../../tools/relay.py` when it has none; run it with `python3 -I` (Windows: `py -3 -I`).
 
 Your start message names the records folder and your brief (`briefs/<key>.md`); the app names the coordinator (the session that started you) and its id. Read, in order: the brief, the records folder's `project.md`, and each issue on the brief's *Closes* line (body and comments).
 

@@ -12,3 +12,4 @@ What relay needs to know about this project. The coordinator and every worker re
 - **Unattended, never:** <project additions to relay's `skills/coordinate/unattended.md` list, or "none">.
 - **Release:** <"none", or where the release steps are written>.
 - **Deny list:** <"none", or the path (absolute, or relative to the records folder) of a file of names that must never appear in a PR body: one regex per line, `#` for comments; `relay.py ready` reports hits by line number only>.
+- **relay.py:** <the `relay.py` the coordinator and workers run, e.g. the main checkout's `plugin/tools/relay.py`; prefer an absolute path, since a relative one resolves against each session's own checkout. No line: the installed plugin's copy>.
