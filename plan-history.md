@@ -148,3 +148,4 @@ Finished work moved out of `plan.md`, newest first, for checking only; the plan 
 - Round 2: PR #97 (lane 91; #91 #93 #94) merged 21:57Z; main at `a082f9d`. Round 2 complete.
 - Round 3: PR #100 (lane 98, #98) merged 22:10Z; main at `5461ad4`.
 - Round 3: PR #101 (lane 99, #99) merged 22:16Z; main at `5878ecc`. Round 3 complete.
+- Round 4: PR #104 (lane 103, #103) merged 22:27Z; main at `07d6370`.
