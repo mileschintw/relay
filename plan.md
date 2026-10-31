@@ -16,6 +16,7 @@ Current state only. Done work moves to `plan-history.md` with a one-line pointer
 
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
+| 12 | #12 | local_8cddf2c9-12f8-4e80-96eb-5eef2ee11d86 (claude/lane-12-c970f3) | started (user: "Triage and start #12", 17:08) | |
 
 Started 2026-10-30 16:29 -0700 on the user's "Start wave 1" (16:28). Lanes 1, 2, 3, 7, 8, 9, 10, 11, 16 merged → `plan-history.md`.
 
@@ -25,9 +26,9 @@ Every open issue, once. "Order" is the wave (1 = can start now). "Kind" is `free
 
 | Issue | Order | Blocked by (GitHub) | Same-section wait | Files it owns | Kind |
 |---|---|---|---|---|---|
-| #12 Invalid UTF-8 in a status file crashes `ready` (filed by lane 9, `needs-triage`, no `## Files`) | 1 (no lane yet; #9 merged) | none | none | relay.py (`cmd_ready` status reads), test_relay.py | free |
+| #12 Invalid UTF-8 in a status file crashes `ready` (triaged by the coordinator 17:08: `ready-for-agent`, `## Files` added) | 1 (lane 12) | none | none | relay.py (`cmd_ready` and `cmd_localcheck` status reads), test_relay.py | free |
 
-Mechanical overlap: `plugin/tools/relay.py` (docstring, `cmd_ready` sections) and `tests/test_relay.py` with #1, #2, #3, #7, #11, #12; `tests/fake_gh.py` with #1, #2, #3, #7; `plugin/GLOSSARY.md` with #1, #2, #3. #8 (merged) owns the archive rule in `app-limits.md` › Session folders; #3 points at it. Triage of #7–#10: `decisions-2026-10-30.md`.
+Mechanical overlap: none (only lane open). Triage of #7–#10: `decisions-2026-10-30.md`.
 
 ## Waiting for the user to be present
 
@@ -36,8 +37,6 @@ none
 ## Waiting for the user's decision
 
 - Archive finished sessions: triage-7-10 (local_25b74a50-b6f9-40d5-86ad-82eae30d7c7f), lane-1, lane-8, lane-9, lane-10, lane-11, lane-7, lane-16, lane-3, lane-2 (merged); since 2026-10-30 16:40 -0700.
-- Lane for #12 (no lane yet; still `needs-triage`, no `## Files`); since 2026-10-30 16:40 -0700.
-
 
 ## Deadlines
 
