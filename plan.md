@@ -16,7 +16,7 @@ none (ruling 1, merging on local checks while the repo had no CI, ended when #16
 
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
-| 33 | #33 | local_95052c38-11d8-4c25-99e3-72fa0dd14cdf (worktree lane-33-e5ca5c) | started | — |
+| 33 | #33 | local_95052c38-11d8-4c25-99e3-72fa0dd14cdf (worktree lane-33-e5ca5c) | done (c6112f7) | — |
 
 Wave 2: lanes 24–31 merged (PRs #34–#41, 2026-10-30 17:51–18:02 -0700) → `plan-history.md`. Wave 1: all lanes merged: 1, 2, 3, 7, 8, 9, 10, 11, 12, 16 → `plan-history.md`.
 
@@ -27,6 +27,7 @@ Every open issue, once. "Order" is the wave (1 = can start now). "Kind" is `free
 | Issue | Order | Blocked by (GitHub) | Same-section wait | Files it owns | Kind |
 |---|---|---|---|---|---|
 | #33 CI outside GitHub Actions reads as no CI configured (filed by lane 25; triaged 2026-10-30, ready-for-agent) | 1 (running, lane 33, started 18:20 on 「Start lane 33」) | none | none | relay.py (`no_workflows` / `checks_state`, `ready` docstring), fake_gh.py (`commits/HEAD/status`, `/check-runs`), test_relay.py, setup SKILL.md (step 9) | free |
+| #42 Checks not started assumes a workflow; CI outside Actions has none (needs-triage; filed by lane 33) | 1 after triage | none | none | coordinate SKILL.md (Finishing a lane step 4, Checks not started bullet) | free |
 
 Filed 2026-10-30 from the coordinator's retro on the user's 「7點都能file」. Mechanical overlap: relay.py #25/#27 (different functions; #27 touches only the section list); setup SKILL.md #25 (new CI step) / #26 (copy step and check); coordinate SKILL.md #24 (top line) / #25 (step 4) / #28 and #31 (Plan: same-section wait, #31 after #28); work SKILL.md #24 (intro) / #30. #29 was widened on the user's 「把值得作的三項開issue或更新現有issue」 with lane 8's two notes; #31 filed the same time (lane 9's note). Not filed, by recommendation: unpinned claude-code in CI, stall detection. Triage of #7–#10: `decisions-2026-10-30.md`.
 
