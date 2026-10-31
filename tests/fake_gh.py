@@ -47,6 +47,14 @@ def rest(n):
     return {"number": int(n), "state": state.lower(), "state_reason": (reason or "").lower() or None}
 
 
+def pr_views(n, rollup):
+    """How many `pr view <n>` calls so far, this one included: those asking for
+    statusCheckRollup when rollup is true, else the others."""
+    calls = open(os.environ["RELAY_FAKE_GH"] + ".calls", encoding="utf-8").read().splitlines()
+    return sum(c.startswith(f"pr view {n} ") and ("statusCheckRollup" in c) == rollup
+               for c in calls)
+
+
 if any(b in x for b in data.get("broken", []) for x in a):
     sys.exit(f"fake gh: broken {a}")
 if a[:2] == ["repo", "view"]:
@@ -94,8 +102,7 @@ elif a[:2] == ["pr", "view"] and "statusCheckRollup" in a:
     if a[2] not in data.get("pr_checks", {}):
         sys.exit(f"no pull requests found for {a[2]}")
     pc = data["pr_checks"][a[2]]
-    calls = open(os.environ["RELAY_FAKE_GH"] + ".calls", encoding="utf-8").read().splitlines()
-    seen = sum(c.startswith(f"pr view {a[2]} ") for c in calls)
+    seen = pr_views(a[2], rollup=True)
     print(json.dumps({"statusCheckRollup": pc["rollup"] if seen >= pc.get("after", 1) else []}))
 elif a[:2] == ["pr", "checks"] and "--watch" in a:
     code, output, *err = data.get("watch", {}).get(a[2], [0, "all checks passed"])
@@ -110,9 +117,7 @@ elif a[:2] == ["pr", "view"]:
         sys.exit(f"no pull requests found for {a[2]}")
     view = data["pr_view"][a[2]]
     if isinstance(view, list):
-        calls = open(os.environ["RELAY_FAKE_GH"] + ".calls", encoding="utf-8").read().splitlines()
-        seen = sum(c.startswith(f"pr view {a[2]} ") and "statusCheckRollup" not in c for c in calls)
-        view = view[min(seen, len(view)) - 1]
+        view = view[min(pr_views(a[2], rollup=False), len(view)) - 1]
     print(json.dumps(view))
 elif a[:2] == ["pr", "merge"]:
     if a[2] in data.get("merge_fail", {}):

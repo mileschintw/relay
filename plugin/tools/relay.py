@@ -123,7 +123,8 @@ merge, a lookup or the comment failed); waitchecks 0 when the checks passed, 1 w
 no failed check behind it, a gh error say); merge 0 when every key merged, 1 when it stopped
 (a key not ready, or a lookup, merge state or `gh pr merge` that failed);
 2 on a usage error (waitchecks: a CI start wait that is not a number of minutes, or a
-project.md that is not UTF-8; merge: a key given twice) or a missing records folder.
+project.md that is not UTF-8; merge: a key given twice, or a --checkout that is not a git
+checkout) or a missing records folder.
 waitchecks and merge: an error not named above (a bug, say) exits 4 with one line, never 1;
 output the console cannot encode is replaced, not fatal.
 `gh` is called through $RELAY_GH when set (a command line, for tests).
@@ -858,8 +859,6 @@ def cmd_localcheck(a):
         if os.path.exists(wt):
             print(f"warning: could not remove {wt}", file=sys.stderr)
     report = "\n".join(lines)
-    if hasattr(sys.stdout, "reconfigure"):
-        sys.stdout.reconfigure(errors="replace")  # check output may hold what the console cannot
     print(report)
     if a.comment:
         body = pathlib.Path(wt + ".md")
@@ -920,8 +919,9 @@ def wait_checks(pr, repo, schedule):
             print(f"poll {i} at {at / 60:g} min: {len(rollup)} check(s); watching", flush=True)
             # with no terminal, the watch reprints the whole table every 10 s: keep only its
             # errors, then print the final table once
-            code, _, err = run(gh_base() + ["pr", "checks", str(pr), "--repo", repo, "--watch"])
-            _, out, table_err = run(gh_base() + ["pr", "checks", str(pr), "--repo", repo])
+            checks = gh_base() + ["pr", "checks", str(pr), "--repo", repo]
+            code, _, err = run(checks + ["--watch"])
+            _, out, table_err = run(checks)
             print(out.rstrip())
             errors = "\n".join(e.rstrip() for e in (err, table_err) if e.strip())
             if errors:
@@ -1067,6 +1067,10 @@ def cmd_merge(a):
         repo = a.repo or gh("repo", "view", "--json", "nameWithOwner")["nameWithOwner"]
     except LOOKUP_ERRORS as e:
         return fail(f"lookup failed: {e}")
+    if not os.path.isdir(a.checkout) or run(["git", "rev-parse", "--git-dir"], cwd=a.checkout)[0]:
+        print(f"{os.path.abspath(a.checkout)} is not a git checkout: pass --checkout <a clone of "
+              f"{repo}>", file=sys.stderr)
+        return 2
     run(["git", "fetch", "-q", "origin"], cwd=a.checkout)
     lanes = []
     for key in a.keys:
@@ -1124,13 +1128,15 @@ def main(argv=None):
     m.add_argument("--repo")
     a = p.parse_args(argv)
     command = {"status": cmd_status, "ready": cmd_ready, "roadmap": cmd_roadmap,
-               "localcheck": cmd_localcheck, "waitchecks": cmd_waitchecks, "merge": cmd_merge}[a.cmd]
+               "localcheck": cmd_localcheck, "waitchecks": cmd_waitchecks,
+               "merge": cmd_merge}[a.cmd]
+    if a.cmd in ("localcheck", "waitchecks", "merge"):
+        for stream in (sys.stdout, sys.stderr):
+            if hasattr(stream, "reconfigure"):
+                stream.reconfigure(errors="replace")  # output the console cannot hold
     if a.cmd not in ("waitchecks", "merge"):
         return command(a)
     # their exit 1 means a check failed or a merge stopped: never let an error say that
-    for stream in (sys.stdout, sys.stderr):
-        if hasattr(stream, "reconfigure"):
-            stream.reconfigure(errors="replace")  # gh output may hold what the console cannot
     try:
         return command(a)
     except Exception as e:  # noqa: BLE001

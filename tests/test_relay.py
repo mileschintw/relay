@@ -871,6 +871,14 @@ class SafeExitTests(Base):
         self.assertIn("12: not under Ready to merge (Waiting: ", err)
         self.assertIn("conflict", err)
 
+    def test_merge_refuses_a_checkout_that_is_not_a_git_checkout(self):
+        (self.tmp / "outside").mkdir()
+        for folder in (self.tmp / "outside", self.tmp / "missing"):
+            code, out, err = self.call("merge", str(self.records), "12", "--repo", "o/r",
+                                       "--checkout", str(folder))
+            self.assertEqual(code, 2, err)
+            self.assertIn("is not a git checkout: pass --checkout <a clone of o/r>", err)
+
     def test_relay_py_behind_on_another_branch_or_ahead_offers_no_command(self):
         main = self.tmp / "with space (x86)"
         git("clone", "-q", str(self.origin), str(main), cwd=self.tmp)
