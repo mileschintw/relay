@@ -33,8 +33,10 @@ Every open issue, once. "Order" is the wave (1 = can start now). "Kind" is `free
 |---|---|---|---|---|---|
 | #91 | 1 | — | after #83 (merged) | relay.py (cmd_merge, check_commands); tests | free |
 | #93 | 1 | — | — | relay.py (check_pr_body, cmd_localcheck, docstring exit codes); tests | free |
+| #94 | 1 | — | — | relay.py (dependencies); tests; templates/briefs/_template.md (Depends on) | free |
+| #95 | 1 | — | — | unattended.md; coordinate SKILL.md (First turn step 3, Plan); GLOSSARY (Kind); templates/plan.md (Kind) | free |
 
-Round 2 (2026-10-31): code-review found 2 (verified; filed as #93, the deny-list one a regression from #83). #91 and #93 both own relay.py and tests: plan one lane for both. WFA scan still running.
+Round 2 (2026-10-31): code-review found 2 (filed as #93, the deny-list one a regression from #83); WFA scan found 5 (filed as #94, #95); all verified by the coordinator against `3efbf76`. Two lanes, no shared files: lane 91 (#91 #93 #94, relay.py) and lane 95 (#95, docs). Briefs written; starting waits for a turn the user types (the app refuses otherwise).
 
 #91 filed 2026-10-31 by lane 83 from its review (merge after a failed fetch; Windows override written first): joins round 2 once #83 merges. Lane 83's full suite takes ~18 min on this box (1093 s), not 2.
 
@@ -42,7 +44,7 @@ Round 1 (2026-10-31): #83–#86 filed from the WFA scan (8 findings) and code-re
 
 ## Waiting for the user to be present
 
-none (lanes 83–86 started on the user's "Start them", 2026-10-31)
+- Any message from the user here, so lanes 91 and 95 (round 2) can start: covered by the standing 0.3.2 go-ahead; the app only starts sessions in a turn the user typed.
 
 ## Waiting for the user's decision
 
