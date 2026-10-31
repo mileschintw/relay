@@ -15,9 +15,12 @@
  "head_statuses": 1, "head_check_runs": 1,      # counts on the default branch head, default 0
  "pr_checks": {"5": {"after": 3, "rollup": [...]}},  # `pr view 5`'s statusCheckRollup: empty
                                                   # before its 3rd call (default 1st), then rollup
- "watch": {"5": [1, "output"]},                   # `pr checks 5 --watch`: exit code and output
+ "watch": {"5": [1, "output", "error"]},          # `pr checks 5 --watch`: exit code, stdout and
+                                                  # optional stderr
+ "checks": {"5": "table"},                        # `pr checks 5`'s stdout, default `checks of 5`
  "pr_view": {"5": {"headRefOid": "<sha>", "mergeStateStatus": "CLEAN", "baseRefName": "main",
-                   "mergedAt": "<time>", "mergeCommit": {"oid": "<sha>"}}},  # other `pr view 5`
+                   "mergedAt": "<time>", "mergeCommit": {"oid": "<sha>"}}},  # other `pr view 5`;
+                                                  # a list answers per call, the last one repeated
  "merge_fail": {"5": "message"},                  # `pr merge 5` exits 1 with this message
  "runs": [{"databaseId": 9, "status": "queued"}]} # `run list`'s answer, default []
 children: an issue's sub-issues. bodies, comments: an issue's body and comments.
@@ -29,6 +32,8 @@ import json
 import os
 import sys
 
+for stream in (sys.stdout, sys.stderr):
+    stream.reconfigure(encoding="utf-8")  # as gh writes, whatever the console's code page
 data = json.load(open(os.environ["RELAY_FAKE_GH"], encoding="utf-8"))
 a = sys.argv[1:]
 issues = data.get("issues", {})
@@ -93,13 +98,22 @@ elif a[:2] == ["pr", "view"] and "statusCheckRollup" in a:
     seen = sum(c.startswith(f"pr view {a[2]} ") for c in calls)
     print(json.dumps({"statusCheckRollup": pc["rollup"] if seen >= pc.get("after", 1) else []}))
 elif a[:2] == ["pr", "checks"] and "--watch" in a:
-    code, output = data.get("watch", {}).get(a[2], [0, "all checks passed"])
+    code, output, *err = data.get("watch", {}).get(a[2], [0, "all checks passed"])
     print(output)
+    if err:
+        print(err[0], file=sys.stderr)
     sys.exit(code)
+elif a[:2] == ["pr", "checks"]:
+    print(data.get("checks", {}).get(a[2], f"checks of {a[2]}"))
 elif a[:2] == ["pr", "view"]:
     if a[2] not in data.get("pr_view", {}):
         sys.exit(f"no pull requests found for {a[2]}")
-    print(json.dumps(data["pr_view"][a[2]]))
+    view = data["pr_view"][a[2]]
+    if isinstance(view, list):
+        calls = open(os.environ["RELAY_FAKE_GH"] + ".calls", encoding="utf-8").read().splitlines()
+        seen = sum(c.startswith(f"pr view {a[2]} ") and "statusCheckRollup" not in c for c in calls)
+        view = view[min(seen, len(view)) - 1]
+    print(json.dumps(view))
 elif a[:2] == ["pr", "merge"]:
     if a[2] in data.get("merge_fail", {}):
         sys.exit(data["merge_fail"][a[2]])

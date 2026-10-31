@@ -59,17 +59,19 @@ ready   read-only. Prints what the coordinator can do next:
             project.md's deny list (`- **Deny list:** <path>`, one regex per line, matched as a
             whole word; printed by line number only).
           - Records: invalid UTF-8, or a control character other than tab, LF and a CR right
-            before LF, in plan.md, briefs/*.md or pr-bodies/*.md, by file and line (for invalid
+            before LF, in project.md, plan.md, briefs/*.md or pr-bodies/*.md, by file and line (for invalid
             UTF-8, the first bad byte only). Checked first, so a bad byte is a warning, never a
             crash; a lane whose brief or PR body draft has one also shows as lookup failed.
             Also a warning when the records folder has no .gitattributes, naming the fix.
           - Plan: a warning when plan.md has more lines than --plan-limit (default 200).
           - relay.py: a warning when the git checkout holding project.md's `relay.py:` path
             (relative to --checkout, else the current folder) is behind its origin/<default>,
-            with the count and the `git -C <checkout> merge --ff-only` fix (a `switch` first when
-            it is on another branch). That checkout is fetched first. The path is a leading
+            with the count and the `git -C <checkout> merge --ff-only` fix. A checkout on another
+            branch (or a detached HEAD), or whose default branch has commits of its own, gets that
+            said instead, with no command. That checkout is fetched first. The path is a leading
             backticked span, else its text before a trailing `(...)` note. No such line, a
-            missing folder, or a path outside a checkout: no check.
+            project.md that is not UTF-8 (a Records warning), a missing folder, or a path outside
+            a checkout: no check.
         --checkout <dir>: a local clone; `git fetch` there, then `git merge-tree` each Ready for
         PR / Ready to merge branch against the default branch; a conflict moves it to Waiting.
         --repo defaults to what `gh repo view` finds from the current folder.
@@ -95,13 +97,15 @@ localcheck  the checks CI would run, for when it cannot (billing, quota). In --c
 waitchecks  waits for PR <N>'s first check, then watches its checks. Polls `gh pr view <N> --json
         statusCheckRollup` now and at 1, 3 and 6 minutes; project.md's `CI start wait: <minutes>`
         line stretches that to 1/6, 1/2 and all of its minutes. As soon as a check exists (queued
-        or pending counts), runs `gh pr checks <N> --watch` and prints its output. None by the last
+        or pending counts), runs `gh pr checks <N> --watch`, keeping only its errors (with no
+        terminal it reprints the table every 10 s), then prints `gh pr checks <N>` once. None by the last
         poll: prints `no checks appeared`, plus `no CI configured` when the repo has no Actions
         workflow and nothing reported on the default branch head (as `ready` decides). A failed
         poll is retried at the next one. No overall timeout once watching.
 
 merge   merges lanes one at a time, in the order given. First, every key must be listed under
-        `ready`'s Ready to merge and nowhere else (--checkout as for `ready`), or nothing merges.
+        `ready`'s Ready to merge and nowhere else (--checkout as for `ready`, default the current
+        folder), and given once, or nothing merges.
         Then, per key, with no wait for checks (Ready to merge already needs them all passed):
         its head still the sha Ready to merge printed; mergeStateStatus `CLEAN` (UNKNOWN, while
         GitHub recomputes after a merge, is asked again after 5, 15 and 30 seconds); `gh pr merge
@@ -115,8 +119,11 @@ printing, 1 when a lookup fails; localcheck 0 when every command passed, else 1 
 merge, a lookup or the comment failed); waitchecks 0 when the checks passed, 1 when one failed,
 3 when no check appeared, 4 when a lookup failed (the last poll's, or a watch that failed with
 no failed check behind it, a gh error say); merge 0 when every key merged, 1 when it stopped;
-2 on a usage error (waitchecks: a CI start wait that is not a number of minutes) or a
-missing records folder. `gh` is called through $RELAY_GH when set (a command line, for tests).
+2 on a usage error (waitchecks: a CI start wait that is not a number of minutes, or a
+project.md that is not UTF-8; merge: a key given twice) or a missing records folder.
+waitchecks and merge never exit 1 on an error of their own: any other error exits 4 with one
+line, and output the console cannot encode is replaced, not fatal.
+`gh` is called through $RELAY_GH when set (a command line, for tests).
 Standard library only, Python 3.10+.
 """
 import argparse
@@ -138,6 +145,7 @@ CLOSING = re.compile(r"\b(close[sd]?|fix(e[sd])?|resolve[sd]?)\b:?\s*#\d+", re.I
 CLOSES_LINE = re.compile(r"^Closes #\d+\s*$")
 OWNER_NOTE = re.compile(r"^\*\*Owner action after this set:\*\*", re.M)
 CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]|\r(?!\n)")
+LOOKUP_ERRORS = (RuntimeError, ValueError, KeyError, TypeError, OSError, re.error)
 
 
 def run(cmd, cwd=None):
@@ -406,7 +414,7 @@ def cmd_ready(a):
         return 2
     out = {k: [] for k in READY_SECTIONS}
     plan = records / "plan.md"
-    for path in [plan, *sorted((records / "briefs").glob("*.md")),
+    for path in [records / "project.md", plan, *sorted((records / "briefs").glob("*.md")),
                  *sorted((records / "pr-bodies").glob("*.md"))]:
         if path.is_file():
             out["Records"] += check_encoding(path, path.relative_to(records).as_posix())
@@ -458,7 +466,7 @@ def cmd_ready(a):
                 ready_done(records, key, st, repo, a.checkout, out)
             elif st["state"] == "blocked":
                 out["Waiting"].append(f"{key}: blocked: {st.get('doing', '')}")
-        except (RuntimeError, ValueError, KeyError, TypeError, OSError, re.error) as e:
+        except LOOKUP_ERRORS as e:
             out["Waiting"].append(f"{key}: lookup failed: {e}")
     if not have:
         print("  (none)")
@@ -475,9 +483,14 @@ def cmd_ready(a):
 def relay_py_behind(records, checkout):
     """A warning when the checkout holding project.md's `relay.py:` path is behind its default
     branch, else []. A relative path resolves against `checkout` (default the current folder); no
-    line, or a path outside a git checkout, is no check. Fetches that checkout unless it is
-    `checkout`, which cmd_ready has just fetched."""
-    value = project_line(records, "relay.py")
+    line, a project.md that is not UTF-8 (the Records check names it), or a path outside a git
+    checkout, is no check. Fetches that checkout unless it is `checkout`, which cmd_ready has just
+    fetched. Never offers a command that moves the checkout's branch or would fail: on another
+    branch, or with commits of its own, it says so instead."""
+    try:
+        value = project_line(records, "relay.py")
+    except ValueError:
+        return []
     if value is None:
         return []
     path = pathlib.Path(line_path(value))
@@ -497,12 +510,20 @@ def relay_py_behind(records, checkout):
     if code or not count.strip().isdigit() or int(count) == 0:
         return []
     count, where = int(count), top.as_posix()
-    git_c = f'git -C "{where}"' if " " in where else f"git -C {where}"
+    behind = f"{where} is {count} commit{'s' if count > 1 else ''} behind {default}"
     name = default.split("/", 1)[-1]
     _, branch, _ = run(["git", "symbolic-ref", "--short", "-q", "HEAD"], cwd=top)
-    switch = "" if branch.strip() == name else f"{git_c} switch {name} && "
-    return [f"{where} is {count} commit{'s' if count > 1 else ''} behind {default}: "
-            f"{switch}{git_c} merge --ff-only {default}"]
+    branch = branch.strip()
+    if branch != name:
+        on = f"on branch {branch}" if branch else "on a detached HEAD"
+        return [f"{behind}, but it is {on}, not {name}: update it by hand once its work is safe "
+                "(no command offered: one would move that work off its branch)"]
+    code, ahead, _ = run(["git", "rev-list", "--count", f"{default}..HEAD"], cwd=top)
+    if code or ahead.strip() != "0":
+        return [f"{behind}, but its {name} has commits {default} does not, so a fast-forward "
+                "would fail: merge or move those commits by hand"]
+    git_c = f'git -C "{where}"' if " " in where else f"git -C {where}"
+    return [f"{behind}: {git_c} merge --ff-only {default}"]
 
 
 def line_path(value):
@@ -730,11 +751,16 @@ def longpaths_env():
 
 
 def project_line(records, label):
-    """The text after `- **<label>:**` in project.md, or None."""
+    """The text after `- **<label>:**` in project.md, or None. ValueError, naming project.md, when
+    it is not UTF-8."""
     project = records / "project.md"
     if not project.exists():
         return None
-    m = re.search(rf"^- \*\*{re.escape(label)}:\*\*(.*)$", project.read_text(encoding="utf-8"), re.M)
+    try:
+        text = project.read_text(encoding="utf-8")
+    except UnicodeDecodeError as e:
+        raise ValueError(f"{project} is not valid UTF-8 ({e.reason} at byte {e.start})") from None
+    m = re.search(rf"^- \*\*{re.escape(label)}:\*\*(.*)$", text, re.M)
     value = m.group(1).strip() if m else ""
     return value if value.strip("`\". ").lower() not in ("", "none") else None
 
@@ -836,7 +862,7 @@ def cmd_localcheck(a):
         try:
             repo = a.repo or gh("repo", "view", "--json", "nameWithOwner")["nameWithOwner"]
             gh_raw("pr", "comment", str(a.comment), "--repo", repo, "--body-file", str(body))
-        except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
+        except LOOKUP_ERRORS as e:
             return fail(f"could not post on PR #{a.comment}: {e}")
         finally:
             body.unlink()
@@ -882,19 +908,24 @@ def wait_checks(pr, repo, schedule):
         time.sleep(max(0, at - (time.monotonic() - start)))
         try:
             rollup, error = pr_rollup(pr, repo), None
-        except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
+        except LOOKUP_ERRORS as e:
             rollup, error = None, e
             print(f"poll {i} at {at / 60:g} min: lookup failed: {e}", file=sys.stderr)
         if rollup:
             print(f"poll {i} at {at / 60:g} min: {len(rollup)} check(s); watching", flush=True)
-            code, out, err = run(gh_base() + ["pr", "checks", str(pr), "--repo", repo, "--watch"])
-            print((out + err).rstrip())
+            # with no terminal, the watch reprints the whole table every 10 s: keep only its
+            # errors, then print the final table once
+            code, _, err = run(gh_base() + ["pr", "checks", str(pr), "--repo", repo, "--watch"])
+            _, out, table_err = run(gh_base() + ["pr", "checks", str(pr), "--repo", repo])
+            print((out + table_err).rstrip())
+            if err.strip():
+                print(err.rstrip(), file=sys.stderr)
             if code == 0:
                 return 0
             # gh exits 1 on a failed check and on its own errors alike: ask the rollup which
             try:
                 state = checks_state(pr_rollup(pr, repo), repo)
-            except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
+            except LOOKUP_ERRORS as e:
                 state = f"lookup failed: {e}"
             if state.startswith(("check failed", "checks could not run")):
                 return 1
@@ -922,7 +953,7 @@ def cmd_waitchecks(a):
         return 2
     try:
         repo = a.repo or gh("repo", "view", "--json", "nameWithOwner")["nameWithOwner"]
-    except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
+    except LOOKUP_ERRORS as e:
         print(f"lookup failed: {e}", file=sys.stderr)
         return LOOKUP_FAILED
     return wait_checks(a.pr, repo, schedule)
@@ -933,7 +964,6 @@ def cmd_waitchecks(a):
 READY_TO_MERGE = re.compile(r"PR #(\d+) --match-head-commit ([0-9a-f]{40})$")
 STATE_RETRIES = (5, 15, 30)  # seconds; GitHub says UNKNOWN while it recomputes after a merge
 RUN_WAITS = (0, 10, 20)  # seconds; a push run takes a few seconds to appear
-LOOKUP_ERRORS = (RuntimeError, ValueError, KeyError, TypeError, OSError, re.error)
 
 
 def ready_to_merge(records, key, repo, checkout):
@@ -1023,15 +1053,15 @@ def cmd_merge(a):
     if not records.is_dir():
         print(f"no records folder at {records}", file=sys.stderr)
         return 2
+    repeated = sorted({k for k in a.keys if a.keys.count(k) > 1})
+    if repeated:
+        print(f"{', '.join(repeated)}: given more than once; nothing merged", file=sys.stderr)
+        return 2
     try:
         repo = a.repo or gh("repo", "view", "--json", "nameWithOwner")["nameWithOwner"]
     except LOOKUP_ERRORS as e:
         return fail(f"lookup failed: {e}")
-    if a.checkout:
-        run(["git", "fetch", "-q", "origin"], cwd=a.checkout)
-    repeated = sorted({k for k in a.keys if a.keys.count(k) > 1})
-    if repeated:
-        return fail(f"{', '.join(repeated)}: given more than once; nothing merged")
+    run(["git", "fetch", "-q", "origin"], cwd=a.checkout)
     lanes = []
     for key in a.keys:
         found = ready_to_merge(records, key, repo, a.checkout)
@@ -1083,12 +1113,24 @@ def main(argv=None):
     g.add_argument("records")
     g.add_argument("keys", nargs="+", metavar="key")
     g.add_argument("--repo")
-    g.add_argument("--checkout")
+    g.add_argument("--checkout", default=".")
     m = sub.add_parser("roadmap", help="print each open issue's blocked-by and `## Files`")
     m.add_argument("--repo")
     a = p.parse_args(argv)
-    return {"status": cmd_status, "ready": cmd_ready, "roadmap": cmd_roadmap,
-            "localcheck": cmd_localcheck, "waitchecks": cmd_waitchecks, "merge": cmd_merge}[a.cmd](a)
+    command = {"status": cmd_status, "ready": cmd_ready, "roadmap": cmd_roadmap,
+               "localcheck": cmd_localcheck, "waitchecks": cmd_waitchecks, "merge": cmd_merge}[a.cmd]
+    if a.cmd not in ("waitchecks", "merge"):
+        return command(a)
+    # their exit 1 means a check failed or a merge stopped: never let an error say that
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(errors="replace")  # gh output may hold what the console cannot
+    try:
+        return command(a)
+    except Exception as e:  # noqa: BLE001
+        print(f"{a.cmd}: unexpected error: {type(e).__name__}: {' '.join(str(e).split())}",
+              file=sys.stderr)
+        return LOOKUP_FAILED
 
 
 if __name__ == "__main__":
