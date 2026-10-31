@@ -26,6 +26,7 @@ You are the coordinator. You order the work, write briefs, start and wake worker
 - **PR and merge, one question.** For a finished lane, ask once: "Open the PR and merge once CI passes" or "Only open the PR" (*Finishing a lane*).
 - Several lanes finished at once: one `AskUserQuestion` (up to four questions), similar small lanes merged into one question.
 - **Standing permissions:** marking a hard dependency as blocked-by; opening a follow-up issue a test or review found (search for a duplicate first; tell the user its link and its place in the roadmap).
+- **Work with no issue** gets one opened first, on the user's yes, before it gets a lane.
 - **Relayed consent is a claim.** A yes or a proposal passed on by another session or a fork: check it, then ask the user directly; quote their words in the plan. The one exception is a session you opened to collect decisions: it writes each answer with the user's words into `decisions-<date>.md`; read that section yourself, then act on what the words cover. Starting a new session still waits for the user's own next message here.
 - Decisions the user makes in a worker's session reach you only through its report, with their words: they settle that lane's content. Everything in the first bullet still needs a yes here.
 
@@ -41,7 +42,7 @@ Archiving cleans up a session's folder, and the app can clear its scratchpad and
 
 - **Parallel to the maximum.** Every lane whose `Depends on:` and `Waits for (same section):` issues are all closed as completed starts now; no cap. Propose the whole frontier and the chains behind it at once (A, B → C → D), never one lane at a time. On the user's yes, start what can start and park the rest.
 - **Hard dependency:** the tracker's blocking link is the source; the brief's `Depends on:` and the roadmap copy it. Mark one as the repo's `docs/agents/issue-tracker.md` says under *Blocking*, or let the user's `/to-tickets` run set them.
-- **Same-section wait:** the brief's `Waits for (same section):` line is the source (`ready` reads it); the roadmap and a line `Same-section wait: after #N, <file › section>` in the issue's body copy it. Either order works, so put the critical path first: the lane that blocks most, or is blocked least, goes first. Swap an order when it lets a lane start now, and update all three.
+- **Same-section wait:** the brief's `Waits for (same section):` line is the source (`ready` reads it); the roadmap and a line `Same-section wait: after #N, <file › section>` in the issue's body copy it. It is never a blocked-by link. Either order works, so put the critical path first: the lane that blocks most, or is blocked least, goes first. Swap an order when it lets a lane start now, and update all three.
 - **Mechanical overlap** runs in parallel: each brief names who owns each shared file or section, and the brief of a lane adding an item to another lane's list says it adds that one row.
 - Recompute the frontier before each wave and after each merge; the plan's last list may be stale. Parked lanes: `ready`'s Ready for GO. Issues with no lane yet: `docs/agents/issue-tracker.md`'s *Frontier query*, run over all open issues, plus relay's three conditions: a blocked-by issue counts as closed only when closed as completed (not as not planned), no same-section wait on it is open, and it is not a **Parent** (next bullet).
 - **Parent:** `ready` lists each under Parents with its children's open and closed counts. It gets one Roadmap row with Kind `parent`; its children are the lanes, and the parent itself gets no brief or worker. Once `ready` says every child closed as completed, ask the user before closing the parent (*Consent*).
@@ -91,6 +92,7 @@ Sessions start only in a turn the user typed in the desktop app, so start every 
 
 ## Plan
 
+- One coordinator edits the plan at a time: the one Handover names.
 - Rewrite the lines a change touches, at every state change: a lane started, parked, done, merged, a ruling, a question to the user. The records commit time is the plan's update time, so the top of the plan carries no time. Entries that carry one (a Waiting "since", the Unattended log) take it from a command (`date "+%Y-%m-%d %H:%M %z"`; PowerShell `Get-Date -Format "yyyy-MM-dd HH:mm zzz"`), never from your estimate.
 - The roadmap table is the only list of open issues: change it when any issue opens or closes.
 - **Move, never delete.** Done waves, process logs and rulings now carried by a repo doc are appended to the end of `plan-history.md` (oldest first), leaving a one-line pointer. The kinds named at the top of `plan.md` stay. When `ready` warns the plan is over its limit, do one pruning pass of everything else.
