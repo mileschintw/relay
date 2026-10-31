@@ -18,8 +18,8 @@ none (ruling 1, merging on local checks while the repo had no CI, ended when #16
 |---|---|---|---|---|
 | 60 | #60 | local_7d4910b0-c96b-4ba9-88ab-a402f73db01b (folder lane-25-cf22e5, archived lane 25's; own branch claude/lane-60-bbae79) | review | |
 | 61 | #61 | local_955327e8-f19c-4d39-9b44-e8ae04a594c7 | review | |
-| 62 | #62 | local_b7ceebb0-7408-4bc9-aa39-7e6a0fc5245b | review | |
-| 63 | #63 | local_f066e114-a1e3-4399-b421-f91ad2e1ab2f | review | |
+| 62 | #62 | local_b7ceebb0-7408-4bc9-aa39-7e6a0fc5245b | done | |
+| 63 | #63 | local_f066e114-a1e3-4399-b421-f91ad2e1ab2f | done | |
 
 Lanes 60–63 started 2026-10-31 00:12 -0700 on the user's 「照推薦開四個lan執行所有問題，並在結束後再跑一次wfa跟code-review」.
 
@@ -37,8 +37,9 @@ Every open issue, once. "Order" is the wave (1 = can start now). "Kind" is `free
 | #61 coordinate: step 4 keeps the common merge path; CI fallbacks move to ci-fallbacks.md | 1 | none | none | coordinate SKILL.md (Finishing step 4; Other branches), New: ci-fallbacks.md, relay.py (`cmd_merge` wait), test_relay.py, fake_gh.py, README Layout | free |
 | #62 coordinate: archiving rules in one place | 1 | none | none | coordinate SKILL.md (Consent last bullet; Finishing step 7 Sessions), app-limits.md (intro; Session folders) | free |
 | #63 coordinate: First turn step 3 branches on their own lines; trim the Alarm bullet | 1 | none | none | coordinate SKILL.md (First turn step 3; Alarm) | free |
+| #64 coordinate: say when a stopped lane leaves the Now table | 1 | none | none | coordinate SKILL.md (Finishing a lane step 6, or where a lane stops), unattended.md (Stuck) | free |
 
-Filed 2026-10-31 from the writing-for-agents scan, on the user's 「照推薦開四個lan執行所有問題…」. Mechanical overlap in coordinate SKILL.md: 61 (step 4), 62 (Consent, step 7), 63 (First turn step 3, Alarm). #45–#51 (second retro) all merged → `plan-history.md`.
+#64 opened by lane 63 (standing permission, a gap its review found), no lane yet. Filed 2026-10-31 from the writing-for-agents scan, on the user's 「照推薦開四個lan執行所有問題…」. Mechanical overlap in coordinate SKILL.md: 61 (step 4), 62 (Consent, step 7), 63 (First turn step 3, Alarm). #45–#51 (second retro) all merged → `plan-history.md`.
 
 ## Waiting for the user to be present
 
