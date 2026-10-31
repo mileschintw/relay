@@ -1,6 +1,6 @@
 # What the Claude desktop app allows
 
-Measured, not documented; the app can change. When a tool result contradicts a line here or in the skill, trust the result and tell the user so the file can be updated. The rules every run needs (the 400-character note, the alarm, `list_events`, snapshots) are in `SKILL.md`; it points here for *Session folders* (where a session lands, and which sessions never to archive). This file holds the rest.
+Measured, not documented; the app can change. When a tool result contradicts a line here or in the skill, trust the result and tell the user so the file can be updated.
 
 - **Starting a session** (`start_session`, `user_asked`) works only in a turn the user typed in the desktop app. A turn woken by a session's note, a background command ending or another session's message is refused. Remote Control turns the user typed have both worked and failed: try, and fall back on refusal.
 - **Fallback:** an `own_initiative` card; the user's click starts it with no further typing. Under Remote Control even cards can be refused ("Nothing was proposed"): keep the brief in the records folder, list it in the plan, and ask the user to say one line in the desktop app.
@@ -12,8 +12,8 @@ Measured, not documented; the app can change. When a tool result contradicts a l
 
 ## Session folders
 
-Archiving a session cleans up its folder, and the app does not always put a session where `start_session` asked: a lane started with `use_worktree: true` has landed in an archived lane's folder, and a plain session started in the main checkout with `use_worktree: false` reported the coordinator's own worktree.
+The app does not always put a session where `start_session` asked: a lane started with `use_worktree: true` has landed in an archived lane's folder, and a plain session started in the main checkout with `use_worktree: false` reported the coordinator's own worktree.
 
 - **Check where it landed.** After every `start_session`, lanes and plain sessions alike, compare the `cwd` that `list_sessions` reports with the one you asked for. While the row says `starting: true`, its `cwd` is not final (it can show the main checkout for a few seconds): list again until `starting` is gone, then compare. Record any difference in that session's row of the plan's Now table, in its Session column.
 - **Landed in an archived session's folder.** The new session can keep working there when the folder is on the new session's own branch (`git -C <folder> branch --show-current`) and no other session that is not archived has that folder as its `cwd` in `list_sessions`. Record the folder in its Now row's Session column, and keep the old session archived while the new one runs: unarchiving it would put two sessions in one folder.
-- **Never archive a session in a shared folder.** Before archiving a session, check its `cwd` in `list_sessions`. If it is your own worktree or the folder of any session not yet archived, skip it: run `git status` there, record the shared folder in the plan, and tell the user to archive it from the sidebar once the other session is done (for your own worktree, once you are).
+- **Archiving** a session: `SKILL.md`, *Archiving sessions*.
