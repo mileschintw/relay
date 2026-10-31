@@ -1,6 +1,6 @@
 {
   "name": "relay",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Lightweight multi-session coordination for Claude Code: one coordinator session, worker sessions per issue, parked workers woken with GO, a living plan and a records branch. Built to sit beside mattpocock-skills.",
   "author": {
     "name": "mileschintw"
