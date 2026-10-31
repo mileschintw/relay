@@ -4,8 +4,8 @@ What relay needs to know about this project. The coordinator and every worker re
 
 - **Repo:** <owner/name>, default branch `<default branch>`.
 - **Language:** talk to the user, and write reports, in <language for the user>. Repo files, issues, PR bodies, briefs and the plan are written in <language for repo files, usually English>.
-- **Checks before done:** <the commands a worker runs, e.g. `npm test`, `npm run lint`; mark any that need untracked files (gitignored fixtures, a local database, credentials) "main checkout only">.
-- **Local checks:** <the commands that run the repo's checks on a change merged with the default branch, the way CI would; `relay.py localcheck` runs them when CI cannot. "none" or no line: it runs Checks before done>.
+- **Checks before done:** <the commands a worker runs, e.g. `npm test`; `npm run lint`. One backticked command per item, items separated by `;` (`relay.py localcheck` refuses an item with two); mark an item that needs untracked files (gitignored fixtures, a local database, credentials) "main checkout only" inside that item>.
+- **Local checks:** <the commands that run the repo's checks on a change merged with the default branch, the way CI would (`relay.py localcheck` runs them when CI cannot), e.g. `npm test`; `npm run lint`. One backticked command per item, items separated by `;`, a "main checkout only" mark inside its own item. "none" or no line: it runs Checks before done>.
 - **CI start wait:** <optional: the number of minutes CI may take to report its first check on a new PR, for CI that registers slowly; `relay.py waitchecks` polls for that long. Unanswered, setup removes this line and `waitchecks` waits 6>.
 - **Alarm:** <optional: minutes between the coordinator's background wake-ups while a lane runs. Unanswered, setup removes this line and the coordinator waits 20>.
 - **Test bar:** <what passing means here, e.g. "the checks above pass and each new behaviour has a test">.
