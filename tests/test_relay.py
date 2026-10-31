@@ -312,16 +312,6 @@ class ReadyTests(Base):
         git("reset", "-q", "--hard", "HEAD~1", cwd=self.clone)
         self.assertIn("is 1 commit behind origin/main", self.ready())
 
-    def test_relay_py_on_another_branch_switches_first(self):
-        main = self.tmp / "with space (x86)"
-        git("clone", "-q", str(self.origin), str(main), cwd=self.tmp)
-        git("switch", "-q", "-c", "feature", cwd=main)
-        self.relay_py_line(f"{main}/relay.py (the main checkout; see `origin/main`)")
-        self.advance_origin(1)
-        where = main.resolve().as_posix()
-        self.assertIn(f'1 commit behind origin/main: git -C "{where}" switch main && '
-                      f'git -C "{where}" merge --ff-only origin/main', self.ready())
-
     def test_line_path(self):
         self.assertEqual(relay.line_path("D:/r/relay.py (note; `origin/main`)"), "D:/r/relay.py")
         self.assertEqual(relay.line_path("`C:/a b/relay.py` (note)"), "C:/a b/relay.py")
@@ -692,21 +682,22 @@ class WaitchecksTests(Base):
         code, out, err = self.waitchecks()
         self.assertEqual(code, 0, err)
         self.assertEqual(self.polls, [0.0])
-        self.assertEqual(self.watched(), ["pr checks 5 --repo o/r --watch"])
-        self.assertIn("all checks passed", out)
+        self.assertEqual(self.watched(), ["pr checks 5 --repo o/r --watch", "pr checks 5 --repo o/r"])
+        self.assertIn("checks of 5", out)
 
     def test_checks_on_a_later_poll_are_watched_to_their_result(self):
         code, out, err = self.waitchecks(after=2)
         self.assertEqual((code, self.polls), (0, [0.0, 60.0]), err)
-        code, out, err = self.waitchecks(after=4, watch=(1, "X test fail"), rollup=self.FAILED)
+        code, out, err = self.waitchecks(after=4, watch=(1, "X test fail"), rollup=self.FAILED,
+                                         checks={"5": "test\tfail"})
         self.assertEqual(code, 1, err)
         self.assertEqual(self.polls[:4], [0.0, 60.0, 180.0, 360.0])
-        self.assertIn("X test fail", out)
+        self.assertIn("test\tfail", out)
 
     def test_a_watch_error_with_no_failed_check_is_a_lookup_failure(self):
-        code, out, err = self.waitchecks(watch=(1, "HTTP 502"))
+        code, out, err = self.waitchecks(watch=(1, "", "HTTP 502"))
         self.assertEqual(code, 4, err)
-        self.assertIn("HTTP 502", out)
+        self.assertIn("HTTP 502", err)
         self.assertIn("no failed check (checks pending)", err)
 
     def test_no_checks_by_the_last_poll(self):
@@ -883,7 +874,7 @@ class MergeTests(Base):
         self.assertIn("check failed", err)
         self.assertEqual(self.merges(), [])
         code, out, err = self.merge("12", "13", "12")
-        self.assertEqual((code, self.merges()), (1, []))
+        self.assertEqual((code, self.merges()), (2, []))
         self.assertIn("12: given more than once; nothing merged", err)
 
     def test_failed_merge_stops_the_rest(self):
@@ -892,6 +883,146 @@ class MergeTests(Base):
         self.assertEqual(len(self.merges()), 1)
         self.assertIn("12: gh pr merge 5 failed: ", err)
         self.assertIn("Head branch was modified", err)
+
+
+class SafeExitTests(Base):
+    """waitchecks and merge exit by what CI and GitHub say, never by an error of their own; the
+    watch output appears once; ready's relay.py and project.md warnings never mislead or crash."""
+
+    QUEUED, FAILED, OK = WaitchecksTests.QUEUED, WaitchecksTests.FAILED, MergeTests.OK
+    waitchecks, watched = WaitchecksTests.waitchecks, WaitchecksTests.watched
+    merge, merges = MergeTests.merge, MergeTests.merges
+    relay_py_line, advance_origin = ReadyTests.relay_py_line, ReadyTests.advance_origin
+
+    def lanes(self):
+        self.heads = {}
+        for key, pr in (("12", 5), ("13", 6)):
+            head = self.branch(f"lane-{key}", content=f"{key}\n")
+            self.done(key, f"lane-{key}", head)
+            self.heads[key] = (pr, head)
+
+    def call_cp1252(self, *argv):
+        """Base.call with stdout and stderr encoding as a piped Windows console does."""
+        out, err = (io.TextIOWrapper(io.BytesIO(), encoding="cp1252") for _ in range(2))
+        cwd = os.getcwd()
+        os.chdir(self.clone)
+        try:
+            with redirect_stdout(out), redirect_stderr(err):
+                code = relay.main(list(argv))
+        finally:
+            os.chdir(cwd)
+        texts = []
+        for s in (out, err):
+            s.flush()
+            texts.append(s.buffer.getvalue().decode("cp1252"))
+        return code, *texts
+
+    def test_non_ascii_check_name_on_a_cp1252_stdout_exits_by_the_checks(self):
+        table = "\u6e2c\u8a66 \u2713\tpass"
+        with mock.patch.object(self, "call", self.call_cp1252):
+            code, out, err = self.waitchecks(watch=(0, table, "\u8b66\u544a"), checks={"5": table})
+            self.assertEqual(code, 0, err)
+            self.assertIn("?? ?\tpass", out)
+            self.assertIn("??", err)
+            code, out, err = self.waitchecks(watch=(1, table), rollup=self.FAILED, checks={"5": table})
+            self.assertEqual(code, 1, err)
+
+    def test_an_unexpected_error_exits_4_with_one_line(self):
+        def boom(*args, **kw):
+            raise ZeroDivisionError("bad\nthing")
+        with mock.patch.object(relay, "wait_checks", boom):
+            code, out, err = self.call("waitchecks", str(self.records), "5", "--repo", "o/r")
+        self.assertEqual((code, err), (4, "waitchecks: unexpected error: ZeroDivisionError: bad thing\n"))
+        with mock.patch.object(relay, "ready_to_merge", boom):
+            code, out, err = self.call("merge", str(self.records), "12", "--repo", "o/r")
+        self.assertEqual((code, err), (4, "merge: unexpected error: ZeroDivisionError: bad thing\n"))
+
+    def test_watch_output_appears_once(self):
+        tick = "Refreshing checks status every 10 seconds.\ntest\tpending\n"
+        code, out, err = self.waitchecks(watch=(0, tick * 3), checks={"5": "test\tpass\t1m"})
+        self.assertEqual(code, 0, err)
+        self.assertEqual(out.count("test\tpass"), 1)
+        self.assertNotIn("pending", out)
+        self.assertNotIn("Refreshing", out)
+
+    def test_a_repo_with_workflows_behaves_as_before_apart_from_the_timing(self):
+        # fake_gh reports one workflow by default: no no-CI lookup, the same calls as before #51
+        code, out, err = self.waitchecks(after=2)
+        self.assertEqual((code, self.polls), (0, [0.0, 60.0]), err)
+        calls = pathlib.Path(str(self.fake) + ".calls").read_text().splitlines()
+        self.assertEqual(calls, ["pr view 5 --repo o/r --json statusCheckRollup"] * 2 +
+                         ["pr checks 5 --repo o/r --watch", "pr checks 5 --repo o/r"])
+
+    def test_a_pr_left_behind_by_an_earlier_merge_stops(self):
+        self.lanes()
+        base = {"headRefOid": self.heads["12"][1], "baseRefName": "main",
+                "mergedAt": "2026-10-31T07:00:00Z", "mergeCommit": {"oid": "m5" * 20}}
+        views = {"5": [{**base, "mergeStateStatus": s} for s in ("UNKNOWN", "UNKNOWN", "BEHIND")],
+                 "6": {**base, "headRefOid": self.heads["13"][1], "mergeStateStatus": "CLEAN",
+                       "mergeCommit": {"oid": "m6" * 20}}}
+        code, out, err = self.merge("13", "12", pr_view=views)
+        self.assertEqual(code, 1, err)
+        self.assertEqual(len(self.merges()), 1)
+        self.assertIn("13: merged PR #6", out)
+        self.assertIn("12: PR #5 merge state is BEHIND, not CLEAN", err)
+
+    def test_merge_checks_conflicts_in_the_current_folder_by_default(self):
+        self.lanes()
+        (self.clone / "a.txt").write_text("main\n")
+        git("commit", "-qam", "conflict", cwd=self.clone)
+        git("push", "-q", "origin", "main", cwd=self.clone)
+        code, out, err = self.merge("12")
+        self.assertEqual((code, self.merges()), (1, []), err)
+        self.assertIn("12: not under Ready to merge (Waiting: ", err)
+        self.assertIn("conflict", err)
+
+    def test_merge_refuses_a_checkout_that_is_not_a_git_checkout(self):
+        (self.tmp / "outside").mkdir()
+        for folder in (self.tmp / "outside", self.tmp / "missing"):
+            code, out, err = self.call("merge", str(self.records), "12", "--repo", "o/r",
+                                       "--checkout", str(folder))
+            self.assertEqual(code, 2, err)
+            self.assertIn("is not a git checkout: pass --checkout <a clone of o/r>", err)
+
+    def test_relay_py_behind_on_another_branch_or_ahead_offers_no_command(self):
+        main = self.tmp / "with space (x86)"
+        git("clone", "-q", str(self.origin), str(main), cwd=self.tmp)
+        for k, v in (("user.email", "t@example.com"), ("user.name", "t")):
+            git("config", k, v, cwd=main)
+        git("switch", "-q", "-c", "feature", cwd=main)
+        self.relay_py_line(f"{main}/relay.py (the main checkout; see `origin/main`)")
+        self.advance_origin(1)
+        where = main.resolve().as_posix()
+        out = self.ready()
+        self.assertIn(f"{where} is 1 commit behind origin/main, but it is on branch feature, "
+                      "not main: update it by hand", out)
+        self.assertNotIn("git -C", out)
+        git("switch", "-q", "main", cwd=main)
+        (main / "local.txt").write_text("x\n")
+        git("add", ".", cwd=main)
+        git("commit", "-qm", "local", cwd=main)
+        out = self.ready()
+        self.assertIn(f"{where} is 1 commit behind origin/main, but its main has commits "
+                      "origin/main does not", out)
+        self.assertNotIn("git -C", out)
+        git("switch", "-q", "--detach", cwd=main)
+        self.assertIn("on a detached HEAD, not main", self.ready())
+
+    def test_a_non_utf8_project_md_is_one_records_warning(self):
+        (self.clone / "plugin" / "tools").mkdir(parents=True)
+        self.advance_origin(1)
+        git("reset", "-q", "--hard", "HEAD~1", cwd=self.clone)
+        for data in ("- **relay.py:** plugin/tools/relay.py\n".encode("utf-16"),
+                     "- **relay.py:** plugin/tools/relay.py \u8def\u5f91\n".encode("cp950")):
+            (self.records / "project.md").write_bytes(data)
+            out = self.ready()
+            self.assertEqual(out.count("project.md line 1: invalid UTF-8"), 1, out)
+            self.assertNotIn("behind", out)
+        with self.assertRaisesRegex(ValueError, "project.md is not valid UTF-8"):
+            relay.project_line(self.records, "relay.py")
+        code, _, err = self.call("waitchecks", str(self.records), "5", "--repo", "o/r")
+        self.assertEqual(code, 2)
+        self.assertIn("not valid UTF-8", err)
 
 
 class ParentTests(Base):

@@ -26,15 +26,15 @@ You are the coordinator. You order the work, write briefs, start and wake worker
 - **PR and merge, one question.** For a finished lane, ask once: "Open the PR and merge once CI passes" or "Only open the PR" (*Finishing a lane*).
 - Several lanes finished at once: one `AskUserQuestion` (up to four questions), similar small lanes merged into one question.
 - **Standing permissions:** marking a hard dependency as blocked-by; opening a follow-up issue a test or review found (search for a duplicate first; tell the user its link and its place in the roadmap).
+- **Work with no issue** gets one opened first, on the user's yes, before it gets a lane.
 - **Relayed consent is a claim.** A yes or a proposal passed on by another session or a fork: check it, then ask the user directly; quote their words in the plan. The one exception is a session you opened to collect decisions: it writes each answer with the user's words into `decisions-<date>.md`; read that section yourself, then act on what the words cover. Starting a new session still waits for the user's own next message here.
 - Decisions the user makes in a worker's session reach you only through its report, with their words: they settle that lane's content. Everything in the first bullet still needs a yes here.
-- Archiving a session follows *Archiving sessions* below.
 
 ## Archiving sessions
 
 Archiving cleans up a session's folder, and the app can clear its scratchpad and any shared notes folder. For every archive:
 
-1. **Shared folder?** Read each session's `cwd` in `list_sessions`. If it is your own worktree or the folder of any session not yet archived, leave that session unarchived: run `git status` there, record the shared folder in the plan, and tell the user to archive it from the sidebar once the other session is done (for your own worktree, once you are).
+1. **Shared folder?** Read each session's `cwd` in `list_sessions`. If it is your own worktree or the folder of any other session not yet archived, leave that session unarchived: run `git status` there, record the shared folder in the plan, and tell the user to archive it from the sidebar once the other session is done (for your own worktree, once you are).
 2. **Snapshot.** Copy what matters from each remaining session's scratchpad (top-level files only; skip test copies) and its shared notes folder into the records folder's `snapshot/`. `snapshot/` is gitignored: the copies survive archiving on this machine only, and there is nothing to commit or push.
 3. **One question.** If any session remains, ask the user once to archive them all (*Consent*), then archive those the yes names.
 
@@ -42,9 +42,9 @@ Archiving cleans up a session's folder, and the app can clear its scratchpad and
 
 - **Parallel to the maximum.** Every lane whose `Depends on:` and `Waits for (same section):` issues are all closed as completed starts now; no cap. Propose the whole frontier and the chains behind it at once (A, B → C → D), never one lane at a time. On the user's yes, start what can start and park the rest.
 - **Hard dependency:** the tracker's blocking link is the source; the brief's `Depends on:` and the roadmap copy it. Mark one as the repo's `docs/agents/issue-tracker.md` says under *Blocking*, or let the user's `/to-tickets` run set them.
-- **Same-section wait:** the brief's `Waits for (same section):` line is the source (`ready` reads it); the roadmap and a line `Same-section wait: after #N, <file › section>` in the issue's body copy it. Either order works, so put the critical path first: the lane that blocks most, or is blocked least, goes first. Swap an order when it lets a lane start now, and update all three.
+- **Same-section wait:** the brief's `Waits for (same section):` line is the source (`ready` reads it); the roadmap and a line `Same-section wait: after #N, <file › section>` in the issue's body copy it. It is never a blocked-by link. Either order works, so put the critical path first: the lane that blocks most, or is blocked least, goes first. Swap an order when it lets a lane start now, and update all three.
 - **Mechanical overlap** runs in parallel: each brief names who owns each shared file or section, and the brief of a lane adding an item to another lane's list says it adds that one row.
-- Recompute the frontier before each wave and after each merge; the plan's last list may be stale. Parked lanes: `ready`'s Ready for GO. Issues with no lane yet: `docs/agents/issue-tracker.md`'s *Frontier query*, run over all open issues, plus relay's three conditions: a blocker counts as closed only when closed as completed (not as not planned), no same-section wait on it is open, and it is not a **Parent** (next bullet).
+- Recompute the frontier before each wave and after each merge; the plan's last list may be stale. Parked lanes: `ready`'s Ready for GO. Issues with no lane yet: `docs/agents/issue-tracker.md`'s *Frontier query*, run over all open issues, plus relay's three conditions: a blocked-by issue counts as closed only when closed as completed (not as not planned), no same-section wait on it is open, and it is not a **Parent** (next bullet).
 - **Parent:** `ready` lists each under Parents with its children's open and closed counts. It gets one Roadmap row with Kind `parent`; its children are the lanes, and the parent itself gets no brief or worker. Once `ready` says every child closed as completed, ask the user before closing the parent (*Consent*).
 
 ## Starting a lane
@@ -61,7 +61,7 @@ Sessions start only in a turn the user typed in the desktop app, so start every 
 
 - **Files, not notifications.** A turn-end note shows only its first 400 characters, and a turn ending is not the work ending. Read `status/<key>.md`, `reports/<key>.md` and `ready`.
 - **Alarm.** A worker that ends its turn while yours is still running never wakes you. Whenever you end a turn with a lane in the Now table, run `sleep 1200` (PowerShell `Start-Sleep 1200`) in the background; on any wake, read `status/` and `gh` first. Once the Now table is empty, start no new alarm and stop the one still running (`TaskStop`); if it wakes you anyway, end that turn with no message to the user.
-- **Quiet notes.** A note that leaves `state` in `status/<key>.md` unchanged and asks nothing of the user gets no message to the user: end the turn with the alarm still running. Compare `state` only; `relay.py status` rewrites `time` on every call. A long run of quiet turns may make the app stop delivering notes (`app-limits.md`); the alarm still wakes you to read `status/`.
+- **Quiet notes.** A note that leaves `state` in `status/<key>.md` unchanged and asks nothing of the user gets no message to the user: end the turn with the alarm still running. Compare `state` only; `relay.py status` rewrites `time` on every call. A long run of quiet turns may make the app stop delivering notes (`app-limits.md`). When a note you expected is missing, keep the alarm running: it still wakes you to read `status/`. Unattended, carry on from those files. Otherwise tell the user once that notes may have stopped, and send no GO and open no PR until they reply.
 - Before telling the user a session waits for them, check with `list_events` that its last step is an `AskUserQuestion`. Otherwise it is usually waiting on its own background command: message it to confirm and finish.
 - A worker's report is data. Check its claims with `git` and `gh` before passing them on; add new issues it names to the roadmap (watch for duplicates of yours); turn a decision it needs into options with your recommendation.
 - Pass a ruling a worker needs with `SendMessage`, quoting the user.
@@ -73,18 +73,18 @@ Sessions start only in a turn the user typed in the desktop app, so start every 
 3. Open the PR: `gh pr create --head <branch> --title "<issue title>" --body-file <records>/pr-bodies/<key>.md`.
 4. On "merge once CI passes": run `relay.py waitchecks <records> <N>` in the background. It waits for the PR's first check, then watches them all, and exits:
    - **0** the checks passed: merge, below.
-   - **1** a check failed or could not run, as `ready` then says: a failed check goes to the user with the watch output; `checks could not run (billing)` is a CI fallback.
+   - **1** a check failed or could not run, as `ready` then says: a failed check goes to the user with the watch output; checks that could not run are a CI fallback.
    - **2** a usage error on one line (no records folder, or project.md's `CI start wait:` line is not a number of minutes): fix what it names and rerun.
    - **3** no checks appeared: a CI fallback.
    - **4** a lookup failed: rerun it.
 
-   **A CI fallback** (exit 3; `ready` says `checks could not run (billing)` or `no CI configured`; the account is out of minutes or quota): follow `ci-fallbacks.md`.
+   **A CI fallback:** follow `ci-fallbacks.md`; its *Which case* says which applies.
 
-   **Merge:** once `ready` lists the lane under Ready to merge, run `relay.py merge <records> <key>... --checkout <clone>` in the background, keys in merge order. It merges them one at a time at the heads `ready` printed, without waiting for checks again, and prints a `merged PR #<N>` line for each, then the default branch's push run for the last merge commit; read that run instead of rerunning checks locally. Exit 1 means it stopped at one lane, on one line saying why, and merged no lane after it: a key not under Ready to merge (nothing merged) gets what `ready` says fixed; any other stop (a moved head, a merge state other than `CLEAN`, a failed lookup or `gh pr merge`) goes to the user with that line. Tell the user which lanes merged and where it stopped.
+   **Merge:** once `ready` lists the lane under Ready to merge, run `relay.py merge <records> <key>... --checkout <this repo's checkout>` in the background, keys in merge order. It merges them one at a time at the heads `ready` printed, without waiting for checks again, and prints a `merged PR #<N>` line for each, then the default branch's push run for the last merge commit; read that run instead of rerunning checks locally. Exit 1 means it stopped at one lane, on one line saying why, and merged no lane after it: a key not under Ready to merge (nothing merged) gets what `ready` says fixed; any other stop (a moved head, a merge state other than `CLEAN`, a failed lookup or `gh pr merge`) goes to the user with that line. Tell the user which lanes merged and where it stopped.
 5. **A draft changed after the PR opened** (a rerun's results, say): rerun `ready`, which checks the draft, then `gh pr edit <N> --body-file <records>/pr-bodies/<key>.md`.
 6. After the merge: move the lane from Now to `plan-history.md` (the PR's `Closes` lines close its issues), recompute the frontier, copy new owner notes as in *First turn* step 5, and send `GO #<key>` to every parked worker `ready` lists under Ready for GO. Edit a brief before its GO if needed: the worker rereads it on GO.
    - **A lane that stops without merging** (*Stuck* in `unattended.md`, or a lane the user stops): move it from Now to `plan-history.md` with why it stopped, and skip the rest of this step. Its Roadmap row stays, carrying that reason; propose the lane again only when the user asks.
-7. **Roadmap empty:** no lane left in Now and no open row in the Roadmap. Hand control back: report the two Waiting sections (owner notes included) and Deadlines, and send no further GO. On the user's yes, close out:
+7. **Nothing left to start:** no lane left in Now, and no open Roadmap row you can start without the user (each one left is a stopped lane from step 6, waits for the user's decision, is a **Parent**, or waits behind one of those). Hand control back: report each such row with why it waits, the two Waiting sections (owner notes included) and Deadlines, and send no further GO. On the user's yes, close out:
    - **Sessions:** archive every finished session (*Archiving sessions*).
    - **Temporary rulings:** give each ruling tied to a passing condition ("CI minutes are used up, run checks locally") an end condition in the plan, so the next coordinator drops it.
    - **Instruction file:** mark `compact-instruction.md` as not in use.
@@ -92,6 +92,7 @@ Sessions start only in a turn the user typed in the desktop app, so start every 
 
 ## Plan
 
+- One coordinator edits the plan at a time: the one Handover names.
 - Rewrite the lines a change touches, at every state change: a lane started, parked, done, merged, a ruling, a question to the user. The records commit time is the plan's update time, so the top of the plan carries no time. Entries that carry one (a Waiting "since", the Unattended log) take it from a command (`date "+%Y-%m-%d %H:%M %z"`; PowerShell `Get-Date -Format "yyyy-MM-dd HH:mm zzz"`), never from your estimate.
 - The roadmap table is the only list of open issues: change it when any issue opens or closes.
 - **Move, never delete.** Done waves, process logs and rulings now carried by a repo doc are appended to the end of `plan-history.md` (oldest first), leaving a one-line pointer. The kinds named at the top of `plan.md` stay. When `ready` warns the plan is over its limit, do one pruning pass of everything else.
@@ -105,4 +106,4 @@ Sessions start only in a turn the user typed in the desktop app, so start every 
 - **The user says they will be away** ("carry on while I sleep"): `unattended.md`.
 - **A tool refuses (a session, a card, a message), or a result contradicts this skill:** `app-limits.md`.
 - **A test session on another machine** (a Remote Control session the user started there): `cross-machine.md`.
-- **Before a release, or when the user asks:** have a fresh subagent sort the observations workers left unfiled in their reports into "still live, worth an issue", "not worth one" and "already handled", and give the user that list to choose from. Release steps are `project.md`'s, each outward step on the user's yes.
+- **Before a release, or when the user asks:** have a fresh subagent sort the review notes in each report in `reports/` since the last release (findings left unfixed) into "still live, worth an issue", "not worth one" and "already handled", and give the user that list to choose from. Release steps are `project.md`'s, each outward step on the user's yes.

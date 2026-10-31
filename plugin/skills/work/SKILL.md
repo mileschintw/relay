@@ -28,14 +28,14 @@ When your start message says you are parked: read the brief, `project.md` and th
    - no title line (the coordinator passes the issue title separately);
    - a *Review* section: each finding and how it was handled;
    - no name from the deny list `project.md` names, if it names one (`ready` reports hits by line).
-6. **Finish.** `git fetch`. If `origin/<default>` moved in a way that touches your files or the brief's *Before and after* line: *Catching up*, then rerun steps 3 and 4 for what changed. Write the report (*Report*). Check every clause of **Done when**; once all hold, run `relay.py status … --state done --doing "<one line>"`. The coordinator opens the PR from that head and merges it if CI passes and the head is unchanged. After `done`, the branch changes only when the coordinator asks for a fix: *Catching up*, rerun steps 3 and 4 for what changed, then `relay.py status … --state done` again.
+6. **Finish.** `git fetch`. If `origin/<default>` moved in a way that touches your files or the brief's *Before and after* line: *Catching up*, then rerun steps 3 and 4 for what changed. Write the report (*Report*). Check every clause of **Done when**; once all hold, run `relay.py status … --state done --doing "<one line>"`. The coordinator opens the PR from that head. After `done`, the branch changes only when the coordinator asks for a fix: *Catching up*, rerun steps 3 and 4 for what changed, then `relay.py status … --state done` again.
 7. End your turn, with no background command still running, on a two-line summary naming the report file.
 
 **Done when:** everything each issue on the *Closes* line wants is built, or listed in the report as no longer holding; `project.md`'s checks and the lane tests pass on the pushed head, except "main checkout only" ones named in the report; the last review found no blocker; the PR body draft and the report are written. The status file then says `done` with that head.
 
 ## Status
 
-Run `relay.py status` from your lane's worktree (it reads the branch and head there) at each milestone, never by hand. The coordinator reads this file and your report, not your turn-end note.
+Run `relay.py status` from your lane's worktree (it reads the branch and head there) at each milestone, never by hand. The coordinator reads your status file and your report, not your turn-end note.
 
 - **Blocked** on a decision only the user or the coordinator can make, or needing an off-limits file: `--state blocked`, the options in the report, and a `SendMessage` to the coordinator's id with one short question. Once answered, set the state back to the step you were on.
 - **Waiting on your own background runs**: at each turn end before `done`, rerun the same `relay.py status` command with the same `--state` and a `--doing` naming what still runs (`"still running <X>, <Y>"`). The coordinator then tells waiting from a stall without reading your transcript.
