@@ -16,10 +16,9 @@ none (ruling 1, merging on local checks while the repo had no CI, ended when #16
 
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
-| 47 | #47 | local_22d9a90c-8e82-49a5-955c-ea5efe7be12f (folder lane-29-ea9758; own branch claude/lane-47-587cd9) | done, PR #58 | |
 | 45 | #45 | local_9945d0e9-a04f-4f54-b0cd-5c878b54fb32 (folder lane-31-b7c2a2; own branch claude/lane-45-60dca0) | GO sent 23:41 | |
 
-Lanes 51, 46, 48, 49, 50 merged (PRs #53–#57, 23:38–23:40) → `plan-history.md`. PR #58 (lane 47) opened on the same 「開 PR，CI 過就合併」, merging once CI passes. Lane 45 got GO after #53 merged.
+Lanes 51, 46, 48, 49, 50 merged (PRs #53–#57, 23:38–23:40) → `plan-history.md`. Lane 47 merged (PR #58, 23:41). Lane 45 got GO after #53 merged.
 
 Lane 42 merged (PR #44, 22:10). Lane 33 merged (PR #43, 18:31) → `plan-history.md`. Wave 2: lanes 24–31 merged (PRs #34–#41, 2026-10-30 17:51–18:02 -0700) → `plan-history.md`. Wave 1: all lanes merged: 1, 2, 3, 7, 8, 9, 10, 11, 12, 16 → `plan-history.md`.
 
@@ -30,7 +29,6 @@ Every open issue, once. "Order" is the wave (1 = can start now). "Kind" is `free
 | Issue | Order | Blocked by (GitHub) | Same-section wait | Files it owns | Kind |
 |---|---|---|---|---|---|
 | #45 relay.py merge: merge ready lanes one at a time | 2 | #51 | none | relay.py (new `merge` subcommand), fake_gh.py, test_relay.py, coordinate SKILL.md (Finishing a lane step 4), README.md (usage line if listed) | free |
-| #47 ready: warn when the relay.py checkout is behind | 1 | none | none | relay.py (`cmd_ready`, reading the **relay.py:** line), test_relay.py | free |
 
 Filed 2026-10-30 from the second retro on the user's 「6 項都開」. Mechanical overlap: relay.py and test_relay.py #45 (new subcommand) / #46 and #47 (both add a check in `cmd_ready`: name each one's line in the briefs); coordinate SKILL.md #45 (step 4) / #48 (Alarm) / #50 (Consent). #51 came from the user's side session (local_219aad9f), relayed and confirmed here with 「另開 issue，#45 等它」; #45 is blocked by #51 on GitHub (merge reuses `waitchecks`), and both touch coordinate SKILL.md step 4. Lanes started 2026-10-30 23:14 (Now). Wave 2's overlap notes → `plan-history.md`. Not filed, by recommendation: unpinned claude-code in CI, stall detection.
 
