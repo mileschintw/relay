@@ -120,3 +120,4 @@ Finished work moved out of `plan.md`, newest first, for checking only; the plan 
 - PRs #69 (lane 61) and #70 (lane 64) merged 01:13 by `relay.py merge` (with lane 61, `merge` no longer re-waits). Main checkout at `41e6567`. #68 (step 7 hand-back) left open for the rescan, on the user's 「併進重掃」.
 - Batch 71–75 (post-0.3.0 rescan): PR #76 (lane 73) merged 01:37 by finish.sh (gh pr create, waitchecks, relay.py merge).
 - PRs #77 (lane 74, closes #74 and #68) merged 01:40 and #78 (lane 75) 01:42. Main checkout at `04a1c05`.
+- PR #79 (lane 71) merged 01:46. PR #80 (lane 72) opened, CONFLICTING with #79 (both relay.py); lane 72 asked to catch up.

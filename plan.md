@@ -16,8 +16,7 @@ none (ruling 1, merging on local checks while the repo had no CI, ended when #16
 
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
-| 71 | #71 | local_df2ecd17-4d2a-447e-834c-f5b9179c5e50 | review | |
-| 72 | #72 | local_32b3c9f8-d7d4-44a5-b77f-f0562d8f081b | review | |
+| 72 | #72 | local_32b3c9f8-d7d4-44a5-b77f-f0562d8f081b | catching up, PR #80 conflicts with #79 | |
 
 Lanes 71–75 started 2026-10-31 01:22 -0700 on the user's 「照推薦開 A–E」, each in its own new folder. Merge right for 71–75 and the 0.3.1 release: 「好，一路到發布」 (01:34): open each PR when done, merge once CI passes, then release 0.3.1 per README › Releasing. Ruling for this batch (01:32): 「讓他們各自修補自己發現的小問題，先不要再開新issue，我想早點發布patch」: each lane fixes what it found inside the batch, no new issues; then release 0.3.1. Lane 74 fixes its never-list drift note; lane 75 adds the three GLOSSARY rules to coordinate (Plan, Consent, Same-section wait lines). Merge order when several finish together: 71 before 72 (both relay.py). After all merge: release 0.3.1 on the user's yes. Lanes 60–64 (WFA scan) all merged (PRs #65–#67, #69, #70) → `plan-history.md`.
 
@@ -31,7 +30,6 @@ Every open issue, once. "Order" is the wave (1 = can start now). "Kind" is `free
 
 | Issue | Order | Blocked by (GitHub) | Same-section wait | Files it owns | Kind |
 |---|---|---|---|---|---|
-| #71 relay.py: waitchecks and merge never exit 1 on an error; quieter watch; safer ready warnings | 1 | none | none | relay.py (wait_checks, cmd_waitchecks, cmd_merge, merge_lane, ready_to_merge, relay_py_behind, project_line, main, docstring), tests | free |
 | #72 ready: one PR lookup per run instead of one per lane | 1 | none | none | relay.py (cmd_ready fetch, ready_done, pushed_head, PR lookups), tests | free |
 
 Filed 2026-10-31 01:20 from the post-0.3.0 WFA rescan + code-review (both by fresh subagents, findings verified by the coordinator) on the user's 「照推薦開 A–E」; #68 folded into lane 74 on 「併進重掃」. Mechanical overlap: relay.py 71 / 72 (different functions; 71 merges first); coordinate SKILL.md 73 (step 4) / 74 (other sections); unattended.md 73 (PRs and merges) / 74 (First turn pointer, worker paragraph). Not filed, by recommendation: further SKILL.md splits (merge.md, archiving.md); the rescan's `ListAgents` finding (the tool exists); #60/#64 scope notes (accepted as reasonable). #45–#51 and #60–#64 all merged → `plan-history.md`.
