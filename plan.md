@@ -4,8 +4,8 @@ Current state only. Done work moves to `plan-history.md` with a one-line pointer
 
 ## Handover
 
-- **Coordinator:** none since 2026-10-30 22:23 -0700 (local_75cc31e5-4bd1-45b1-92a6-8c63fa48ec22 closed out on the user's 「收尾」 → `plan-history.md`). Next time: `/relay:coordinate`. Installed relay is 0.2.0; main has merged #24–#33 and #42 since (unreleased). `project.md`'s `relay.py:` line runs the main checkout's copy: fast-forward it first.
-- **Standing instructions:** none. Merge right: per lane, on the user's yes to "open the PR and merge once CI passes" (CI exists since #16).
+- **Coordinator:** title unknown (relay-coordinate session), worktree D:\Repos\relay\.claude\worktrees\relay-coordinate-5b7cc3, id local_75cc31e5-4bd1-45b1-92a6-8c63fa48ec22, mode normal; back in Handover since 2026-10-30 23:07 -0700 on the user's 「發布0.3.0，接著更新這個coordinator到新release…我compact完再接著直接繼續解issue」. Runs relay 0.3.0 (PR #52, `release` and tag `relay--v0.3.0` = `1d023cd`): skills at `C:\Users\user3\.claude\plugins\cache\relay\relay\0.3.0\`; this session's Skill tool may still load an older copy until a restart, so read the 0.3.0 files by path. `relay.py` is `project.md`'s line (main checkout, at `1d023cd`): fast-forward it after each merge.
+- **Standing instructions:** after the compact, start the open frontier without asking again (「我compact完再接著直接繼續解issue」): #46–#51 now, #45 parked until #51 merges. Merge right: per lane, on the user's yes to "open the PR and merge once CI passes" (CI exists since #16).
 - **Unattended log:** none.
 
 ## Rulings
@@ -33,8 +33,7 @@ Every open issue, once. "Order" is the wave (1 = can start now). "Kind" is `free
 | #49 app-limits: when a session lands in an archived session folder | 1 | none | none | coordinate app-limits.md (Session folders) | free |
 | #50 coordinate: say snapshot/ is local only | 1 | none | none | coordinate SKILL.md (Consent, snapshot bullet) | free |
 
-Filed 2026-10-30 from the second retro on the user's 「6 項都開」. Mechanical overlap: relay.py and test_relay.py #45 (new subcommand) / #46 and #47 (both add a check in `cmd_ready`: name each one's line in the briefs); coordinate SKILL.md #45 (step 4) / #48 (Alarm) / #50 (Consent). #51 came from the user's side session (local_219aad9f), relayed and confirmed here with 「另開 issue，#45 等它」; #45 is blocked by #51 on GitHub (merge reuses `waitchecks`), and both touch coordinate SKILL.md step 4. No lane yet; the coordinator is written out of Handover, so the next `/relay:coordinate` proposes them.
-Filed 2026-10-30 from the coordinator's retro on the user's 「7點都能file」. Mechanical overlap: relay.py #25/#27 (different functions; #27 touches only the section list); setup SKILL.md #25 (new CI step) / #26 (copy step and check); coordinate SKILL.md #24 (top line) / #25 (step 4) / #28 and #31 (Plan: same-section wait, #31 after #28); work SKILL.md #24 (intro) / #30. #29 was widened on the user's 「把值得作的三項開issue或更新現有issue」 with lane 8's two notes; #31 filed the same time (lane 9's note). Not filed, by recommendation: unpinned claude-code in CI, stall detection. Triage of #7–#10: `decisions-2026-10-30.md`.
+Filed 2026-10-30 from the second retro on the user's 「6 項都開」. Mechanical overlap: relay.py and test_relay.py #45 (new subcommand) / #46 and #47 (both add a check in `cmd_ready`: name each one's line in the briefs); coordinate SKILL.md #45 (step 4) / #48 (Alarm) / #50 (Consent). #51 came from the user's side session (local_219aad9f), relayed and confirmed here with 「另開 issue，#45 等它」; #45 is blocked by #51 on GitHub (merge reuses `waitchecks`), and both touch coordinate SKILL.md step 4. No lane yet. Wave 2's overlap notes → `plan-history.md`. Not filed, by recommendation: unpinned claude-code in CI, stall detection.
 
 ## Waiting for the user to be present
 
@@ -42,7 +41,7 @@ none
 
 ## Waiting for the user's decision
 
-none
+- Optional issue from the pre-0.3.0 sort of unfiled worker notes: `plugin/skills/work/SKILL.md` gives two answers for a review finding outside the lane that matches only a closed issue (Workflow step 3 says new issue; *Status* says SendMessage). Every other note was already handled or not worth an issue. Since 2026-10-30 23:07 -0700.
 
 ## Deadlines
 

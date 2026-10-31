@@ -94,3 +94,9 @@ Finished work moved out of `plan.md`, newest first, for checking only; the plan 
 ## 2026-10-30 22:23 -0700, close-out (coordinator local_75cc31e5-4bd1-45b1-92a6-8c63fa48ec22)
 
 - User: 「收尾」. Lane 42 archived (folder clean and pushed; scratchpad to `snapshot/lane-42/`). No temporary rulings in force. `compact-instruction.md` marked not in use. Coordinator written out of Handover; next time `/relay:coordinate`.
+
+## 2026-10-30 23:07 -0700, release 0.3.0 (coordinator local_75cc31e5-4bd1-45b1-92a6-8c63fa48ec22)
+
+- User: 「發布0.3.0，接著更新這個coordinator到新release」. A fresh subagent sorted unfiled worker notes first: one optional item (work SKILL.md step 3 vs Status) went to Waiting for the user's decision; the rest were handled or not worth an issue. PR #52 raised `version` to 0.3.0 (CI green, merged 23:06); `release` fast-forwarded fa817ff..1d023cd; annotated tag `relay--v0.3.0` pushed. Main checkout fast-forwarded to 1d023cd.
+- Plugin: `claude plugin marketplace update relay` and `claude plugin update relay@relay --scope local` (HTTPS rewrite via one-command GIT_CONFIG env) updated the main checkout's entry to 0.3.0; this worktree's entry in installed_plugins.json was pointed at 0.3.0 by hand (backup `installed_plugins.json.bak-relay-0.3.0`).
+- Wave 2 overlap notes (moved from the Roadmap): relay.py #25/#27; setup SKILL.md #25/#26; coordinate SKILL.md #24/#25/#28 and #31; work SKILL.md #24/#30. Triage of #7–#10: `decisions-2026-10-30.md`.
