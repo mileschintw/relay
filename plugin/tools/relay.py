@@ -100,10 +100,10 @@ waitchecks  waits for PR <N>'s first check, then watches its checks. Polls `gh p
         line stretches that to 1/6, 1/2 and all of its minutes. As soon as a check exists (queued
         or pending counts), runs `gh pr checks <N> --watch`, keeping only its errors (with no
         terminal it reprints the table every 10 s, to stdout), then prints `gh pr checks <N>`
-        once; both calls' errors go to stderr. None by
-        the last poll: prints `no checks appeared`, plus `no CI configured` when the repo has no
-        Actions workflow and nothing reported on the default branch head (as `ready` decides). A
-        failed poll is retried at the next one. No overall timeout once watching.
+        once; both calls' errors go to stderr. None by the last poll: prints `no checks
+        appeared`, plus `no CI configured` when the repo has no Actions workflow and nothing
+        reported on the default branch head (as `ready` decides). A failed poll is retried at the
+        next one. No overall timeout once watching.
 
 merge   merges lanes one at a time, in the order given. First, every key must be listed under
         `ready`'s Ready to merge and nowhere else (--checkout as for `ready`, default the current
@@ -923,8 +923,9 @@ def wait_checks(pr, repo, schedule):
             code, _, err = run(gh_base() + ["pr", "checks", str(pr), "--repo", repo, "--watch"])
             _, out, table_err = run(gh_base() + ["pr", "checks", str(pr), "--repo", repo])
             print(out.rstrip())
-            if (err + table_err).strip():
-                print((err + table_err).rstrip(), file=sys.stderr)
+            errors = "\n".join(e.rstrip() for e in (err, table_err) if e.strip())
+            if errors:
+                print(errors, file=sys.stderr)
             if code == 0:
                 return 0
             # gh exits 1 on a failed check and on its own errors alike: ask the rollup which
