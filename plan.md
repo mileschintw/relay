@@ -16,6 +16,7 @@ none (ruling 1, merging on local checks while the repo had no CI, ended when #16
 
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
+| 42 | #42 | local_517a925e-e83c-4057-9d65-9370e7d6aec9 (asked for its own worktree; landed in the archived lane 33's folder `lane-33-e5ca5c`, on its own branch `claude/lane-42-25ffae` at `7f9f7cb`; no live session shares it; do not unarchive lane 33) | started | — |
 
 Lane 33 merged (PR #43, 18:31) → `plan-history.md`. Wave 2: lanes 24–31 merged (PRs #34–#41, 2026-10-30 17:51–18:02 -0700) → `plan-history.md`. Wave 1: all lanes merged: 1, 2, 3, 7, 8, 9, 10, 11, 12, 16 → `plan-history.md`.
 
@@ -25,13 +26,13 @@ Every open issue, once. "Order" is the wave (1 = can start now). "Kind" is `free
 
 | Issue | Order | Blocked by (GitHub) | Same-section wait | Files it owns | Kind |
 |---|---|---|---|---|---|
-| #42 Checks not started assumes a workflow; CI outside Actions has none (filed by lane 33; triaged 2026-10-30, ready-for-agent) | 1 | none | none | coordinate SKILL.md (Finishing a lane step 4, Checks not started bullet) | free |
+| #42 Checks not started assumes a workflow; CI outside Actions has none (filed by lane 33; triaged 2026-10-30, ready-for-agent) | 1 (running, lane 42, started 2026-10-30 21:41 on 「開始」) | none | none | coordinate SKILL.md (Finishing a lane step 4, Checks not started bullet) | free |
 
 Filed 2026-10-30 from the coordinator's retro on the user's 「7點都能file」. Mechanical overlap: relay.py #25/#27 (different functions; #27 touches only the section list); setup SKILL.md #25 (new CI step) / #26 (copy step and check); coordinate SKILL.md #24 (top line) / #25 (step 4) / #28 and #31 (Plan: same-section wait, #31 after #28); work SKILL.md #24 (intro) / #30. #29 was widened on the user's 「把值得作的三項開issue或更新現有issue」 with lane 8's two notes; #31 filed the same time (lane 9's note). Not filed, by recommendation: unpinned claude-code in CI, stall detection. Triage of #7–#10: `decisions-2026-10-30.md`.
 
 ## Waiting for the user to be present
 
-- Start lane 42: the user said 「開」 (2026-10-30 21:32 -0700) over Remote Control; `start_session` and the fallback card were both refused there. Brief is ready at `briefs/42.md`; start it on the user's next message typed in the desktop app.
+none
 
 ## Waiting for the user's decision
 
