@@ -31,7 +31,7 @@ Filed 2026-10-30 from the coordinator's retro on the user's 「7點都能file」
 
 ## Waiting for the user to be present
 
-none
+- Start lane 42: the user said 「開」 (2026-10-30 21:32 -0700) over Remote Control; `start_session` and the fallback card were both refused there. Brief is ready at `briefs/42.md`; start it on the user's next message typed in the desktop app.
 
 ## Waiting for the user's decision
 
