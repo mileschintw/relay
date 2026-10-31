@@ -18,13 +18,13 @@ none (ruling 1, merging on local checks while the repo had no CI, ended when #16
 |---|---|---|---|---|
 | 51 | #51 | local_a41b5a28-d7d3-4e9d-b375-8182ff3c9e07 (folder lane-33-e5ca5c, archived lane 33's; own branch claude/lane-51-79c8ba) | done | |
 | 46 | #46 | local_70226170-25bb-44fd-842e-57b2ed7677b7 (folder lane-30-fd4564; own branch claude/lane-46-8e22e5) | done | |
-| 47 | #47 | local_22d9a90c-8e82-49a5-955c-ea5efe7be12f (folder lane-29-ea9758; own branch claude/lane-47-587cd9) | review | |
+| 47 | #47 | local_22d9a90c-8e82-49a5-955c-ea5efe7be12f (folder lane-29-ea9758; own branch claude/lane-47-587cd9) | done, PR #58 | |
 | 48 | #48 | local_8bbd8b39-9b89-4224-a520-3b13ba4c4ffe (folder lane-28-272abc; own branch claude/lane-48-7fb5c3) | done | |
 | 49 | #49 | local_ee5f6eaf-d3db-4b7e-beb0-f0550f612bf4 (folder lane-27-9a7274; own branch claude/lane-49-49283d) | done | |
 | 50 | #50 | local_68e9b498-fced-45d1-ae8c-3c3e28589acf (folder lane-26-a6b2f5; own branch claude/lane-50-233944) | done | |
 | 45 | #45 | local_9945d0e9-a04f-4f54-b0cd-5c878b54fb32 (folder lane-31-b7c2a2; own branch claude/lane-45-60dca0) | parked | #51 merged |
 
-PRs opened 2026-10-30 23:36 -0700 on the user's 「開 PR，CI 過就合併」 for each of 51, 46 and 48/49/50: #53 (51), #54 (46), #55 (48), #56 (49), #57 (50); merging one at a time in that order once CI passes. Started 2026-10-30 23:14 -0700 on the standing instruction. Every lane landed in an archived lane's folder (lanes 26–33, archived in the close-out), each on its own new branch at `1d023cd`, no live session there: keep those old sessions archived; never unarchive them while these run.
+PRs opened 2026-10-30 23:36 -0700 on the user's 「開 PR，CI 過就合併」 for each of 51, 46 and 48/49/50: #53 (51), #54 (46), #55 (48), #56 (49), #57 (50), then #58 (47, same answer, 23:39); merging one at a time in that order once CI passes. Started 2026-10-30 23:14 -0700 on the standing instruction. Every lane landed in an archived lane's folder (lanes 26–33, archived in the close-out), each on its own new branch at `1d023cd`, no live session there: keep those old sessions archived; never unarchive them while these run.
 
 Lane 42 merged (PR #44, 22:10). Lane 33 merged (PR #43, 18:31) → `plan-history.md`. Wave 2: lanes 24–31 merged (PRs #34–#41, 2026-10-30 17:51–18:02 -0700) → `plan-history.md`. Wave 1: all lanes merged: 1, 2, 3, 7, 8, 9, 10, 11, 12, 16 → `plan-history.md`.
 
