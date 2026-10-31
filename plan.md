@@ -16,9 +16,8 @@ Current state only. Done work moves to `plan-history.md` with a one-line pointer
 
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
-| 2 | #2 | local_fb37449e-58c9-49eb-b7f4-6878eebd3515 (claude/lane-2-ccd448) | done @ b221ad2; conflicts with main after #21 (fake_gh.py, test_relay.py), asked to merge main 17:02 | |
 
-Started 2026-10-30 16:29 -0700 on the user's "Start wave 1" (16:28). Lanes 1, 3, 7, 8, 9, 10, 11, 16 merged → `plan-history.md`.
+Started 2026-10-30 16:29 -0700 on the user's "Start wave 1" (16:28). Lanes 1, 2, 3, 7, 8, 9, 10, 11, 16 merged → `plan-history.md`.
 
 ## Roadmap
 
@@ -26,7 +25,6 @@ Every open issue, once. "Order" is the wave (1 = can start now). "Kind" is `free
 
 | Issue | Order | Blocked by (GitHub) | Same-section wait | Files it owns | Kind |
 |---|---|---|---|---|---|
-| #2 Issue-body `## Files` section | 1 (lane 2, GO sent) | none | after #1, coordinate SKILL.md › First turn step 3 | relay.py (new roadmap command), fake_gh.py, test_relay.py, coordinate SKILL.md (First turn step 3; Starting a lane step 1), setup SKILL.md, README.md (Layout row), GLOSSARY.md | free |
 | #12 Invalid UTF-8 in a status file crashes `ready` (filed by lane 9, `needs-triage`, no `## Files`) | 1 (no lane yet; #9 merged) | none | none | relay.py (`cmd_ready` status reads), test_relay.py | free |
 
 Mechanical overlap: `plugin/tools/relay.py` (docstring, `cmd_ready` sections) and `tests/test_relay.py` with #1, #2, #3, #7, #11, #12; `tests/fake_gh.py` with #1, #2, #3, #7; `plugin/GLOSSARY.md` with #1, #2, #3. #8 (merged) owns the archive rule in `app-limits.md` › Session folders; #3 points at it. Triage of #7–#10: `decisions-2026-10-30.md`.
@@ -37,9 +35,8 @@ none
 
 ## Waiting for the user's decision
 
-- Archive finished sessions: triage-7-10 (local_25b74a50-b6f9-40d5-86ad-82eae30d7c7f), lane-1, lane-8, lane-9, lane-10, lane-11, lane-7, lane-16, lane-3 (merged); since 2026-10-30 16:40 -0700.
+- Archive finished sessions: triage-7-10 (local_25b74a50-b6f9-40d5-86ad-82eae30d7c7f), lane-1, lane-8, lane-9, lane-10, lane-11, lane-7, lane-16, lane-3, lane-2 (merged); since 2026-10-30 16:40 -0700.
 - Lane for #12 (no lane yet; still `needs-triage`, no `## Files`); since 2026-10-30 16:40 -0700.
-- Lane 2: user said "Yes, open and merge" (after it resolves against #21; merge once CI passes).
 
 
 ## Deadlines

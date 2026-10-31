@@ -48,3 +48,11 @@ Finished work moved out of `plan.md`, newest first, for checking only; the plan 
 | 3 | #3 Owner notes; hand back when roadmap empties | local_9bd0484c-821d-4349-9663-678666c9e033 | claude/lane-3-af9107 @ f1f09a5 | #21 |
 
 - User's "Open and merge both" (16:58). First merges with real CI: #20 and #21 each passed test (ubuntu, windows) and validate. Rulings on local-check merges are no longer needed from here.
+
+## 2026-10-30 17:07 -0700, lane 2 merged (coordinator local_75cc31e5-4bd1-45b1-92a6-8c63fa48ec22)
+
+| Key | Issue | Session | Branch @ head | PR |
+|---|---|---|---|---|
+| 2 | #2 `## Files` section; `relay.py roadmap` | local_fb37449e-58c9-49eb-b7f4-6878eebd3515 | claude/lane-2-ccd448 @ be6fc5e | #22 |
+
+- User's "Yes, open and merge" (17:02). Resolved conflicts with #21 first; CI passed (test ubuntu/windows, validate). Wave 1 and its follow-ups are all merged; only #12 stays open.
