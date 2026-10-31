@@ -16,10 +16,10 @@ none (ruling 1, merging on local checks while the repo had no CI, ended when #16
 
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
-| 60 | #60 | local_7d4910b0-c96b-4ba9-88ab-a402f73db01b (folder lane-25-cf22e5, archived lane 25's; own branch claude/lane-60-bbae79) | started | |
-| 61 | #61 | local_955327e8-f19c-4d39-9b44-e8ae04a594c7 | started | |
-| 62 | #62 | local_b7ceebb0-7408-4bc9-aa39-7e6a0fc5245b | started | |
-| 63 | #63 | local_f066e114-a1e3-4399-b421-f91ad2e1ab2f | started | |
+| 60 | #60 | local_7d4910b0-c96b-4ba9-88ab-a402f73db01b (folder lane-25-cf22e5, archived lane 25's; own branch claude/lane-60-bbae79) | review | |
+| 61 | #61 | local_955327e8-f19c-4d39-9b44-e8ae04a594c7 | review | |
+| 62 | #62 | local_b7ceebb0-7408-4bc9-aa39-7e6a0fc5245b | review | |
+| 63 | #63 | local_f066e114-a1e3-4399-b421-f91ad2e1ab2f | review | |
 
 Lanes 60–63 started 2026-10-31 00:12 -0700 on the user's 「照推薦開四個lan執行所有問題，並在結束後再跑一次wfa跟code-review」.
 
