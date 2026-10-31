@@ -114,6 +114,13 @@ class StatusTests(Base):
         self.assertEqual(code, 1)
         self.assertIn("records branch", err)
 
+    def test_missing_records_folder_exits_2_and_writes_nothing(self):
+        gone = self.tmp / "no-such-records"
+        code, _, err = self.call("status", str(gone), "12", "--state", "working", "--doing", "x")
+        self.assertEqual(code, 2)
+        self.assertIn("no records folder", err)
+        self.assertFalse(gone.exists())
+
 
 class ReadyTests(Base):
     def park(self, key, brief):
@@ -191,6 +198,15 @@ class ReadyTests(Base):
         head = self.branch("lane-12")
         self.done("12", "lane-12", head)
         self.assertIn("Ready for PR:\n  12: lane-12", self.ready())
+
+    def test_deny_list_matches_names_with_non_word_ends(self):
+        (self.records / "deny.txt").write_text("@acmebot\nC\\+\\+\n\\.internal\n")
+        (self.records / "project.md").write_text("- **Deny list:** `deny.txt`\n")
+        head = self.branch("lane-12")
+        body = ("Closes #12\n\nPinged @acmebot.\nIn C++ code.\nUse .internal hosts.\n"
+                "@acmebots and C++x and .internals\n")
+        self.done("12", "lane-12", head, body=body)
+        self.assertIn("PR body lines [3, 4, 5]: a deny-list name", self.ready())
 
     def test_closed_unmerged_pr(self):
         head = self.branch("lane-12")
@@ -496,6 +512,20 @@ class ReadyLookupTests(Base):
         self.assertEqual(len([g for g in gits if g.startswith("ls-remote")]), 3, gits)
         self.assertIn("Ready for PR:\n  14: lane-14", out)
 
+    def test_a_failed_fetch_skips_the_conflict_check_and_says_so(self):
+        heads = self.lanes()
+        real = relay.run
+
+        def run(cmd, cwd=None):
+            return (1, "", "offline") if cmd[1] == "fetch" else real(cmd, cwd)
+        with mock.patch.object(relay, "run", run):
+            out, gits, _ = self.counted_ready("--checkout", str(self.clone))
+        self.assertFalse([g for g in gits if g.startswith("merge-tree")], gits)
+        self.assertIn(f"  13: PR #6 --match-head-commit {heads['13']} "
+                      "(conflict check skipped: fetch failed)", out)
+        self.assertIn(f"  14: lane-14 @ {heads['14'][:7]} "
+                      "(conflict check skipped: fetch failed)", out)
+
     def test_an_unreachable_origin_is_a_lookup_failure_not_unpushed(self):
         self.lanes()
         git("remote", "set-url", "origin", str(self.tmp / "gone.git"), cwd=self.clone)
@@ -644,6 +674,23 @@ class LocalcheckTests(Base):
                          (["python3 -I t.py", "claude plugin validate ."], ["npm run e2e"]))
         self.assertEqual(relay.check_commands(line, windows=True)[0],
                          ["py -3 -I t.py", "claude plugin validate ."])
+
+    def test_two_commands_in_one_item_is_an_error(self):
+        for line in ("`npm test`, `npm run lint`", "`a`; `b` and `c` main checkout only",
+                     "`a` (Windows: `b`) `c`"):
+            with self.assertRaisesRegex(ValueError, "more than one command"):
+                relay.check_commands(line, windows=False)
+        self.assertEqual(relay.check_commands("`a` (Windows: `b`).", windows=False), (["a"], []))
+        self.assertEqual(relay.check_commands("`a` (Windows: `b`).", windows=True), (["b"], []))
+
+    def test_two_commands_in_one_item_exits_2_naming_the_line(self):
+        self.lane()
+        self.project(f"- **Local checks:** {self.py('print(5)')}, `npm run lint`\n")
+        code, out, err = self.localcheck()
+        self.assertEqual(code, 2, out + err)
+        self.assertIn("more than one command", err)
+        self.assertIn("`npm run lint`", err)
+        self.assertNotIn("$ ", out)
 
 
 class WaitchecksTests(Base):
