@@ -86,3 +86,7 @@ Finished work moved out of `plan.md`, newest first, for checking only; the plan 
 
 - User: 「全部一起處理」. #42 triaged (ready-for-agent). project.md gained the `relay.py:` line (main checkout, fast-forwarded to 7f9f7cb). Records got `.gitattributes` (`* text eol=lf`); 23 CRLF working files rewritten as LF, index unchanged.
 - Archived 20 finished sessions (triage-7-10; lanes 1, 2, 3, 7, 8, 9, 10, 11, 12, 16, 24–31, 33): each in its own worktree, clean and pushed. Top-level scratchpad files copied to `snapshot/<worktree>/` (local only; snapshot/ is gitignored).
+
+## 2026-10-30 22:10 -0700, lane 42 merged (coordinator local_75cc31e5-4bd1-45b1-92a6-8c63fa48ec22)
+
+- Lane 42 (local_517a925e) started 21:41 on 「開」/「開始」 (the first refused over Remote Control); it landed in the archived lane 33's folder on its own branch. PR #44 merged 22:10 on 「開 PR，CI 過就合併」, CI green. Roadmap empty; main checkout fast-forwarded to 362ea37.
