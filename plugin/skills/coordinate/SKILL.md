@@ -78,7 +78,7 @@ Sessions start only in a turn the user typed in the desktop app, so start every 
    - **3** no checks appeared: a CI fallback.
    - **4** a lookup failed: rerun it.
 
-   **A CI fallback:** `ci-fallbacks.md`, whose *Which case* says which applies.
+   **A CI fallback:** follow `ci-fallbacks.md`; its *Which case* says which applies.
 
    **Merge:** once `ready` lists the lane under Ready to merge, run `relay.py merge <records> <key>... --checkout <this repo's checkout>` in the background, keys in merge order. It merges them one at a time at the heads `ready` printed, without waiting for checks again, and prints a `merged PR #<N>` line for each, then the default branch's push run for the last merge commit; read that run instead of rerunning checks locally. Exit 1 means it stopped at one lane, on one line saying why, and merged no lane after it: a key not under Ready to merge (nothing merged) gets what `ready` says fixed; any other stop (a moved head, a merge state other than `CLEAN`, a failed lookup or `gh pr merge`) goes to the user with that line. Tell the user which lanes merged and where it stopped.
 5. **A draft changed after the PR opened** (a rerun's results, say): rerun `ready`, which checks the draft, then `gh pr edit <N> --body-file <records>/pr-bodies/<key>.md`.
