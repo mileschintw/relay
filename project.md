@@ -11,3 +11,4 @@ What relay needs to know about this project. The coordinator and every worker re
 - **Unattended, never:** pushing to `release` or pushing a release tag.
 - **Release:** README.md, section "Releasing".
 - **Deny list:** none
+- **relay.py:** D:/Repos/relay/plugin/tools/relay.py (the main checkout; fast-forward it to `origin/main` after each merge)
