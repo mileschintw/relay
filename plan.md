@@ -16,16 +16,16 @@ none (ruling 1, merging on local checks while the repo had no CI, ended when #16
 
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
-| 24 | #24 | local_8223afdd-4397-49a4-9540-378b5018e7e2 (worktree lane-24-228c28) | started | — |
-| 25 | #25 | local_a390b9b2-f8f2-4f4f-a349-7f44774378c1 (worktree lane-25-cf22e5) | started | — |
-| 26 | #26 | local_49c6f09b-66aa-40be-bb3d-c809c925fb34 (worktree lane-26-a6b2f5) | started | — |
-| 27 | #27 | local_c8055d4a-f2ac-47c7-abda-54f081a0a26d (worktree lane-27-9a7274) | started | — |
-| 28 | #28 | local_644f77a7-f3ea-412a-8136-9f6d0c0c1b08 (worktree lane-28-272abc) | started | — |
-| 29 | #29 | local_c0e33f80-d81b-42f9-b22f-622232add8bb (worktree lane-29-ea9758) | started | — |
-| 30 | #30 | local_4a03addc-5329-4b11-a472-c53ee8e846e3 (worktree lane-30-fd4564) | started | — |
-| 31 | #31 | local_ada54677-b465-4cc6-b678-479d0e40935c (worktree lane-31-b7c2a2) | started | #28 merges (GO #31) |
+| 24 | #24 | local_8223afdd-4397-49a4-9540-378b5018e7e2 (worktree lane-24-228c28) | done; PR #38, merge once CI passes | — |
+| 25 | #25 | local_a390b9b2-f8f2-4f4f-a349-7f44774378c1 (worktree lane-25-cf22e5) | done; PR #40, merge once CI passes | — |
+| 26 | #26 | local_49c6f09b-66aa-40be-bb3d-c809c925fb34 (worktree lane-26-a6b2f5) | done; PR #39, merge once CI passes | — |
+| 27 | #27 | local_c8055d4a-f2ac-47c7-abda-54f081a0a26d (worktree lane-27-9a7274) | done; PR #34, merge once CI passes | — |
+| 28 | #28 | local_644f77a7-f3ea-412a-8136-9f6d0c0c1b08 (worktree lane-28-272abc) | done; PR #35, merge once CI passes | — |
+| 29 | #29 | local_c0e33f80-d81b-42f9-b22f-622232add8bb (worktree lane-29-ea9758) | done; PR #36, merge once CI passes | — |
+| 30 | #30 | local_4a03addc-5329-4b11-a472-c53ee8e846e3 (worktree lane-30-fd4564) | done; PR #37, merge once CI passes | — |
+| 31 | #31 | local_ada54677-b465-4cc6-b678-479d0e40935c (worktree lane-31-b7c2a2) | parked | #28 merges (GO #31) |
 
-Wave 2 started 2026-10-30 17:37 -0700 on the user's 「開始wave2」; every lane in its own worktree (checked with list_sessions). Wave 1: all lanes merged: 1, 2, 3, 7, 8, 9, 10, 11, 12, 16 → `plan-history.md`.
+Merge right for 24–30: the user's 「開 PR，CI 過就合併」 (2026-10-30); merging one at a time 27→28→29→30→24→26→25, stopping on any non-clean PR. Wave 2 started 2026-10-30 17:37 -0700 on the user's 「開始wave2」; every lane in its own worktree (checked with list_sessions). Wave 1: all lanes merged: 1, 2, 3, 7, 8, 9, 10, 11, 12, 16 → `plan-history.md`.
 
 ## Roadmap
 
