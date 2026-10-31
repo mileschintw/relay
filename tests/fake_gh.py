@@ -12,7 +12,10 @@
  "jobs": {"<job id>": {"steps": [...]}},          # a missing job ran one step
  "annotations": {"<job id>": [{"message": "..."}]},
  "workflows": 0,                                  # the repo's Actions workflow count, default 1
- "head_statuses": 1, "head_check_runs": 1}        # counts on the default branch head, default 0
+ "head_statuses": 1, "head_check_runs": 1,       # counts on the default branch head, default 0
+ "pr_checks": {"5": {"after": 3, "rollup": [...]}},  # `pr view 5`'s statusCheckRollup: empty
+                                                  # before its 3rd call (default 1st), then rollup
+ "watch": {"5": [1, "output"]}}                   # `pr checks 5 --watch`: exit code and output
 children: an issue's sub-issues. bodies, comments: an issue's body and comments.
 broken: a call with an argument containing one of these fails.
 `pr comment <N> --body-file <f>` appends `#<N>` and the body to $RELAY_FAKE_GH.comments.
@@ -78,6 +81,17 @@ elif a[0] == "api" and a[1].endswith("/commits/HEAD/check-runs"):
     print(json.dumps({"total_count": data.get("head_check_runs", 0)}))
 elif a[0] == "api" and a[1].endswith("/annotations"):
     print(json.dumps(data.get("annotations", {}).get(a[1].split("/")[-2], [])))
+elif a[:2] == ["pr", "view"] and "statusCheckRollup" in a:
+    if a[2] not in data.get("pr_checks", {}):
+        sys.exit(f"no pull requests found for {a[2]}")
+    pc = data["pr_checks"][a[2]]
+    calls = open(os.environ["RELAY_FAKE_GH"] + ".calls", encoding="utf-8").read().splitlines()
+    seen = sum(c.startswith(f"pr view {a[2]} ") for c in calls)
+    print(json.dumps({"statusCheckRollup": pc["rollup"] if seen >= pc.get("after", 1) else []}))
+elif a[:2] == ["pr", "checks"] and "--watch" in a:
+    code, output = data.get("watch", {}).get(a[2], [0, "all checks passed"])
+    print(output)
+    sys.exit(code)
 elif a[:2] == ["pr", "comment"]:
     body = open(a[a.index("--body-file") + 1], encoding="utf-8").read()
     with open(os.environ["RELAY_FAKE_GH"] + ".comments", "a", encoding="utf-8") as f:
