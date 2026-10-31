@@ -655,7 +655,7 @@ class MergeTests(Base):
             self.done(key, f"lane-{key}", head)
             self.heads[key] = (pr, head)
 
-    def merge(self, *keys, view=None, **data):
+    def merge(self, *keys, view=None, sleep=lambda s: None, **data):
         prs = {f"lane-{k}": [{"number": pr, "state": "OPEN", "headRefOid": head,
                               "mergeable": "MERGEABLE", "statusCheckRollup": self.OK}]
                for k, (pr, head) in self.heads.items()}
@@ -667,7 +667,7 @@ class MergeTests(Base):
                  "pr_checks": {str(pr): {"rollup": self.OK} for pr, _ in self.heads.values()},
                  **data})
         pathlib.Path(str(self.fake) + ".calls").unlink(missing_ok=True)
-        with mock.patch.object(relay.time, "sleep", lambda s: None):
+        with mock.patch.object(relay.time, "sleep", sleep):
             return self.call("merge", str(self.records), *keys, "--repo", "o/r")
 
     def merges(self):
@@ -728,6 +728,27 @@ class MergeTests(Base):
             code, out, err = self.merge("12")
         self.assertEqual(code, 0, err)
         self.assertEqual(len(self.merges()), 1)
+
+    def test_unknown_state_after_every_retry_stops(self):
+        sleeps = []
+        code, out, err = self.merge("12", view={"5": {"mergeStateStatus": "UNKNOWN"}},
+                                    sleep=sleeps.append)
+        self.assert_stopped(code, err, "PR #5", "UNKNOWN, not CLEAN")
+        self.assertEqual([s for s in sleeps if s], list(relay.STATE_RETRIES))
+
+    def test_merge_time_lookup_failure_still_counts_as_merged(self):
+        real_gh = relay.gh
+
+        def gh(*args, **kw):
+            if "mergedAt,mergeCommit" in args:
+                raise RuntimeError("HTTP 502")
+            return real_gh(*args, **kw)
+        with mock.patch.object(relay, "gh", gh):
+            code, out, err = self.merge("12", "13")
+        self.assertEqual(code, 0, err)
+        self.assertEqual(len(self.merges()), 2)
+        self.assertIn("12: merged PR #5; merge time lookup failed: HTTP 502", out)
+        self.assertNotIn("push run", out)
 
     def test_a_key_not_ready_to_merge_is_refused_before_any_merge(self):
         self.call("status", str(self.records), "14", "--state", "working", "--doing", "x")

@@ -16,7 +16,8 @@
  "pr_checks": {"5": {"after": 3, "rollup": [...]}},  # `pr view 5`'s statusCheckRollup: empty
                                                   # before its 3rd call (default 1st), then rollup
  "watch": {"5": [1, "output"]},                   # `pr checks 5 --watch`: exit code and output
- "pr_view": {"5": {"headRefOid": "<sha>", "mergeStateStatus": "CLEAN"}},  # other `pr view 5`
+ "pr_view": {"5": {"headRefOid": "<sha>", "mergeStateStatus": "CLEAN", "baseRefName": "main",
+                   "mergedAt": "<time>", "mergeCommit": {"oid": "<sha>"}}},  # other `pr view 5`
  "merge_fail": {"5": "message"},                  # `pr merge 5` exits 1 with this message
  "runs": [{"databaseId": 9, "status": "queued"}]} # `run list`'s answer, default []
 children: an issue's sub-issues. bodies, comments: an issue's body and comments.

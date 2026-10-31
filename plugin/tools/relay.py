@@ -945,7 +945,7 @@ def ready_to_merge(records, key, repo, checkout):
         st = parse_status(path.read_text(encoding="utf-8"))
     except UnicodeDecodeError:
         return "status file is not valid UTF-8"
-    if st.get("state") != "done" or not ("branch" in st and "head" in st):
+    if st.get("state") != "done" or not all(f in st for f in ("branch", "head", "time")):
         return f"state {st.get('state', 'unknown')}"
     out = {k: [] for k in READY_SECTIONS}
     try:
@@ -1009,7 +1009,7 @@ def report_push_run(repo, base, sha):
             runs = gh("run", "list", "--repo", repo, "--branch", base, "--event", "push", "--commit",
                       sha, "--json", "databaseId,status,conclusion,url") or []
         except LOOKUP_ERRORS as e:
-            print(f"push run lookup failed: {e}")
+            fail(f"push run lookup failed: {e}")
             return
         if runs:
             break
