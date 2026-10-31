@@ -294,6 +294,7 @@ class ReadyTests(Base):
     def test_relay_py_checkout_behind_warns_with_count(self):
         main = self.tmp / "main"
         git("clone", "-q", str(self.origin), str(main), cwd=self.tmp)
+        (main / "plugin" / "tools").mkdir(parents=True)
         self.relay_py_line(f"`{main}/plugin/tools/relay.py` (the main checkout)")
         self.assertNotIn("behind", self.ready())
         self.advance_origin(2)
@@ -303,10 +304,27 @@ class ReadyTests(Base):
                       f" git -C {main.resolve().as_posix()} merge --ff-only origin/main", out)
 
     def test_relay_py_relative_path_resolves_against_the_checkout(self):
+        (self.clone / "plugin" / "tools").mkdir(parents=True)
         self.relay_py_line("plugin/tools/relay.py")
         self.advance_origin(1)
         git("reset", "-q", "--hard", "HEAD~1", cwd=self.clone)
         self.assertIn("is 1 commit behind origin/main", self.ready())
+
+    def test_relay_py_on_another_branch_switches_first(self):
+        main = self.tmp / "with space (x86)"
+        git("clone", "-q", str(self.origin), str(main), cwd=self.tmp)
+        git("switch", "-q", "-c", "feature", cwd=main)
+        self.relay_py_line(f"{main}/relay.py (the main checkout; see `origin/main`)")
+        self.advance_origin(1)
+        where = main.resolve().as_posix()
+        self.assertIn(f'1 commit behind origin/main: git -C "{where}" switch main && '
+                      f'git -C "{where}" merge --ff-only origin/main', self.ready())
+
+    def test_line_path(self):
+        self.assertEqual(relay.line_path("D:/r/relay.py (note; `origin/main`)"), "D:/r/relay.py")
+        self.assertEqual(relay.line_path("`C:/a b/relay.py` (note)"), "C:/a b/relay.py")
+        self.assertEqual(relay.line_path("C:/Program Files (x86)/relay.py"),
+                         "C:/Program Files (x86)/relay.py")
 
     def test_no_relay_py_line_or_path_outside_a_checkout_does_not_warn(self):
         self.advance_origin(1)
@@ -314,8 +332,10 @@ class ReadyTests(Base):
         self.assertNotIn("relay.py:", self.ready())
         self.relay_py_line("none")
         self.assertNotIn("relay.py:", self.ready())
-        outside = pathlib.Path(tempfile.mkdtemp())
-        self.relay_py_line(f"{outside}/relay.py")
+        (self.tmp / "outside").mkdir()
+        self.relay_py_line(f"{self.tmp / 'outside'}/relay.py")
+        self.assertNotIn("relay.py:", self.ready())
+        self.relay_py_line(f"{self.clone}/no/such/dir/relay.py")
         self.assertNotIn("relay.py:", self.ready())
 
     def test_invalid_utf8_in_plan_warns(self):

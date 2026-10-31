@@ -63,8 +63,10 @@ ready   read-only. Prints what the coordinator can do next:
           - Plan: a warning when plan.md has more lines than --plan-limit (default 200).
           - relay.py: a warning when the git checkout holding project.md's `relay.py:` path
             (relative to --checkout, else the current folder) is behind its origin/<default>,
-            with the count and the `git -C <checkout> merge --ff-only` fix. That checkout is
-            fetched first. No such line, or a path outside a checkout: no check.
+            with the count and the `git -C <checkout> merge --ff-only` fix (a `switch` first when
+            it is on another branch). That checkout is fetched first. The path is the line's
+            first backticked span, else its text before a trailing `(...)` note. No such line, a
+            missing folder, or a path outside a checkout: no check.
         --checkout <dir>: a local clone; `git fetch` there, then `git merge-tree` each Ready for
         PR / Ready to merge branch against the default branch; a conflict moves it to Waiting.
         --repo defaults to what `gh repo view` finds from the current folder.
@@ -442,11 +444,12 @@ def relay_py_behind(records, checkout):
     value = project_line(records, "relay.py")
     if value is None:
         return []
-    path = pathlib.Path(value.split(" (")[0].strip().strip('`"'))
+    path = pathlib.Path(line_path(value))
     base = pathlib.Path(checkout or ".").resolve()
     path = path if path.is_absolute() else base / path
-    while not path.is_dir() and path != path.parent:
-        path = path.parent
+    path = path if path.is_dir() else path.parent
+    if not path.is_dir():
+        return []
     code, top, _ = run(["git", "rev-parse", "--show-toplevel"], cwd=path)
     if code:
         return []
@@ -454,12 +457,32 @@ def relay_py_behind(records, checkout):
     if not checkout or top != base:
         run(["git", "fetch", "-q", "origin"], cwd=top)
     default = default_branch(top)
-    code, n, _ = run(["git", "rev-list", "--count", f"HEAD..{default}"], cwd=top)
-    if code or not n.strip().isdigit() or int(n) == 0:
+    code, count, _ = run(["git", "rev-list", "--count", f"HEAD..{default}"], cwd=top)
+    if code or not count.strip().isdigit() or int(count) == 0:
         return []
-    n, where = int(n), top.as_posix()
-    return [f"{where} is {n} commit{'s' if n > 1 else ''} behind {default}: "
-            f"git -C {where} merge --ff-only {default}"]
+    count, where = int(count), top.as_posix()
+    git_c = f'git -C "{where}"' if " " in where else f"git -C {where}"
+    name = default.split("/", 1)[-1]
+    _, branch, _ = run(["git", "symbolic-ref", "--short", "-q", "HEAD"], cwd=top)
+    switch = "" if branch.strip() == name else f"{git_c} switch {name} && "
+    return [f"{where} is {count} commit{'s' if count > 1 else ''} behind {default}: "
+            f"{switch}{git_c} merge --ff-only {default}"]
+
+
+def line_path(value):
+    """The path at the start of a project.md value: the first backticked span when it opens with
+    one, else the text before a trailing `(...)` note, so `C:/Program Files (x86)/x` stays whole."""
+    if value.startswith("`"):
+        return value[1:].split("`", 1)[0].strip()
+    value = value.strip()
+    if value.endswith(")"):
+        depth = 0
+        for i in range(len(value) - 1, -1, -1):
+            depth += {")": 1, "(": -1}.get(value[i], 0)
+            if depth == 0:
+                value = value[:i] if value[:i].endswith(" ") else value
+                break
+    return value.strip().strip('"')
 
 
 def ready_parents(repo, out):
