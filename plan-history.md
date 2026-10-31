@@ -90,3 +90,7 @@ Finished work moved out of `plan.md`, newest first, for checking only; the plan 
 ## 2026-10-30 22:10 -0700, lane 42 merged (coordinator local_75cc31e5-4bd1-45b1-92a6-8c63fa48ec22)
 
 - Lane 42 (local_517a925e) started 21:41 on 「開」/「開始」 (the first refused over Remote Control); it landed in the archived lane 33's folder on its own branch. PR #44 merged 22:10 on 「開 PR，CI 過就合併」, CI green. Roadmap empty; main checkout fast-forwarded to 362ea37.
+
+## 2026-10-30 22:23 -0700, close-out (coordinator local_75cc31e5-4bd1-45b1-92a6-8c63fa48ec22)
+
+- User: 「收尾」. Lane 42 archived (folder clean and pushed; scratchpad to `snapshot/lane-42/`). No temporary rulings in force. `compact-instruction.md` marked not in use. Coordinator written out of Handover; next time `/relay:coordinate`.

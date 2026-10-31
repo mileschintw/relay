@@ -4,7 +4,7 @@ Current state only. Done work moves to `plan-history.md` with a one-line pointer
 
 ## Handover
 
-- **Coordinator:** title unknown (relay-coordinate session), worktree D:\Repos\relay\.claude\worktrees\relay-coordinate-5b7cc3, id local_75cc31e5-4bd1-45b1-92a6-8c63fa48ec22, mode normal. Runs relay 0.2.0 (released by 2026-10-30 17:33 -0700 on the user's 「把wave1結束的版本發成0.2.0」, PR #32, tag `relay--v0.2.0` = `fa817ff`): skills and `relay.py` at `C:\Users\user3\.claude\plugins\cache\relay\relay\0.2.0\`; this session's Skill tool may still load 0.1.0 until a restart, so read the 0.2.0 files by path.
+- **Coordinator:** none since 2026-10-30 22:23 -0700 (local_75cc31e5-4bd1-45b1-92a6-8c63fa48ec22 closed out on the user's 「收尾」 → `plan-history.md`). Next time: `/relay:coordinate`. Installed relay is 0.2.0; main has merged #24–#33 and #42 since (unreleased). `project.md`'s `relay.py:` line runs the main checkout's copy: fast-forward it first.
 - **Standing instructions:** none. Merge right: per lane, on the user's yes to "open the PR and merge once CI passes" (CI exists since #16).
 - **Unattended log:** none.
 
@@ -35,7 +35,7 @@ none
 
 ## Waiting for the user's decision
 
-- Close-out (roadmap empty): archive lane 42 (local_517a925e, folder `lane-33-e5ca5c`, PR #44 merged); mark `compact-instruction.md` not in use; write the coordinator out of Handover. Since 2026-10-30 22:10 -0700.
+none
 
 ## Deadlines
 
