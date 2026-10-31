@@ -16,13 +16,13 @@ none (ruling 1, merging on local checks while the repo had no CI, ended when #16
 
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
-| 71 | #71 | local_df2ecd17-4d2a-447e-834c-f5b9179c5e50 | started | |
-| 72 | #72 | local_32b3c9f8-d7d4-44a5-b77f-f0562d8f081b | started | |
-| 73 | #73 | local_2e3761a9-79c2-4944-b938-42db15fc945e | started | |
-| 74 | #74, #68 | local_b101bb59-4460-4470-a8e7-832b77cef7d2 | started | |
-| 75 | #75 | local_30621d25-0afa-430c-a754-e65b2e1c1c02 | started | |
+| 71 | #71 | local_df2ecd17-4d2a-447e-834c-f5b9179c5e50 | review | |
+| 72 | #72 | local_32b3c9f8-d7d4-44a5-b77f-f0562d8f081b | review | |
+| 73 | #73 | local_2e3761a9-79c2-4944-b938-42db15fc945e | done | |
+| 74 | #74, #68 | local_b101bb59-4460-4470-a8e7-832b77cef7d2 | working (own fix) | |
+| 75 | #75 | local_30621d25-0afa-430c-a754-e65b2e1c1c02 | working (own fix) | |
 
-Lanes 71–75 started 2026-10-31 01:22 -0700 on the user's 「照推薦開 A–E」, each in its own new folder. Merge order when several finish together: 71 before 72 (both relay.py). After all merge: release 0.3.1 on the user's yes. Lanes 60–64 (WFA scan) all merged (PRs #65–#67, #69, #70) → `plan-history.md`.
+Lanes 71–75 started 2026-10-31 01:22 -0700 on the user's 「照推薦開 A–E」, each in its own new folder. Ruling for this batch (01:32): 「讓他們各自修補自己發現的小問題，先不要再開新issue，我想早點發布patch」: each lane fixes what it found inside the batch, no new issues; then release 0.3.1. Lane 74 fixes its never-list drift note; lane 75 adds the three GLOSSARY rules to coordinate (Plan, Consent, Same-section wait lines). Merge order when several finish together: 71 before 72 (both relay.py). After all merge: release 0.3.1 on the user's yes. Lanes 60–64 (WFA scan) all merged (PRs #65–#67, #69, #70) → `plan-history.md`.
 
 Lanes 51, 46, 48, 49, 50 merged (PRs #53–#57, 23:38–23:40) → `plan-history.md`. Lane 47 merged (PR #58, 23:41). Lane 45 got GO after #53 merged; lane 45 merged (PR #59, 00:04).
 
