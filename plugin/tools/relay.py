@@ -297,7 +297,7 @@ def never_started(check, repo):
     return any(NOT_STARTED.search(n.get("message") or "") for n in notes)
 
 
-def no_workflows(repo):
+def no_ci(repo):
     """True when the repo has no GitHub Actions workflow and nothing reported on the default
     branch head (`commits/HEAD`: a commit status or check-run means CI outside Actions). A
     failed lookup counts as CI existing, so the PR keeps waiting on checks."""
@@ -314,7 +314,7 @@ def no_workflows(repo):
 
 def checks_state(rollup, repo=None):
     if not rollup:
-        return "no CI configured" if no_workflows(repo) else "no checks reported"
+        return "no CI configured" if no_ci(repo) else "no checks reported"
     billing = []
     for c in rollup:
         status = (c.get("status") or "COMPLETED").upper()
