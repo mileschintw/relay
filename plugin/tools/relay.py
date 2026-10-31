@@ -30,7 +30,7 @@ ready   read-only. Prints what the coordinator can do next:
             dependencies are the GitHub blocked-by lists of every issue on the brief's `Closes:`
             line (issue <key> when it has none; numeric keys only), minus those issues, plus
             every `#N` on the brief's `Waits for (same section):` line; the brief's
-            `Depends on:` line counts only when those blocked-by lists hold no other issue.
+            `Depends on:` line counts only when every one of those lists is empty.
           - Ready for PR: done lanes with no pull request, status head equal to the pushed head.
           - Ready to merge: done lanes whose open PR head is the status head, checks all passed
             (at least one, none pending) and no conflict.
@@ -100,9 +100,9 @@ localcheck  the checks CI would run, for when it cannot (billing, quota). In --c
         project.md's `Local checks:` line, else its `Checks before done:` line, then remove the
         worktree, even when a check fails. Commands are the backticked items of the line, split on
         `;`, one per item (an item with two, or with only a `(Windows: `...`)`, is a usage error);
-        `(Windows: `...`)` replaces an item's command on Windows; items marked "main checkout only" are listed as not run. Prints
-        the head and base shas and each command's output; --comment <N> also posts that output
-        on PR <N>.
+        `(Windows: `...`)` replaces an item's command on Windows; items marked "main checkout
+        only" are listed as not run. Prints the head and base shas and each command's output;
+        --comment <N> also posts that output on PR <N>.
 
 waitchecks  waits for PR <N>'s first check, then watches its checks. Polls `gh pr view <N> --json
         statusCheckRollup` now and at 1, 3 and 6 minutes; project.md's `CI start wait: <minutes>`
@@ -367,17 +367,17 @@ class ReadyLookups:
 
 def dependencies(records, key, repo):
     """(issue numbers, source): the GitHub blocked-by of every issue the lane closes (the brief's
-    `Closes:` line, else issue <key>), minus those issues; the brief's `Depends on:` when that is
-    empty (source "brief"); plus the brief's `Waits for (same section):` either way."""
-    deps, source = set(), "github"
+    `Closes:` line, else issue <key>), minus those issues; the brief's `Depends on:` when every
+    list is empty (source "brief"); plus the brief's `Waits for (same section):` either way."""
+    blocked, source = set(), "github"
     closes = brief_issues(records, key, "Closes:") or ([int(key)] if key.isdigit() else [])
     for n in closes:
-        deps |= {b["number"] for b in gh("api", f"repos/{repo}/issues/{n}/dependencies/blocked_by") or []}
-    deps -= set(closes)
-    if not deps:
-        deps, source = brief_issues(records, key, "Depends on:") or [], "brief"
+        blocked |= {b["number"] for b in gh("api", f"repos/{repo}/issues/{n}/dependencies/blocked_by") or []}
+    deps = blocked - set(closes)
+    if not blocked:
+        deps, source = set(brief_issues(records, key, "Depends on:") or []), "brief"
     waits = brief_issues(records, key, "Waits for (same section):") or []
-    return sorted(set(deps) | set(waits)), source
+    return sorted(deps | set(waits)), source
 
 
 def default_branch(checkout):

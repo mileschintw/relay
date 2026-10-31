@@ -146,9 +146,12 @@ class ReadyTests(Base):
         out = self.ready()
         self.assertIn("12: parked on #20 open", out)
         self.assertNotIn("Ready for GO", out)
-        # an issue the lane closes is never its own dependency; no Closes line: the key alone
+        # an issue the lane closes is never its own dependency, and a non-empty list (even of
+        # those issues only) means Depends on: is not read; no Closes line: the key alone
         self.gh({"blocked_by": {"13": [12], "12": [13]}, "issues": {"12": ["OPEN", None],
-                                                                   "13": ["OPEN", None]}})
+                                                                   "13": ["OPEN", None],
+                                                                   "30": ["OPEN", None]}})
+        self.park("12", "Depends on: #30\n- **Closes:** #12 #13\n")
         self.assertIn("12: send `GO #12`", self.ready())
         self.park("12", "Depends on: none\n")
         self.assertIn("12: parked on #13 open", self.ready())
@@ -224,11 +227,11 @@ class ReadyTests(Base):
     def test_deny_list_ends_next_to_a_word_character(self):
         pats = [r"\.internal", "@acmebot", r"C\+\+", "acme co", "acme"]
         for text in ("build.internal", "dev@acmebot", "cc @acmebot", "C++", "the acme co"):
-            self.assertTrue(relay.check_pr_body(self.body(text), [1], pats), text)
+            self.assertTrue(relay.check_pr_body(self.write_body(text), [1], pats), text)
         for text in (".internals", "@acmebots", "acmecorp"):
-            self.assertFalse(relay.check_pr_body(self.body(text), [1], pats), text)
+            self.assertFalse(relay.check_pr_body(self.write_body(text), [1], pats), text)
 
-    def body(self, text):
+    def write_body(self, text):
         path = self.tmp / "body.md"
         path.write_text(f"Closes #1\n\n{text}\n")
         return path
