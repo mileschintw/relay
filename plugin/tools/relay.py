@@ -61,6 +61,10 @@ ready   read-only. Prints what the coordinator can do next:
             UTF-8, the first bad byte only). Checked first, so a bad byte is a warning, never a
             crash; a lane whose brief or PR body draft has one also shows as lookup failed.
           - Plan: a warning when plan.md has more lines than --plan-limit (default 200).
+          - relay.py: a warning when the git checkout holding project.md's `relay.py:` path
+            (relative to --checkout, else the current folder) is behind its origin/<default>,
+            with the count and the `git -C <checkout> merge --ff-only` fix. That checkout is
+            fetched first. No such line, or a path outside a checkout: no check.
         --checkout <dir>: a local clone; `git fetch` there, then `git merge-tree` each Ready for
         PR / Ready to merge branch against the default branch; a conflict moves it to Waiting.
         --repo defaults to what `gh repo view` finds from the current folder.
@@ -358,6 +362,7 @@ READY_SECTIONS = (
     "Could not parse",
     "Records",
     "Plan",
+    "relay.py",
 )
 
 
@@ -385,6 +390,7 @@ def cmd_ready(a):
     repo = a.repo
     if a.checkout:
         run(["git", "fetch", "-q", "origin"], cwd=a.checkout)
+    out["relay.py"] += relay_py_behind(records, a.checkout)
     repo, parents = ready_parents(repo, out)
     print("Lanes:")
     for path in sorted(status_dir.glob("*.md")):
@@ -426,6 +432,34 @@ def cmd_ready(a):
     if not any(out.values()):
         print("Nothing to do.")
     return 0
+
+
+def relay_py_behind(records, checkout):
+    """A warning when the checkout holding project.md's `relay.py:` path is behind its default
+    branch, else []. A relative path resolves against `checkout` (default the current folder); no
+    line, or a path outside a git checkout, is no check. Fetches that checkout unless it is
+    `checkout`, which cmd_ready has just fetched."""
+    value = project_line(records, "relay.py")
+    if value is None:
+        return []
+    path = pathlib.Path(value.split(" (")[0].strip().strip('`"'))
+    base = pathlib.Path(checkout or ".").resolve()
+    path = path if path.is_absolute() else base / path
+    while not path.is_dir() and path != path.parent:
+        path = path.parent
+    code, top, _ = run(["git", "rev-parse", "--show-toplevel"], cwd=path)
+    if code:
+        return []
+    top = pathlib.Path(top.strip()).resolve()
+    if not checkout or top != base:
+        run(["git", "fetch", "-q", "origin"], cwd=top)
+    default = default_branch(top)
+    code, n, _ = run(["git", "rev-list", "--count", f"HEAD..{default}"], cwd=top)
+    if code or not n.strip().isdigit() or int(n) == 0:
+        return []
+    n, where = int(n), top.as_posix()
+    return [f"{where} is {n} commit{'s' if n > 1 else ''} behind {default}: "
+            f"git -C {where} merge --ff-only {default}"]
 
 
 def ready_parents(repo, out):
