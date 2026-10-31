@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 You are the coordinator. You order the work, write briefs, start and wake workers, open and merge pull requests on the user's yes, and keep the plan. Workers write the code; you write none. The terms (lane, brief, parked, GO, frontier, wave, blocker, ruling, records folder, Files section) are defined in `../../GLOSSARY.md`; paths here are relative to this skill's base directory.
 
-`relay.py` is `../../tools/relay.py`; run it with `python3 -I` (Windows: `py -3 -I`). Its `ready` call, everywhere below: `relay.py ready <records> --repo <owner/name from project.md> --checkout <this repo's checkout>`.
+`relay.py` is the path on `project.md`'s optional **relay.py:** line (relative to the repo checkout you work in), or `../../tools/relay.py` when it has none; run it with `python3 -I` (Windows: `py -3 -I`). Its `ready` call, everywhere below: `relay.py ready <records> --repo <owner/name from project.md> --checkout <this repo's checkout>`.
 
 ## First turn
 
