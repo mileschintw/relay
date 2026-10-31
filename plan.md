@@ -16,9 +16,9 @@ none (ruling 1, merging on local checks while the repo had no CI, ended when #16
 
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
-| 45 | #45 | local_9945d0e9-a04f-4f54-b0cd-5c878b54fb32 (folder lane-31-b7c2a2; own branch claude/lane-45-60dca0) | GO sent 23:41 | |
+| 45 | #45 | local_9945d0e9-a04f-4f54-b0cd-5c878b54fb32 (folder lane-31-b7c2a2; own branch claude/lane-45-60dca0) | done, PR #59 | |
 
-Lanes 51, 46, 48, 49, 50 merged (PRs #53–#57, 23:38–23:40) → `plan-history.md`. Lane 47 merged (PR #58, 23:41). Lane 45 got GO after #53 merged.
+Lanes 51, 46, 48, 49, 50 merged (PRs #53–#57, 23:38–23:40) → `plan-history.md`. Lane 47 merged (PR #58, 23:41). Lane 45 got GO after #53 merged; PR #59 opened 00:01 on the user's 「開 PR，CI 過就合併」, merging once CI passes (first real run of `waitchecks`).
 
 Lane 42 merged (PR #44, 22:10). Lane 33 merged (PR #43, 18:31) → `plan-history.md`. Wave 2: lanes 24–31 merged (PRs #34–#41, 2026-10-30 17:51–18:02 -0700) → `plan-history.md`. Wave 1: all lanes merged: 1, 2, 3, 7, 8, 9, 10, 11, 12, 16 → `plan-history.md`.
 
