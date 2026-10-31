@@ -16,11 +16,10 @@ none (ruling 1, merging on local checks while the repo had no CI, ended when #16
 
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
-| 60 | #60 | local_7d4910b0-c96b-4ba9-88ab-a402f73db01b (folder lane-25-cf22e5, archived lane 25's; own branch claude/lane-60-bbae79) | done, PR #67 | |
 | 61 | #61 | local_955327e8-f19c-4d39-9b44-e8ae04a594c7 | review | |
 | 64 | #64 | local_9138d2b4-f743-4490-8d19-b640c2302e2d (started from the card; folder suspicious-swanson-e455f9, branch claude/suspicious-swanson-e455f9; the worker resets it to origin/main) | started | |
 
-Lanes 60–63 started 2026-10-31 00:12 -0700 on the user's 「照推薦開四個lan執行所有問題，並在結束後再跑一次wfa跟code-review」.  Lanes 62, 63 merged (PRs #65, #66, 00:49, via `relay.py merge`, first real run) → `plan-history.md`. PR #67 (60) opened on 「開 PR，CI 過就合併」. Lane 64 (#64, 「要，一起做」) proposed as a card (task_913c43b8) after the start was refused in an event turn; the user started it 00:51.
+Lanes 60–63 started 2026-10-31 00:12 -0700 on the user's 「照推薦開四個lan執行所有問題，並在結束後再跑一次wfa跟code-review」.  Lanes 62, 63 merged (PRs #65, #66, 00:49, via `relay.py merge`, first real run) → `plan-history.md`. Lane 60 merged (PR #67, 00:53). Lane 64 (#64, 「要，一起做」) proposed as a card (task_913c43b8) after the start was refused in an event turn; the user started it 00:51.
 
 Lanes 51, 46, 48, 49, 50 merged (PRs #53–#57, 23:38–23:40) → `plan-history.md`. Lane 47 merged (PR #58, 23:41). Lane 45 got GO after #53 merged; lane 45 merged (PR #59, 00:04).
 
@@ -32,7 +31,6 @@ Every open issue, once. "Order" is the wave (1 = can start now). "Kind" is `free
 
 | Issue | Order | Blocked by (GitHub) | Same-section wait | Files it owns | Kind |
 |---|---|---|---|---|---|
-| #60 work: one rule for an out-of-lane finding that matches only a closed issue | 1 | none | none | work SKILL.md (Workflow step 3 last bullet; Status last bullet) | free |
 | #61 coordinate: step 4 keeps the common merge path; CI fallbacks move to ci-fallbacks.md | 1 | none | none | coordinate SKILL.md (Finishing step 4; Other branches), New: ci-fallbacks.md, relay.py (`cmd_merge` wait), test_relay.py, fake_gh.py, README Layout | free |
 | #64 coordinate: say when a stopped lane leaves the Now table | 1 | none | none | coordinate SKILL.md (Finishing a lane step 6, or where a lane stops), unattended.md (Stuck) | free |
 
