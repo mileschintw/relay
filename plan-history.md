@@ -81,3 +81,8 @@ Finished work moved out of `plan.md`, newest first, for checking only; the plan 
 ## 2026-10-30 18:31 -0700, lane 33 merged (coordinator local_75cc31e5-4bd1-45b1-92a6-8c63fa48ec22)
 
 - #33 triaged by the coordinator on 「Triage #33」 (ready-for-agent, Files widened to setup step 9). Lane 33 (local_95052c38) started on 「Start lane 33」 (18:20); PR #43 merged 18:31 on 「開 PR，CI 過就合併」, CI green. Lane 33 filed #42 (needs-triage).
+
+## 2026-10-30 21:19 -0700, close-out of waves 1–2 (coordinator local_75cc31e5-4bd1-45b1-92a6-8c63fa48ec22)
+
+- User: 「全部一起處理」. #42 triaged (ready-for-agent). project.md gained the `relay.py:` line (main checkout, fast-forwarded to 7f9f7cb). Records got `.gitattributes` (`* text eol=lf`); 23 CRLF working files rewritten as LF, index unchanged.
+- Archived 20 finished sessions (triage-7-10; lanes 1, 2, 3, 7, 8, 9, 10, 11, 12, 16, 24–31, 33): each in its own worktree, clean and pushed. Top-level scratchpad files copied to `snapshot/<worktree>/` (local only; snapshot/ is gitignored).
