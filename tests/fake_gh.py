@@ -10,7 +10,8 @@
  "prs": {"<branch>": [{"number": 5, "state": "OPEN", "headRefOid": "<sha>",
                        "mergeable": "MERGEABLE", "statusCheckRollup": [...]}]},
  "jobs": {"<job id>": {"steps": [...]}},          # a missing job ran one step
- "annotations": {"<job id>": [{"message": "..."}]}}
+ "annotations": {"<job id>": [{"message": "..."}]},
+ "workflows": 0}                                  # the repo's Actions workflow count, default 1
 children: an issue's sub-issues. bodies, comments: an issue's body and comments.
 broken: a call with an argument containing one of these fails.
 `pr comment <N> --body-file <f>` appends `#<N>` and the body to $RELAY_FAKE_GH.comments.
@@ -64,6 +65,9 @@ elif a[:2] == ["pr", "list"]:
     print(json.dumps(data.get("prs", {}).get(a[a.index("--head") + 1], [])))
 elif a[0] == "api" and "/actions/jobs/" in a[1]:
     print(json.dumps(data.get("jobs", {}).get(a[1].split("/")[-1], {"steps": [{"name": "Run"}]})))
+elif a[0] == "api" and a[1].endswith("/actions/workflows"):
+    n = data.get("workflows", 1)
+    print(json.dumps({"total_count": n, "workflows": [{"name": f"ci{i}"} for i in range(n)]}))
 elif a[0] == "api" and a[1].endswith("/annotations"):
     print(json.dumps(data.get("annotations", {}).get(a[1].split("/")[-2], [])))
 elif a[:2] == ["pr", "comment"]:
