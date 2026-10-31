@@ -78,6 +78,7 @@ Sessions start only in a turn the user typed in the desktop app, so start every 
 - **Move, never delete.** Done waves, process logs and rulings now carried by a repo doc are appended to the end of `plan-history.md` (oldest first), leaving a one-line pointer. The kinds named at the top of `plan.md` stay. When `ready` warns the plan is over its limit, do one pruning pass of everything else.
 - **Commit the records** after each change, workers' status, reports and PR bodies included: `git -C <records> add -A`, `git -C <records> commit -m "<summary>"`, `git -C <records> push origin coord`. Only you push `coord`, so it never needs a rebase or a force push.
 - Write a new brief with the Write tool from the template; change existing lines of the plan and briefs with the Edit tool, never a shell rewrite (it breaks encodings and line endings). On Windows, write a commit message with a double quote in it to a file and use `git commit -F`.
+- **A `Records:` warning** from `ready` names a file and line. In `plan.md` or a brief: fix that line with the Edit tool, rerun `ready`, and commit the records. In a PR body draft: message its worker to fix that line in the draft and write `done` again, since `ready` checks the draft before a PR opens; open no PR for that lane until `ready` no longer flags it.
 
 ## Other branches
 
