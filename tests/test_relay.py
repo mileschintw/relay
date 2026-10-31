@@ -429,6 +429,85 @@ class ReadyTests(Base):
         self.assertNotIn("billing", out)
 
 
+class ReadyLookupTests(Base):
+    """ready looks pull requests and pushed heads up once per run, not once per done lane."""
+
+    OK = [{"name": "ci", "status": "COMPLETED", "conclusion": "SUCCESS"}]
+
+    def lanes(self):
+        heads = {k: self.branch(f"lane-{k}", content=f"{k}\n") for k in ("12", "13", "14")}
+        for k, head in heads.items():
+            self.done(k, f"lane-{k}", head)
+        self.gh({"prs": {"lane-12": [{"number": 5, "state": "MERGED", "headRefOid": heads["12"]}],
+                         "lane-13": [{"number": 6, "state": "OPEN", "headRefOid": heads["13"],
+                                      "mergeable": "MERGEABLE", "statusCheckRollup": self.OK}]}})
+        return heads
+
+    def counted_ready(self, *extra):
+        calls = pathlib.Path(str(self.fake) + ".calls")
+        calls.unlink(missing_ok=True)
+        with mock.patch.object(relay, "run", wraps=relay.run) as run:
+            code, out, err = self.call("ready", str(self.records), *extra)
+        self.assertEqual(code, 0, err)
+        gits = [" ".join(c.args[0][1:]) for c in run.call_args_list if c.args[0][0] == "git"]
+        prs = [c for c in calls.read_text(encoding="utf-8").splitlines() if c.startswith("pr list")]
+        return out, gits, prs
+
+    def test_one_pr_list_and_no_ls_remote_with_a_checkout(self):
+        heads = self.lanes()
+        out, gits, prs = self.counted_ready("--checkout", str(self.clone))
+        self.assertEqual(len(prs), 1, prs)
+        self.assertNotIn("--head", prs[0])
+        self.assertFalse([g for g in gits if g.startswith("ls-remote")], gits)
+        self.assertIn("fetch -q --prune origin", gits)
+        self.assertIn("Merged:\n  12: PR #5", out)
+        self.assertIn(f"Ready to merge:\n  13: PR #6 --match-head-commit {heads['13']}", out)
+        self.assertIn("Ready for PR:\n  14: lane-14", out)
+
+    def test_without_a_checkout_pushed_heads_come_from_ls_remote(self):
+        self.lanes()
+        out, gits, prs = self.counted_ready()
+        self.assertEqual(len(prs), 1, prs)
+        self.assertEqual(len([g for g in gits if g.startswith("ls-remote")]), 3, gits)
+        self.assertIn("Merged:\n  12: PR #5", out)
+        self.assertIn("Ready for PR:\n  14: lane-14", out)
+
+    def test_branch_deleted_after_merge_is_still_merged(self):
+        self.lanes()
+        git("push", "-q", "origin", "--delete", "lane-12", cwd=self.clone)
+        for extra in ((), ("--checkout", str(self.clone))):
+            out, _, _ = self.counted_ready(*extra)
+            self.assertIn("Merged:\n  12: PR #5", out)
+            self.assertNotIn("12: status head", out)
+
+    def test_deleted_unmerged_branch_is_still_not_pushed(self):
+        self.lanes()
+        git("push", "-q", "origin", "--delete", "lane-14", cwd=self.clone)
+        out, _, _ = self.counted_ready("--checkout", str(self.clone))
+        self.assertIn("14: status head", out)
+        self.assertIn("(branch not pushed)", out)
+
+    def test_a_full_list_falls_back_to_one_lookup_per_missing_branch(self):
+        self.lanes()
+        with mock.patch.object(relay, "PR_LIST_MIN", 1), mock.patch.object(relay, "PR_LIST_PER_LANE", 0):
+            out, _, prs = self.counted_ready("--checkout", str(self.clone))
+        self.assertEqual(prs[1:], ["pr list --repo o/r --head lane-13 --state all --json "
+                                   "number,state,headRefOid,mergeable,statusCheckRollup",
+                                   "pr list --repo o/r --head lane-14 --state all --json "
+                                   "number,state,headRefOid,mergeable,statusCheckRollup"])
+        self.assertIn("Merged:\n  12: PR #5", out)
+        self.assertIn("Ready to merge:\n  13: PR #6", out)
+        self.assertIn("Ready for PR:\n  14: lane-14", out)
+
+    def test_a_failed_list_is_a_lookup_failure_for_each_done_lane(self):
+        self.lanes()
+        self.gh({"broken": ["--limit"]})
+        out, _, prs = self.counted_ready("--checkout", str(self.clone))
+        self.assertEqual(len(prs), 1, prs)
+        for k in ("12", "13", "14"):
+            self.assertIn(f"  {k}: lookup failed: gh pr list", out)
+
+
 class LocalcheckTests(Base):
     def project(self, text):
         (self.records / "project.md").write_text(text)
