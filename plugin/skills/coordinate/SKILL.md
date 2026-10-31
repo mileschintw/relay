@@ -78,7 +78,7 @@ Sessions start only in a turn the user typed in the desktop app, so start every 
      - **None listed** (CI outside Actions): tell the user the external CI has not reported on PR #<N> after <minutes> minutes, and ask whether to keep waiting or take the **CI cannot run** path. On keep waiting: run `waitchecks` again.
 5. **A draft changed after the PR opened** (a rerun's results, say): rerun `ready`, which checks the draft, then `gh pr edit <N> --body-file <records>/pr-bodies/<key>.md`.
 6. After the merge: move the lane from Now to `plan-history.md` (the PR's `Closes` lines close its issues), recompute the frontier, copy new owner notes as in *First turn* step 5, and send `GO #<key>` to every parked worker `ready` lists under Ready for GO. Edit a brief before its GO if needed: the worker rereads it on GO.
-   - **A lane that stops without merging** (unattended *Stuck*, or one the user drops): move it from Now to `plan-history.md` with why it stopped; its issues stay open in the Roadmap.
+   - **A lane that stops without merging** (*Stuck* in `unattended.md`, or a lane the user stops): move it from Now to `plan-history.md` with why it stopped, and skip the rest of this step. Its Roadmap row stays, carrying that reason; propose the lane again only when the user asks.
 7. **Roadmap empty:** no lane left in Now and no open row in the Roadmap. Hand control back: report the two Waiting sections (owner notes included) and Deadlines, and send no further GO. On the user's yes, close out:
    - **Sessions:** archive every finished session (*Archiving sessions*).
    - **Temporary rulings:** give each ruling tied to a passing condition ("CI minutes are used up, run checks locally") an end condition in the plan, so the next coordinator drops it.
