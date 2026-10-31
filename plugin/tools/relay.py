@@ -8,6 +8,7 @@
   python3 -I relay.py localcheck <records> <key> [--checkout <dir>] [--repo <owner/name>]
                                  [--comment <N>]
   python3 -I relay.py waitchecks <records> <N> [--repo <owner/name>]
+  python3 -I relay.py merge <records> <key>... [--repo <owner/name>] [--checkout <dir>]
 (Windows: py -3 -I ...)
 
 <records> is the records folder (the `coord` worktree): plan.md, briefs/, status/, reports/,
@@ -99,13 +100,23 @@ waitchecks  waits for PR <N>'s first check, then watches its checks. Polls `gh p
         workflow and nothing reported on the default branch head (as `ready` decides). A failed
         poll is retried at the next one. No overall timeout once watching.
 
+merge   merges lanes one at a time, in the order given. First, every key must be listed under
+        `ready`'s Ready to merge and nowhere else (--checkout as for `ready`), or nothing merges.
+        Then, per key: waitchecks on its PR; its head still the sha Ready to merge printed;
+        mergeStateStatus `CLEAN` (UNKNOWN, while GitHub recomputes after a merge, is asked again
+        after 5, 15 and 30 seconds); `gh pr merge <N> --merge --match-head-commit <sha>`; one line
+        with the merge time. The first key that fails a test gets one line saying why, and no
+        later key merges. After the last merge, prints the default branch's push run for the
+        merge commit (`gh run list --event push --commit`), or that none has appeared yet.
+
 Exit: status 0 when written, 1 when a check fails; ready 0 after printing; roadmap 0 after
 printing, 1 when a lookup fails; localcheck 0 when every command passed, else 1 (a command, the
 merge, a lookup or the comment failed); waitchecks 0 when the checks passed, 1 when one failed,
 3 when no check appeared, 4 when a lookup failed (the last poll's, or a watch that failed with
-no failed check behind it, a gh error say); 2 on a usage error (waitchecks: a
-CI start wait that is not a number of minutes) or a missing records folder. `gh` is
-called through $RELAY_GH when set (a command line, for tests). Standard library only, Python 3.10+.
+no failed check behind it, a gh error say); merge 0 when every key merged, 1 when it stopped;
+2 on a usage error (waitchecks, merge: a CI start wait that is not a number of minutes) or a
+missing records folder. `gh` is called through $RELAY_GH when set (a command line, for tests).
+Standard library only, Python 3.10+.
 """
 import argparse
 import datetime
@@ -916,6 +927,135 @@ def cmd_waitchecks(a):
     return wait_checks(a.pr, repo, schedule)
 
 
+# merge ----------------------------------------------------------------------------------------
+
+READY_TO_MERGE = re.compile(r"PR #(\d+) --match-head-commit ([0-9a-f]{40})$")
+STATE_RETRIES = (5, 15, 30)  # seconds; GitHub says UNKNOWN while it recomputes after a merge
+RUN_WAITS = (0, 10, 20)  # seconds; a push run takes a few seconds to appear
+LOOKUP_ERRORS = (RuntimeError, ValueError, KeyError, TypeError, OSError, re.error)
+
+
+def ready_to_merge(records, key, repo, checkout):
+    """(PR number, head sha) when `ready` lists lane <key> under Ready to merge and nowhere else,
+    else the reason it does not, as text."""
+    path = records / "status" / f"{key}.md"
+    if not path.exists():
+        return "no status file"
+    try:
+        st = parse_status(path.read_text(encoding="utf-8"))
+    except UnicodeDecodeError:
+        return "status file is not valid UTF-8"
+    if st.get("state") != "done" or not all(f in st for f in ("branch", "head", "time")):
+        return f"state {st.get('state', 'unknown')}"
+    out = {k: [] for k in READY_SECTIONS}
+    try:
+        ready_done(records, key, st, repo, checkout, out)
+    except LOOKUP_ERRORS as e:
+        return f"lookup failed: {e}"
+    prefix = f"{key}: "
+    found = [(s, i[len(prefix):]) for s, items in out.items() for i in items if i.startswith(prefix)]
+    m = next((READY_TO_MERGE.match(i) for s, i in found if s == "Ready to merge"), None)
+    others = [f"{s}: {i}" for s, i in found if s != "Ready to merge"]
+    if m and not others:
+        return int(m.group(1)), m.group(2)
+    return "; ".join(others) or "not listed"
+
+
+def merge_lane(key, pr, sha, repo, schedule):
+    """Wait for PR <pr>'s checks, require head <sha> and mergeStateStatus CLEAN, then merge with
+    --match-head-commit. Returns (merge commit sha or None, base branch), or None after printing
+    one line on why it stopped."""
+    code = wait_checks(pr, repo, schedule)
+    if code:
+        fail(f"{key}: PR #{pr} checks did not pass (waitchecks exit {code})")
+        return None
+    try:
+        for wait in (*STATE_RETRIES, None):
+            view = gh("pr", "view", str(pr), "--repo", repo, "--json",
+                      "headRefOid,mergeStateStatus,baseRefName")
+            if view["mergeStateStatus"].upper() != "UNKNOWN" or wait is None:
+                break
+            time.sleep(wait)
+    except LOOKUP_ERRORS as e:
+        fail(f"{key}: PR #{pr} lookup failed: {e}")
+        return None
+    if view["headRefOid"] != sha:
+        fail(f"{key}: PR #{pr} head {view['headRefOid'][:12]} is not {sha[:12]}, the head ready listed")
+        return None
+    state = view["mergeStateStatus"].upper()
+    if state != "CLEAN":
+        fail(f"{key}: PR #{pr} merge state is {state}, not CLEAN")
+        return None
+    code, out, err = run(gh_base() + ["pr", "merge", str(pr), "--repo", repo, "--merge",
+                                      "--match-head-commit", sha])
+    if code:
+        fail(f"{key}: gh pr merge {pr} failed: {' '.join((err or out).split())}")
+        return None
+    try:
+        merged = gh("pr", "view", str(pr), "--repo", repo, "--json", "mergedAt,mergeCommit")
+        print(f"{key}: merged PR #{pr} at {merged['mergedAt']}", flush=True)
+        return merged["mergeCommit"]["oid"], view["baseRefName"]
+    except LOOKUP_ERRORS as e:
+        print(f"{key}: merged PR #{pr}; merge time lookup failed: {e}", flush=True)
+        return None, view["baseRefName"]
+
+
+def report_push_run(repo, base, sha):
+    """Print the push run on <base> for merge commit <sha>, or say there is none yet."""
+    runs = []
+    for wait in RUN_WAITS:
+        time.sleep(wait)
+        try:
+            runs = gh("run", "list", "--repo", repo, "--branch", base, "--event", "push", "--commit",
+                      sha, "--json", "databaseId,status,conclusion,url") or []
+        except LOOKUP_ERRORS as e:
+            fail(f"push run lookup failed: {e}")
+            return
+        if runs:
+            break
+    for r in runs:
+        state = " ".join(filter(None, (r.get("status"), r.get("conclusion"), r.get("url"))))
+        print(f"{base} push run for {sha[:8]}: {state}")
+    if not runs:
+        print(f"no push run on {base} for {sha[:8]} yet: "
+              f"gh run list --repo {repo} --branch {base} --event push --commit {sha}")
+
+
+def cmd_merge(a):
+    records = pathlib.Path(a.records)
+    if not records.is_dir():
+        print(f"no records folder at {records}", file=sys.stderr)
+        return 2
+    try:
+        schedule = ci_start_schedule(records)
+    except ValueError as e:
+        print(e, file=sys.stderr)
+        return 2
+    try:
+        repo = a.repo or gh("repo", "view", "--json", "nameWithOwner")["nameWithOwner"]
+    except LOOKUP_ERRORS as e:
+        return fail(f"lookup failed: {e}")
+    if a.checkout:
+        run(["git", "fetch", "-q", "origin"], cwd=a.checkout)
+    repeated = sorted({k for k in a.keys if a.keys.count(k) > 1})
+    if repeated:
+        return fail(f"{', '.join(repeated)}: given more than once; nothing merged")
+    lanes = []
+    for key in a.keys:
+        found = ready_to_merge(records, key, repo, a.checkout)
+        if isinstance(found, str):
+            return fail(f"{key}: not under Ready to merge ({found}); nothing merged")
+        lanes.append((key, *found))
+    last = None
+    for key, pr, sha in lanes:
+        last = merge_lane(key, pr, sha, repo, schedule)
+        if last is None:
+            return 1
+    if last[0]:
+        report_push_run(repo, last[1], last[0])
+    return 0
+
+
 def fail(msg):
     print(msg, file=sys.stderr)
     return 1
@@ -947,11 +1087,16 @@ def main(argv=None):
     w.add_argument("records")
     w.add_argument("pr", type=int)
     w.add_argument("--repo")
+    g = sub.add_parser("merge", help="merge Ready to merge lanes one at a time, stopping on the first problem")
+    g.add_argument("records")
+    g.add_argument("keys", nargs="+", metavar="key")
+    g.add_argument("--repo")
+    g.add_argument("--checkout")
     m = sub.add_parser("roadmap", help="print each open issue's blocked-by and `## Files`")
     m.add_argument("--repo")
     a = p.parse_args(argv)
     return {"status": cmd_status, "ready": cmd_ready, "roadmap": cmd_roadmap,
-            "localcheck": cmd_localcheck, "waitchecks": cmd_waitchecks}[a.cmd](a)
+            "localcheck": cmd_localcheck, "waitchecks": cmd_waitchecks, "merge": cmd_merge}[a.cmd](a)
 
 
 if __name__ == "__main__":
