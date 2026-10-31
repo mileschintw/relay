@@ -8,7 +8,7 @@ When `ready` says `checks could not run (billing)` or `no CI configured`, `waitc
 
 1. Tell the user and ask whether to merge on local checks instead.
 2. On their yes: `relay.py localcheck <records> <key> --checkout <clone> --comment <N>`. A `result: passed, N not run` line names main-checkout-only commands: run them in the main checkout at that head first.
-3. When it passes with no status-head warning, check the head it printed is still the PR head (`gh pr view <N> --json headRefOid`), then `gh pr merge <N> --merge --match-head-commit <that sha>`.
+3. When it passes with no status-head warning, check the head it printed is still the PR head (`gh pr view <N> --json headRefOid`), then `gh pr merge <N> --merge --match-head-commit <that sha>`. Tell the user the lane merged, and go on to step 6.
 
 A failed local check is a failed check: it goes to the user with its output, as in step 4.
 

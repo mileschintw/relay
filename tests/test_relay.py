@@ -715,7 +715,7 @@ class MergeTests(Base):
         self.assertEqual(len(self.merges()), 2)
         calls = pathlib.Path(str(self.fake) + ".calls").read_text().splitlines()
         self.assertEqual([c for c in calls if "--watch" in c or
-                          c.startswith("pr view") and "statusCheckRollup" in c], [])
+                          (c.startswith("pr view") and "statusCheckRollup" in c)], [])
         self.assertEqual([s for s in sleeps if s], list(relay.RUN_WAITS[1:]))
 
     def test_state_not_clean_stops_before_any_merge(self):
@@ -768,6 +768,14 @@ class MergeTests(Base):
         code, out, err = self.merge("12", "13", pr_checks={},
                                     prs={"lane-12": [], "lane-13": []})
         self.assertIn("12: not under Ready to merge (Ready for PR: lane-12 @ ", err)
+        self.assertEqual(self.merges(), [])
+        failed = [{"name": "ci", "status": "COMPLETED", "conclusion": "FAILURE"}]
+        prs = {f"lane-{k}": [{"number": pr, "state": "OPEN", "headRefOid": head,
+                              "mergeable": "MERGEABLE", "statusCheckRollup": failed}]
+               for k, (pr, head) in self.heads.items()}
+        code, out, err = self.merge("12", "13", prs=prs)
+        self.assertIn("12: not under Ready to merge (Waiting: ", err)
+        self.assertIn("check failed", err)
         self.assertEqual(self.merges(), [])
         code, out, err = self.merge("12", "13", "12")
         self.assertEqual((code, self.merges()), (1, []))

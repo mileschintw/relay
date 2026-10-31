@@ -105,9 +105,10 @@ merge   merges lanes one at a time, in the order given. First, every key must be
         Then, per key, with no wait for checks (Ready to merge already needs them all passed):
         its head still the sha Ready to merge printed; mergeStateStatus `CLEAN` (UNKNOWN, while
         GitHub recomputes after a merge, is asked again after 5, 15 and 30 seconds); `gh pr merge
-        <N> --merge --match-head-commit <sha>`; one line with the merge time. The first key that fails a test gets one line saying why, and no
-        later key merges. After the last merge, prints the default branch's push run for the
-        merge commit (`gh run list --event push --commit`), or that none has appeared yet.
+        <N> --merge --match-head-commit <sha>`; one line with the merge time. The first key that
+        fails a test gets one line saying why, and no later key merges. After the last merge,
+        prints the default branch's push run for the merge commit (`gh run list --event push
+        --commit`), or that none has appeared yet.
 
 Exit: status 0 when written, 1 when a check fails; ready 0 after printing; roadmap 0 after
 printing, 1 when a lookup fails; localcheck 0 when every command passed, else 1 (a command, the
