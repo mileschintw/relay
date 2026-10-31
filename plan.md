@@ -16,16 +16,9 @@ none (ruling 1, merging on local checks while the repo had no CI, ended when #16
 
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
-| 24 | #24 | local_8223afdd-4397-49a4-9540-378b5018e7e2 (worktree lane-24-228c28) | done; PR #38, merge once CI passes | — |
-| 25 | #25 | local_a390b9b2-f8f2-4f4f-a349-7f44774378c1 (worktree lane-25-cf22e5) | done; PR #40, merge once CI passes | — |
-| 26 | #26 | local_49c6f09b-66aa-40be-bb3d-c809c925fb34 (worktree lane-26-a6b2f5) | done; PR #39, merge once CI passes | — |
-| 27 | #27 | local_c8055d4a-f2ac-47c7-abda-54f081a0a26d (worktree lane-27-9a7274) | done; PR #34, merge once CI passes | — |
-| 28 | #28 | local_644f77a7-f3ea-412a-8136-9f6d0c0c1b08 (worktree lane-28-272abc) | done; PR #35, merge once CI passes | — |
-| 29 | #29 | local_c0e33f80-d81b-42f9-b22f-622232add8bb (worktree lane-29-ea9758) | done; PR #36, merge once CI passes | — |
-| 30 | #30 | local_4a03addc-5329-4b11-a472-c53ee8e846e3 (worktree lane-30-fd4564) | done; PR #37, merge once CI passes | — |
-| 31 | #31 | local_ada54677-b465-4cc6-b678-479d0e40935c (worktree lane-31-b7c2a2) | parked | #28 merges (GO #31) |
+| 31 | #31 | local_ada54677-b465-4cc6-b678-479d0e40935c (worktree lane-31-b7c2a2) | GO sent (#28 merged) | — |
 
-Merge right for 24–30: the user's 「開 PR，CI 過就合併」 (2026-10-30); merging one at a time 27→28→29→30→24→26→25, stopping on any non-clean PR. Wave 2 started 2026-10-30 17:37 -0700 on the user's 「開始wave2」; every lane in its own worktree (checked with list_sessions). Wave 1: all lanes merged: 1, 2, 3, 7, 8, 9, 10, 11, 12, 16 → `plan-history.md`.
+Wave 2: lanes 24–30 merged (PRs #34–#40, 2026-10-30 17:51–17:56 -0700) → `plan-history.md`. Wave 1: all lanes merged: 1, 2, 3, 7, 8, 9, 10, 11, 12, 16 → `plan-history.md`.
 
 ## Roadmap
 
@@ -33,15 +26,8 @@ Every open issue, once. "Order" is the wave (1 = can start now). "Kind" is `free
 
 | Issue | Order | Blocked by (GitHub) | Same-section wait | Files it owns | Kind |
 |---|---|---|---|---|---|
-| #24 Coordinate relay with the checkout's relay.py | 1 | none | none | coordinate SKILL.md (top `relay.py` line), work SKILL.md (intro `relay.py` sentence), setup templates/project.md (optional relay.py line) | free |
-| #25 Handle a repo with no CI configured | 1 | none | none | relay.py (`checks_state`/`ready_done` no-workflow case), fake_gh.py, test_relay.py, coordinate SKILL.md (Finishing a lane step 4), setup SKILL.md (CI check and offer) | free |
-| #26 Records `.gitattributes` | 1 | none | none | New: setup templates/gitattributes; setup SKILL.md (copy step, `ls-tree` check); README.md (Layout row if needed) | free |
-| #27 One `ready` section per line | 1 | none | none | relay.py (`cmd_ready` section list) | free |
-| #28 plan-history append, oldest first | 1 | none | none | setup templates/plan-history.md (header), coordinate SKILL.md (Plan, move-to-history line) | free |
-| #29 A starting session's cwd is not final; tidy the rule | 1 | none | none | coordinate app-limits.md (Session folders, check-where-it-landed rule), coordinate unattended.md (cwd-check sentence) | free |
-| #30 Check the tracker before reporting outside the lane | 1 | none | none | work SKILL.md (raising problems outside the lane) | free |
-| #31 Say what to do with a `ready` Records warning | 2 | none | after #28, coordinate SKILL.md › Plan | coordinate SKILL.md (Plan: Records warning line) | free |
-| #33 CI outside GitHub Actions reads as no CI configured (needs-triage; filed by lane 25) | 2 | none (needs #25's `no_workflows`) | after #25, relay.py `no_workflows`/`checks_state` | relay.py (`no_workflows` / `checks_state`), fake_gh.py, test_relay.py | free |
+| #31 Say what to do with a `ready` Records warning | 1 (running) | none | none (#28 merged) | coordinate SKILL.md (Plan: Records warning line) | free |
+| #33 CI outside GitHub Actions reads as no CI configured (needs-triage; filed by lane 25) | 1 after triage | none | none (#25 merged) | relay.py (`no_workflows` / `checks_state`), fake_gh.py, test_relay.py | free |
 
 Filed 2026-10-30 from the coordinator's retro on the user's 「7點都能file」. Mechanical overlap: relay.py #25/#27 (different functions; #27 touches only the section list); setup SKILL.md #25 (new CI step) / #26 (copy step and check); coordinate SKILL.md #24 (top line) / #25 (step 4) / #28 and #31 (Plan: same-section wait, #31 after #28); work SKILL.md #24 (intro) / #30. #29 was widened on the user's 「把值得作的三項開issue或更新現有issue」 with lane 8's two notes; #31 filed the same time (lane 9's note). Not filed, by recommendation: unpinned claude-code in CI, stall detection. Triage of #7–#10: `decisions-2026-10-30.md`.
 
@@ -51,6 +37,8 @@ none
 
 ## Waiting for the user's decision
 
+- Records follow-ups from wave 2: add `- **relay.py:** D:/Repos/relay/plugin/tools/relay.py` to `project.md` (#24, lane 24's report); add `.gitattributes` (`* text eol=lf`) to this records folder and renormalize (#26, lane 26's report). Since 2026-10-30 17:57 -0700.
+- Triage #33 (needs-triage, filed by lane 25) before it gets a lane.
 - Close-out: archive finished sessions triage-7-10 (local_25b74a50-b6f9-40d5-86ad-82eae30d7c7f), lane-1, -2, -3, -7, -8, -9, -10, -11, -12, -16 (all merged; none shares the coordinator's folder); since 2026-10-30 16:40 -0700.
 
 ## Deadlines

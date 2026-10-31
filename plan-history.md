@@ -71,3 +71,8 @@ Finished work moved out of `plan.md`, newest first, for checking only; the plan 
 - User: 「把wave1結束的版本發成0.2.0，接著更新這個coordinator到新release」. PR #32 raised `version` to 0.2.0 (CI passed), `git push origin main:release` fast-forwarded 3dbe963..fa817ff, tag `relay--v0.2.0` pushed.
 - Installed plugin: `claude plugin marketplace update relay`; `claude plugin update relay@relay --scope local` failed over SSH (host key) and worked with a one-command HTTPS rewrite (`GIT_CONFIG_*` env, no config change). That updated the main checkout's local install only; the coordinator worktree's entry in `~/.claude/plugins/installed_plugins.json` was pointed at the 0.2.0 copy by hand (backup `installed_plugins.json.bak-relay-0.2.0`). Other worktrees' entries (lane sessions, lancet, career-log) stay 0.1.0.
 - The marketplace's `"url": "mileschintw/relay"` resolved to SSH on this machine: worth a note if it recurs.
+
+## 2026-10-30 17:56 -0700, wave 2 merged (coordinator local_75cc31e5-4bd1-45b1-92a6-8c63fa48ec22)
+
+- Go-ahead 「開始wave2」 (17:37); merge right 「開 PR，CI 過就合併」. Merged one at a time, CI green on each: #34 lane 27 (17:51), #35 lane 28 (17:52), #36 lane 29 (17:53), #37 lane 30 (17:53), #38 lane 24 (17:54), #39 lane 26 (17:55), #40 lane 25 (17:56).
+- Sessions: 24 local_8223afdd, 25 local_a390b9b2, 26 local_49c6f09b, 27 local_c8055d4a, 28 local_644f77a7, 29 local_c0e33f80, 30 local_4a03addc. Lane 25 filed #33. GO #31 sent after #35.
