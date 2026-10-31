@@ -22,7 +22,7 @@ none (ruling 1, merging on local checks while the repo had no CI, ended when #16
 
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
-| 82 | #82 | local_fb03bf35-40b4-45d4-aef1-a1d3c50f221a (landed in archived lane 74's folder D:\Repos\relay\.claude\worktrees\lane-74-56fc4d, on its own branch claude/lane-82-62c59f) | started | — |
+| 82 | #82 | local_fb03bf35-40b4-45d4-aef1-a1d3c50f221a (landed in archived lane 74's folder D:\Repos\relay\.claude\worktrees\lane-74-56fc4d, on its own branch claude/lane-82-62c59f) | done; PR #87 opened, waitchecks running (merge on CI pass: standing 0.3.2 go-ahead) | — |
 
 All lanes through 75 merged; 0.3.1 released → `plan-history.md` (waves 1–2, lanes 33, 42, 45–51, 60–64, 71–75, close-outs).
 
