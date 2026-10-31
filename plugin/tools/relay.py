@@ -59,13 +59,16 @@ ready   read-only. Prints what the coordinator can do next:
             draft with a title line, a closing keyword outside a `Closes #N` line, or `Closes`
             lines that are not exactly one per issue on the brief's `Closes:` line; a line matching
             project.md's deny list (`- **Deny list:** <path>`, one regex per line; an end of the
-            match that is a word character must not touch another; printed by line number only).
+            match that is a word character must not touch another; leading inline flags such as
+            `(?i)` work; printed by line number only).
           - Records: invalid UTF-8, or a control character other than tab, LF and a CR right
             before LF, in project.md, plan.md, briefs/*.md or pr-bodies/*.md, by file and line
             (for invalid UTF-8, the first bad byte only). Checked first, so a bad byte is a
             warning, never a crash; a lane whose brief or PR body draft has one also shows as
             lookup failed.
-            Also a warning when the records folder has no .gitattributes, naming the fix.
+            Also a warning when the records folder has no .gitattributes, naming the fix, and
+            one when the deny list is missing or has a line that is not a usable pattern (by
+            line number, never its text); done lanes then wait, with no deny-list check.
           - Plan: a warning when plan.md has more lines than --plan-limit (default 200).
           - relay.py: a warning when the git checkout holding project.md's `relay.py:` path
             (relative to --checkout, else the current folder) is behind its origin/<default>,
@@ -277,16 +280,29 @@ def check_pr_body(path, closes=None, deny=None):
         for n, where in sorted(found.items()):
             if n not in closes:
                 problems.append(f"PR body line {where[0]}: `Closes #{n}`, but the brief's Closes does not list it")
-    hits = sorted({i for i, l in enumerate(lines, 1) for pat in deny or []
-                   if re.search(rf"(?:(?<!\w)|(?=\W))(?:{pat})(?:(?!\w)|(?<=\W))", l, re.I)})
+    regexes = [deny_regex(pat) for pat in deny or []]
+    hits = sorted({i for i, l in enumerate(lines, 1) for rx in regexes if rx.search(l)})
     if hits:
         problems.append(f"PR body lines {hits}: a deny-list name (lines only, never the name)")
     return problems
 
 
+LEADING_FLAGS = re.compile(r"(?:\(\?[aiLmsux]+\))+")
+
+
+def deny_regex(pat):
+    """Deny-list pattern <pat> compiled inside check_pr_body's boundary wrapper, case-insensitive.
+    Leading global flags such as `(?i)` move to the front of the wrapper, the only place Python
+    accepts them; re.error for a pattern the wrapper still cannot hold."""
+    m = LEADING_FLAGS.match(pat)
+    flags, pat = (m.group(), pat[m.end():]) if m else ("", pat)
+    return re.compile(rf"{flags}(?:(?<!\w)|(?=\W))(?:{pat})(?:(?!\w)|(?<=\W))", re.I)
+
+
 def deny_patterns(records):
     """The patterns of the deny list project.md names (`- **Deny list:** <path>`), else [].
-    One trailing period, as the template's lines end, is dropped: `none.` means none."""
+    One trailing period, as the template's lines end, is dropped: `none.` means none. A line
+    deny_regex cannot compile raises ValueError naming its line number, never its text."""
     project = records / "project.md"
     if not project.exists():
         return []
@@ -299,10 +315,17 @@ def deny_patterns(records):
     path = path if path.is_absolute() else records / path
     if not path.is_file():
         raise FileNotFoundError(f"project.md's deny list {path} is not a file")
-    pats = [l.strip() for l in path.read_text(encoding="utf-8").splitlines()
-            if l.strip() and not l.lstrip().startswith("#")]
-    for pat in pats:
-        re.compile(pat)
+    pats = []
+    for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        pat = line.strip()
+        if not pat or pat.startswith("#"):
+            continue
+        try:
+            deny_regex(pat)
+        except re.error as e:
+            raise ValueError(f"project.md's deny list {path.name} line {n}: not a usable "
+                             f"pattern ({e.msg})") from None
+        pats.append(pat)
     return pats
 
 
@@ -518,6 +541,11 @@ def cmd_ready(a):
         fetched = not run(["git", "fetch", "-q", "--prune", "origin"], cwd=a.checkout)[0]
     out["relay.py"] += relay_py_behind(records, a.checkout)
     repo, parents = ready_parents(repo, out)
+    try:
+        deny = deny_patterns(records)
+    except LOOKUP_ERRORS as e:
+        out["Records"].append(str(e))
+        deny = None
     lookups = ReadyLookups(a.checkout, fetched, len(have))
     print("Lanes:")
     for path in sorted(status_dir.glob("*.md")):
@@ -544,7 +572,7 @@ def cmd_ready(a):
             if st["state"] == "parked":
                 ready_parked(records, key, repo, out)
             elif st["state"] == "done":
-                ready_done(records, key, st, repo, a.checkout, out, lookups, fetched)
+                ready_done(records, key, st, repo, a.checkout, out, lookups, fetched, deny)
             elif st["state"] == "blocked":
                 out["Waiting"].append(f"{key}: blocked: {st.get('doing', '')}")
         except LOOKUP_ERRORS as e:
@@ -698,11 +726,13 @@ def ready_parked(records, key, repo, out):
         out["Ready for GO"].append(f"{key}: send `GO #{key}`{note}")
 
 
-def ready_done(records, key, st, repo, checkout, out, lookups=None, fetched=True):
+def ready_done(records, key, st, repo, checkout, out, lookups=None, fetched=True, deny=()):
     """Sort done lane <key> into out's sections. `lookups` (a ReadyLookups) shares one PR list and
     one ref read across lanes; without it, one ls-remote and one PR list for this lane. When the
     checkout's fetch failed (`fetched` false), its origin/* refs may be stale or missing: the
-    conflict check is skipped and the lane's line says so."""
+    conflict check is skipped and the lane's line says so. `deny`: the deny_patterns the caller
+    loaded once, None when they failed to load (the lane then waits; the caller reports why),
+    () to load them here."""
     branch, head = st["branch"], st["head"]
     pushed_of = lookups.pushed if lookups else (lambda b: pushed_head(checkout, b))
     prs_of = lookups.prs if lookups else branch_prs
@@ -715,8 +745,11 @@ def ready_done(records, key, st, repo, checkout, out, lookups=None, fetched=True
         out["Inconsistent"].append(f"{key}: status head {head} is not the pushed head "
                                    f"{pushed[:12] or '(branch not pushed)'}")
         return
+    if deny is None:
+        out["Waiting"].append(f"{key}: deny-list check not run (see Records)")
+        return
     for problem in check_pr_body(st.get("PR body draft", ""), brief_issues(records, key, "Closes:"),
-                                 deny_patterns(records)):
+                                 deny_patterns(records) if deny == () else deny):
         out["Inconsistent"].append(f"{key}: {problem}")
     if prs is None:
         prs = prs_of(repo, branch)
