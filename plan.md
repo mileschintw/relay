@@ -16,8 +16,13 @@ none (ruling 1, merging on local checks while the repo had no CI, ended when #16
 
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
+| 71 | #71 | local_df2ecd17-4d2a-447e-834c-f5b9179c5e50 | started | |
+| 72 | #72 | local_32b3c9f8-d7d4-44a5-b77f-f0562d8f081b | started | |
+| 73 | #73 | local_2e3761a9-79c2-4944-b938-42db15fc945e | started | |
+| 74 | #74, #68 | local_b101bb59-4460-4470-a8e7-832b77cef7d2 | started | |
+| 75 | #75 | local_30621d25-0afa-430c-a754-e65b2e1c1c02 | started | |
 
-Lanes 60–63 started 2026-10-31 00:12 -0700 on the user's 「照推薦開四個lan執行所有問題，並在結束後再跑一次wfa跟code-review」.  Lanes 62, 63 merged (PRs #65, #66, 00:49, via `relay.py merge`, first real run) → `plan-history.md`. Lane 60 merged (PR #67, 00:53). Lane 64 (#64, 「要，一起做」) proposed as a card (task_913c43b8) after the start was refused in an event turn; the user started it 00:51.
+Lanes 71–75 started 2026-10-31 01:22 -0700 on the user's 「照推薦開 A–E」, each in its own new folder. Merge order when several finish together: 71 before 72 (both relay.py). After all merge: release 0.3.1 on the user's yes. Lanes 60–64 (WFA scan) all merged (PRs #65–#67, #69, #70) → `plan-history.md`.
 
 Lanes 51, 46, 48, 49, 50 merged (PRs #53–#57, 23:38–23:40) → `plan-history.md`. Lane 47 merged (PR #58, 23:41). Lane 45 got GO after #53 merged; lane 45 merged (PR #59, 00:04).
 
@@ -29,9 +34,14 @@ Every open issue, once. "Order" is the wave (1 = can start now). "Kind" is `free
 
 | Issue | Order | Blocked by (GitHub) | Same-section wait | Files it owns | Kind |
 |---|---|---|---|---|---|
-| #68 coordinate: step 7 hand-back when only stopped lanes remain in the Roadmap | 1 | none | none | coordinate SKILL.md (Finishing a lane step 7) | free |
+| #71 relay.py: waitchecks and merge never exit 1 on an error; quieter watch; safer ready warnings | 1 | none | none | relay.py (wait_checks, cmd_waitchecks, cmd_merge, merge_lane, ready_to_merge, relay_py_behind, project_line, main, docstring), tests | free |
+| #72 ready: one PR lookup per run instead of one per lane | 1 | none | none | relay.py (cmd_ready fetch, ready_done, pushed_head, PR lookups), tests | free |
+| #73 coordinate: complete the CI fallbacks and unattended merges | 1 | none | none | ci-fallbacks.md, coordinate SKILL.md (step 4), unattended.md (PRs and merges) | free |
+| #74 coordinate: one answer for missing notes, the unattended worker paragraph and archiving | 1 | none | none | coordinate SKILL.md (Consent, Archiving step 1, Scheduling frontier, Quiet notes, step 7, Other branches release), app-limits.md, unattended.md (First turn pointer, worker paragraph) | free |
+| #68 coordinate: step 7 hand-back when only stopped lanes remain in the Roadmap | 1 | none | none | coordinate SKILL.md (Finishing a lane step 7) | free (in lane 74) |
+| #75 glossary, setup and work: definitions only, no cached file lists, no drifted lines | 1 | none | none | GLOSSARY.md, setup SKILL.md (steps 4, 5, 7, 9), templates/project.md, work SKILL.md (step 6, Status) | free |
 
-#68 opened by lane 64 (standing permission); folded into the post-batch WFA + code-review rescan on the user's 「併進重掃」. Lanes 61, 64 merged (PRs #69, #70, 01:13). Now running the requested WFA rescan + code-review of relay--v0.3.0..main. #64 opened by lane 63 (standing permission, a gap its review found), no lane yet. Filed 2026-10-31 from the writing-for-agents scan, on the user's 「照推薦開四個lan執行所有問題…」. Mechanical overlap in coordinate SKILL.md: 61 (step 4), 62 (Consent, step 7), 63 (First turn step 3, Alarm). #45–#51 (second retro) all merged → `plan-history.md`.
+Filed 2026-10-31 01:20 from the post-0.3.0 WFA rescan + code-review (both by fresh subagents, findings verified by the coordinator) on the user's 「照推薦開 A–E」; #68 folded into lane 74 on 「併進重掃」. Mechanical overlap: relay.py 71 / 72 (different functions; 71 merges first); coordinate SKILL.md 73 (step 4) / 74 (other sections); unattended.md 73 (PRs and merges) / 74 (First turn pointer, worker paragraph). Not filed, by recommendation: further SKILL.md splits (merge.md, archiving.md); the rescan's `ListAgents` finding (the tool exists); #60/#64 scope notes (accepted as reasonable). #45–#51 and #60–#64 all merged → `plan-history.md`.
 
 ## Waiting for the user to be present
 
