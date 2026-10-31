@@ -64,8 +64,8 @@ ready   read-only. Prints what the coordinator can do next:
           - relay.py: a warning when the git checkout holding project.md's `relay.py:` path
             (relative to --checkout, else the current folder) is behind its origin/<default>,
             with the count and the `git -C <checkout> merge --ff-only` fix (a `switch` first when
-            it is on another branch). That checkout is fetched first. The path is the line's
-            first backticked span, else its text before a trailing `(...)` note. No such line, a
+            it is on another branch). That checkout is fetched first. The path is a leading
+            backticked span, else its text before a trailing `(...)` note. No such line, a
             missing folder, or a path outside a checkout: no check.
         --checkout <dir>: a local clone; `git fetch` there, then `git merge-tree` each Ready for
         PR / Ready to merge branch against the default branch; a conflict moves it to Waiting.
