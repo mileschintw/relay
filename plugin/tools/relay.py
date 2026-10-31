@@ -43,7 +43,8 @@ ready   read-only. Prints what the coordinator can do next:
           - No status yet: a brief with no status file.
           - Could not parse: a status file that is not valid UTF-8, or has no valid state or no
             branch, head or time; the other lanes are still listed.
-          - Merged: done lanes whose PR merged (move them to plan-history.md).
+          - Merged: done lanes whose PR merged, even when the branch was deleted since (move
+            them to plan-history.md).
           - Parents: open issues with sub-issues (GitHub's sub_issues_summary), with their
             children's open and closed counts, and whether every child closed as completed. A
             parent is never a lane: a status file keyed on one is Inconsistent and gets no GO.
@@ -73,8 +74,12 @@ ready   read-only. Prints what the coordinator can do next:
             backticked span, else its text before a trailing `(...)` note. No such line, a
             project.md that is not UTF-8 (a Records warning), a missing folder, or a path outside
             a checkout: no check.
-        --checkout <dir>: a local clone; `git fetch` there, then `git merge-tree` each Ready for
-        PR / Ready to merge branch against the default branch; a conflict moves it to Waiting.
+        --checkout <dir>: a local clone; `git fetch --prune` there, then `git merge-tree` each
+        Ready for PR / Ready to merge branch against the default branch; a conflict moves it to
+        Waiting. Pushed heads come from its origin/* refs; without --checkout, or when that
+        fetch fails, from one `git ls-remote` per done lane. Pull requests come from one
+        `gh pr list --state all` per run (a branch missing from a full list gets its own `--head`
+        lookup).
         --repo defaults to what `gh repo view` finds from the current folder.
 
 roadmap read-only. Prints a table, one row per open issue: `| #N title | blocked-by | files |`,
@@ -290,8 +295,62 @@ def deny_patterns(records):
 
 
 def pushed_head(checkout, branch):
-    code, ls, _ = run(["git", "ls-remote", "origin", f"refs/heads/{branch}"], cwd=checkout)
+    """The sha of origin's <branch>, "" when origin has no such branch; RuntimeError when
+    ls-remote fails (no repo, no network), so the lane reads lookup failed, not unpushed."""
+    code, ls, err = run(["git", "ls-remote", "origin", f"refs/heads/{branch}"], cwd=checkout)
+    if code:
+        raise RuntimeError(f"git ls-remote origin {branch}: {err.strip() or ls.strip()}")
     return ls.split()[0] if ls.strip() else ""
+
+
+PR_FIELDS = "number,state,headRefOid,mergeable,statusCheckRollup"
+PR_LIST_MIN, PR_LIST_PER_LANE = 100, 3  # `ready`'s one PR list: --limit max(MIN, PER_LANE * lanes)
+
+
+def branch_prs(repo, branch):
+    return gh("pr", "list", "--repo", repo, "--head", branch, "--state", "all", "--json",
+              PR_FIELDS) or []
+
+
+class ReadyLookups:
+    """What `ready` looks up once per run instead of once per done lane: pushed heads from the
+    checkout's just-fetched origin/* refs (ls-remote per branch without a checkout, or when the
+    fetch or the ref read failed), and every PR from one `gh pr list --state all`. In a full
+    list, a branch with no merged PR there gets its own lookup, since older PRs may be cut off.
+    A failed list fails each lane that asks for it."""
+
+    def __init__(self, checkout, fetched, lanes):
+        self.checkout, self.limit = checkout, max(PR_LIST_MIN, PR_LIST_PER_LANE * lanes)
+        self.use_refs, self.heads = bool(checkout and fetched), None
+        self.index, self.full, self.error = None, False, None
+
+    def pushed(self, branch):
+        if self.use_refs and self.heads is None:
+            code, out, _ = run(["git", "for-each-ref", "--format=%(refname:lstrip=3) %(objectname)",
+                                "refs/remotes/origin"], cwd=self.checkout)
+            self.use_refs = not code
+            self.heads = dict(ln.split() for ln in out.splitlines() if ln.strip())
+        if not self.use_refs:
+            return pushed_head(self.checkout, branch)
+        return self.heads.get(branch, "")
+
+    def prs(self, repo, branch):
+        if self.error:
+            raise RuntimeError(self.error)
+        if self.index is None:
+            try:
+                listed = gh("pr", "list", "--repo", repo, "--state", "all", "--limit",
+                            str(self.limit), "--json", "headRefName," + PR_FIELDS) or []
+            except LOOKUP_ERRORS as e:
+                self.error = str(e)
+                raise
+            self.full, self.index = len(listed) >= self.limit, {}
+            for p in listed:
+                self.index.setdefault(p["headRefName"], []).append(p)
+        listed = self.index.get(branch, [])
+        if not self.full or any(p["state"].upper() == "MERGED" for p in listed):
+            return listed
+        return branch_prs(repo, branch)
 
 
 def dependencies(records, key, repo):
@@ -438,10 +497,12 @@ def cmd_ready(a):
             out["Plan"].append(f"plan.md has {n} lines (limit {a.plan_limit}): prune it "
                                "(move, never delete; the kinds the top of plan.md names stay)")
     repo = a.repo
+    fetched = False
     if a.checkout:
-        run(["git", "fetch", "-q", "origin"], cwd=a.checkout)
+        fetched = not run(["git", "fetch", "-q", "--prune", "origin"], cwd=a.checkout)[0]
     out["relay.py"] += relay_py_behind(records, a.checkout)
     repo, parents = ready_parents(repo, out)
+    lookups = ReadyLookups(a.checkout, fetched, len(have))
     print("Lanes:")
     for path in sorted(status_dir.glob("*.md")):
         key = path.stem
@@ -467,7 +528,7 @@ def cmd_ready(a):
             if st["state"] == "parked":
                 ready_parked(records, key, repo, out)
             elif st["state"] == "done":
-                ready_done(records, key, st, repo, a.checkout, out)
+                ready_done(records, key, st, repo, a.checkout, out, lookups)
             elif st["state"] == "blocked":
                 out["Waiting"].append(f"{key}: blocked: {st.get('doing', '')}")
         except LOOKUP_ERRORS as e:
@@ -621,22 +682,29 @@ def ready_parked(records, key, repo, out):
         out["Ready for GO"].append(f"{key}: send `GO #{key}`{note}")
 
 
-def ready_done(records, key, st, repo, checkout, out):
+def ready_done(records, key, st, repo, checkout, out, lookups=None):
+    """Sort done lane <key> into out's sections. `lookups` (a ReadyLookups) shares one PR list and
+    one ref read across lanes; without it, one ls-remote and one PR list for this lane."""
     branch, head = st["branch"], st["head"]
+    pushed_of = lookups.pushed if lookups else (lambda b: pushed_head(checkout, b))
+    prs_of = lookups.prs if lookups else branch_prs
     if not (records / "reports" / f"{key}.md").exists():
         out["Inconsistent"].append(f"{key}: done with no report file")
-    pushed = pushed_head(checkout, branch)
-    if not pushed.startswith(head):
+    pushed = pushed_of(branch)
+    prs = None if pushed else prs_of(repo, branch)  # a branch deleted after its merge is Merged
+    if not pushed.startswith(head) and not any(p["state"].upper() == "MERGED"
+                                               and p["headRefOid"].startswith(head) for p in prs or []):
         out["Inconsistent"].append(f"{key}: status head {head} is not the pushed head "
                                    f"{pushed[:12] or '(branch not pushed)'}")
         return
     for problem in check_pr_body(st.get("PR body draft", ""), brief_issues(records, key, "Closes:"),
                                  deny_patterns(records)):
         out["Inconsistent"].append(f"{key}: {problem}")
-    prs = gh("pr", "list", "--repo", repo, "--head", branch, "--state", "all", "--json",
-             "number,state,headRefOid,mergeable,statusCheckRollup") or []
-    if any(p["state"].upper() == "MERGED" for p in prs):
-        out["Merged"].append(f"{key}: PR #{[p for p in prs if p['state'].upper() == 'MERGED'][0]['number']}")
+    if prs is None:
+        prs = prs_of(repo, branch)
+    merged = next((p for p in prs if p["state"].upper() == "MERGED"), None)
+    if merged:
+        out["Merged"].append(f"{key}: PR #{merged['number']}")
         return
     pr = next((p for p in prs if p["state"].upper() == "OPEN"), None)
     if pr is None and prs:

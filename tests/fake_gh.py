@@ -23,6 +23,8 @@
                                                   # a list answers per call, the last one repeated
  "merge_fail": {"5": "message"},                  # `pr merge 5` exits 1 with this message
  "runs": [{"databaseId": 9, "status": "queued"}]} # `run list`'s answer, default []
+prs: `pr list --head <branch>`'s answer; without --head, every PR with its headRefName, cut at
+--limit.
 children: an issue's sub-issues. bodies, comments: an issue's body and comments.
 broken: a call with an argument containing one of these fails.
 `pr comment <N> --body-file <f>` appends `#<N>` and the body to $RELAY_FAKE_GH.comments.
@@ -85,8 +87,11 @@ elif a[:2] == ["issue", "view"]:
         sys.exit(f"issue {a[2]} not found")
     state, reason = data["issues"][a[2]]
     print(json.dumps({"state": state, "stateReason": reason}))
-elif a[:2] == ["pr", "list"]:
+elif a[:2] == ["pr", "list"] and "--head" in a:
     print(json.dumps(data.get("prs", {}).get(a[a.index("--head") + 1], [])))
+elif a[:2] == ["pr", "list"]:
+    prs = [{"headRefName": b, **p} for b, ps in data.get("prs", {}).items() for p in ps]
+    print(json.dumps(prs[:int(a[a.index("--limit") + 1])]))
 elif a[0] == "api" and "/actions/jobs/" in a[1]:
     print(json.dumps(data.get("jobs", {}).get(a[1].split("/")[-1], {"steps": [{"name": "Run"}]})))
 elif a[0] == "api" and a[1].endswith("/actions/workflows"):
