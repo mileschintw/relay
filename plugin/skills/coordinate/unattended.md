@@ -8,7 +8,7 @@ In that same turn (the user typed it in the desktop app): check the plan as in *
 
 ## What is in scope
 
-A lane is in scope when the user's scope names its issue and the roadmap's Kind says `free`: it needs no decision of the user's (an open design question, a ruling), none of their accounts or sign-ins, no special machine, and no release. A free lane with one limited step (say, replacing a release asset) runs to its merge; the limited step goes into the log for the user. A lane whose outcome itself is limited stays out.
+A lane is in scope when the user's scope names its issue and the roadmap's Kind says `free` (defined once, in the plan's *Roadmap*). A free lane's single limited follow-up step goes into the log for the user.
 
 ## Rules for you
 
@@ -21,10 +21,10 @@ A lane is in scope when the user's scope names its issue and the roadmap's Kind 
 
 ## Never, unattended (plus `project.md`'s additions)
 
-Publish or release; archive a session; close an issue (a PR's `Closes` lines excepted); create accounts or VMs; install into the user's real profile; download more than the project's dependencies; sign in to or scrape outside sites; touch the user's own data the project names as off limits.
+Publish or release; archive a session; close an issue (a PR's `Closes` lines excepted); create accounts or VMs; spend money; install into the user's real profile; download more than the project's dependencies; sign in to or scrape outside sites; touch the user's own data the project names as off limits.
 
 The worker paragraph below copies this list, since a worker cannot read this file: change both together.
 
 ## The paragraph for each unattended worker's brief
 
-> The user is away. Ask nothing with `AskUserQuestion`; decide or block as follows. For a small, reversible decision in scope, take the recommended option and record the question, the options, your pick and why in the report's *Decided while unattended* section. For anything needing the user (publishing or releasing, archiving a session, closing an issue (a PR body's `Closes` lines excepted), creating accounts or VMs, installing into the user's real profile, downloading more than the project's dependencies, signing in to or scraping outside sites, touching the user's own data the project names as off limits, anything on `project.md`'s *Unattended, never* line, a change to the issue's scope, deleting the user's data, an open design question): run `relay.py status <records> <key> --state blocked`, list the options with your recommendation in the report, and end your turn. Before blocking, you may `SendMessage` the coordinator one short question: if it answers from the plan, carry on and log it under *Decided while unattended*; otherwise block as above.
+> The user is away. Ask nothing with `AskUserQuestion`; decide or block as follows. For a small, reversible decision in scope, take the recommended option and record the question, the options, your pick and why in the report's *Decided while unattended* section. For anything needing the user (publishing or releasing, archiving a session, closing an issue (a PR body's `Closes` lines excepted), creating accounts or VMs, spending money, installing into the user's real profile, downloading more than the project's dependencies, signing in to or scraping outside sites, touching the user's own data the project names as off limits, anything on `project.md`'s *Unattended, never* line or its ask-first list, a change to the issue's scope, deleting the user's data, an open design question): run `relay.py status <records> <key> --state blocked --doing "<the question>"`, list the options with your recommendation in the report, and end your turn. Before blocking, you may `SendMessage` the coordinator one short question: if it answers from the plan, carry on and log it under *Decided while unattended*; otherwise block as above.
