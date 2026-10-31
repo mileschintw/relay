@@ -6,6 +6,7 @@ Current state only. Done work moves to `plan-history.md` with a one-line pointer
 
 - **Coordinator:** title unknown (relay-coordinate session), worktree D:\Repos\relay\.claude\worktrees\relay-coordinate-5b7cc3, id local_75cc31e5-4bd1-45b1-92a6-8c63fa48ec22, mode normal; back in Handover since 2026-10-30 23:07 -0700 on the user's 「發布0.3.0，接著更新這個coordinator到新release…我compact完再接著直接繼續解issue」. Runs relay 0.3.0 (PR #52, `release` and tag `relay--v0.3.0` = `1d023cd`): skills at `C:\Users\user3\.claude\plugins\cache\relay\relay\0.3.0\`; this session's Skill tool may still load an older copy until a restart, so read the 0.3.0 files by path. `relay.py` is `project.md`'s line (main checkout, at `1d023cd`): fast-forward it after each merge.
 - **Standing instructions:** after the compact, start the open frontier without asking again (「我compact完再接著直接繼續解issue」): #46–#51 now, #45 parked until #51 merges (done 23:14: all seven started; all merged by 00:04). After lanes 60–63 merge, rerun the writing-for-agents scan of all skills and a code-review (「照推薦開四個lan執行所有問題，並在結束後再跑一次wfa跟code-review」, 2026-10-31 00:11 -0700). Merge right: per lane, on the user's yes to "open the PR and merge once CI passes" (CI exists since #16).
+- **Alarm:** 10 minutes while a lane runs (user, 2026-10-31 01:51: 「可以就這樣改」, since a warm-cache wake is cheap); waiting on CI relies on the background `waitchecks` ending, not the alarm. After 0.3.1: file an issue to make the alarm interval a `project.md` setting (「下一個patch讓鬧鐘時數可以調整config」).
 - **Unattended log:** none.
 
 ## Rulings
