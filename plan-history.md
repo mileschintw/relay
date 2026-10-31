@@ -65,3 +65,9 @@ Finished work moved out of `plan.md`, newest first, for checking only; the plan 
 
 - #12 triaged by the coordinator on the user's "Triage and start #12" (17:08): labels `ready-for-agent`, `bug`; Triage and Files sections added. User's "Open and merge" (17:16); CI passed.
 - Ruling 1 moved here (ended with #16's CI): "The repo has no CI. For lanes 8, 9 and 10 the user chose 「本機檢查通過就合併」 and, for lane 9, 「開 PR，本機檢查過就合併」: merge after the coordinator runs project.md's checks on the PR head merged onto current main." Also applied, each on its own yes, to lanes 1, 7, 11.
+
+## 2026-10-30 17:33 -0700, release 0.2.0 (coordinator local_75cc31e5-4bd1-45b1-92a6-8c63fa48ec22)
+
+- User: 「把wave1結束的版本發成0.2.0，接著更新這個coordinator到新release」. PR #32 raised `version` to 0.2.0 (CI passed), `git push origin main:release` fast-forwarded 3dbe963..fa817ff, tag `relay--v0.2.0` pushed.
+- Installed plugin: `claude plugin marketplace update relay`; `claude plugin update relay@relay --scope local` failed over SSH (host key) and worked with a one-command HTTPS rewrite (`GIT_CONFIG_*` env, no config change). That updated the main checkout's local install only; the coordinator worktree's entry in `~/.claude/plugins/installed_plugins.json` was pointed at the 0.2.0 copy by hand (backup `installed_plugins.json.bak-relay-0.2.0`). Other worktrees' entries (lane sessions, lancet, career-log) stay 0.1.0.
+- The marketplace's `"url": "mileschintw/relay"` resolved to SSH on this machine: worth a note if it recurs.
