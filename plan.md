@@ -33,10 +33,16 @@ Every open issue, once. "Order" is the wave (1 = can start now). "Kind" is `free
 | Issue | Order | Blocked by (GitHub) | Same-section wait | Files it owns | Kind |
 |---|---|---|---|---|---|
 | #82 | 1 | — | — | coordinate SKILL.md (Alarm bullet); setup templates/project.md (Alarm line); GLOSSARY.md (Alarm entry) | free |
+| #83 | 1 | — | — | relay.py (check_commands, check_pr_body, cmd_status, conflicts); tests; templates/project.md (checks lines) | free |
+| #84 | 1 | — | — | templates/project.md (relay.py line); setup SKILL.md (step 2); coordinate and work SKILL.md (preamble relay.py sentence) | free |
+| #85 | 1 | — | — | unattended.md (scope, worker paragraph); work SKILL.md (Precedence, Workflow, Status); templates/plan.md (Kind) | free |
+| #86 | 1 | — | — | coordinate SKILL.md (Scheduling first bullet; Finishing steps 4, 7) | free |
+
+Round 1 (2026-10-31): #83–#86 filed from the WFA scan (8 findings) and code-review (6 findings), all verified by the coordinator against `3703e1f`. Mechanical overlap only: templates/project.md 82 (Alarm) / 83 (checks lines) / 84 (relay.py line); coordinate SKILL.md 82 (Alarm) / 84 (preamble) / 86 (Scheduling, Finishing); work SKILL.md 84 (preamble) / 85 (rest). Briefs written; sessions not yet started: the app refuses starts outside a turn the user typed.
 
 ## Waiting for the user to be present
 
-none
+- Since 2026-10-31 13:58 -0700: any message from the user here, so lanes 83–86 can start (already covered by the standing 0.3.2 go-ahead; the app only starts sessions in a turn the user typed).
 
 ## Waiting for the user's decision
 
