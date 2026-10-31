@@ -1,14 +1,14 @@
 # Unattended
 
-Only when the user turns it on in words. Record in the plan's Handover, in that turn: their words, the scope (which issues), the merge right, the time, and mode `unattended`. It ends when the user speaks to you again, unless they say it does not; when it ends, set Handover's mode to normal in that turn and commit the records.
+Only when the user turns it on in words. Record in the plan's Handover, in that turn: their words, the scope (which issues), the merge right, the time, and mode `unattended`. It ends when the user speaks to you again, unless they say it does not; when it ends, in that turn: remove the worker paragraph below from every brief that carries it, `SendMessage` each running worker (any state but `parked` or `done`) to reread its brief and ask the user again from now on (a parked one rereads on GO), set Handover's mode to normal, and commit the records.
 
 ## The turn the user turns it on is the only one that can start sessions
 
-In that same turn (the user typed it in the desktop app): check the plan as in *First turn* step 3, write a brief for every in-scope lane with no session yet, adding the worker paragraph below, and start them all: lanes free to begin now, the rest parked. Check where each one landed (`app-limits.md`, *Session folders*), write the list into the plan's Unattended log, commit the records, then set the alarm (*Following progress*). A lane missed now can only be proposed as a card later.
+In that same turn (the user typed it in the desktop app): check the plan as in *First turn* step 3, write a brief for every in-scope lane with no session yet, adding the worker paragraph below, and start them all: lanes free to begin now, the rest parked. Add the same paragraph to the brief of every in-scope lane already in Now, and `SendMessage` each one running (any state but `parked` or `done`) to reread its brief now; a parked one rereads it on GO. Check where each one landed (`app-limits.md`, *Session folders*), write the list into the plan's Unattended log, commit the records, then set the alarm (*Following progress*). A lane missed now can only be proposed as a card later.
 
 ## What is in scope
 
-A lane is in scope when the user's scope names its issue and the roadmap's Kind says `free` (defined once, in the plan's *Roadmap*). A free lane's single limited follow-up step goes into the log for the user.
+A lane is in scope when the user's scope names its issue and the roadmap's Kind says `free` (`../../GLOSSARY.md`, **Kind**). A free lane's single limited follow-up step goes into the log for the user.
 
 ## Rules for you
 
