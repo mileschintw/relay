@@ -61,15 +61,16 @@ ready   read-only. Prints what the coordinator can do next:
             lines that are not exactly one per issue on the brief's `Closes:` line; a line matching
             project.md's deny list (`- **Deny list:** <path>`, one regex per line; an end of the
             match that is a word character must not touch another; leading inline flags such as
-            `(?i)` work; printed by line number only).
+            `(?i)` work, `(?x)` with its `#` comments too; printed by line number only).
           - Records: invalid UTF-8, or a control character other than tab, LF and a CR right
             before LF, in project.md, plan.md, briefs/*.md or pr-bodies/*.md, by file and line
             (for invalid UTF-8, the first bad byte only). Checked first, so a bad byte is a
             warning, never a crash; a lane whose brief or PR body draft has one also shows as
             lookup failed.
             Also a warning when the records folder has no .gitattributes, naming the fix, and
-            one when the deny list is missing or has a line that is not a usable pattern (by
-            line number, never its text); done lanes then wait, with no deny-list check.
+            one when the deny list is missing, is not valid UTF-8 (a BOM is fine), or has a line
+            that is not a usable pattern, such as one with a zero-length match (`\\b`) (by line
+            number, never its text); done lanes then wait, with no deny-list check.
           - Plan: a warning when plan.md has more lines than --plan-limit (default 200).
           - relay.py: a warning when the git checkout holding project.md's `relay.py:` path
             (relative to --checkout, else the current folder) is behind its origin/<default>,
@@ -290,26 +291,31 @@ def check_pr_body(path, closes=None, deny=None):
 
 
 LEADING_FLAGS = re.compile(r"(?:\(\?[aiLmsux]+\))+")
+DENY_PROBE = "Aa1_ .,-@#/\té中()[]"
 
 
 def deny_regex(pat):
     """Deny-list pattern <pat> compiled inside check_pr_body's boundary wrapper, case-insensitive.
     Leading global flags such as `(?i)` move to the front of the wrapper, the only place Python
-    accepts them; re.error for a pattern the wrapper cannot hold whole (it would break out of
-    its group, as `a)|(b` does) or that matches empty text, which every line would hit."""
+    accepts them; under `(?x)` a newline ends the pattern, so a `#` comment stays inside it.
+    re.error for a pattern the wrapper cannot hold whole (it would break out of its group, as
+    `a)|(b` does), or that matches empty text or gives a zero-length match in DENY_PROBE (as
+    `\\b` does): every line would hit it."""
     m = LEADING_FLAGS.match(pat)
     flags, pat = (m.group(), pat[m.end():]) if m else ("", pat)
     re.compile(flags + pat)
-    rx = re.compile(rf"{flags}(?:(?<!\w)|(?=\W))(?:{pat})(?:(?!\w)|(?<=\W))", re.I)
-    if rx.search(""):
+    end = "\n" if "x" in flags else ""
+    rx = re.compile(rf"{flags}(?:(?<!\w)|(?=\W))(?:{pat}{end})(?:(?!\w)|(?<=\W))", re.I)
+    if rx.search("") or any(h.start() == h.end() for h in rx.finditer(DENY_PROBE)):
         raise re.error("matches empty text")
     return rx
 
 
 def deny_patterns(records):
     """The patterns of the deny list project.md names (`- **Deny list:** <path>`), else [].
-    One trailing period, as the template's lines end, is dropped: `none.` means none. A line
-    deny_regex cannot compile raises ValueError naming its line number, never its text."""
+    One trailing period, as the template's lines end, is dropped: `none.` means none. The file
+    is UTF-8, a leading BOM dropped. Invalid UTF-8, or a line deny_regex refuses, raises
+    ValueError naming the file and the line number, never its text."""
     project = records / "project.md"
     if not project.exists():
         return []
@@ -322,8 +328,14 @@ def deny_patterns(records):
     path = path if path.is_absolute() else records / path
     if not path.is_file():
         raise FileNotFoundError(f"project.md's deny list {path} is not a file")
+    data = path.read_bytes().removeprefix(b"\xef\xbb\xbf")
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError as e:
+        n = data[:e.start].count(b"\n") + 1
+        raise ValueError(f"project.md's deny list {path.name} line {n} is not valid UTF-8") from None
     pats = []
-    for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+    for n, line in enumerate(text.splitlines(), 1):
         pat = line.strip()
         if not pat or pat.startswith("#"):
             continue
