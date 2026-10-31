@@ -23,6 +23,10 @@ none (ruling 1, merging on local checks while the repo had no CI, ended when #16
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
 | 82 | #82 | local_fb03bf35-40b4-45d4-aef1-a1d3c50f221a (landed in archived lane 74's folder D:\Repos\relay\.claude\worktrees\lane-74-56fc4d, on its own branch claude/lane-82-62c59f) | done; PR #87 opened, waitchecks running (merge on CI pass: standing 0.3.2 go-ahead) | — |
+| 83 | #83 | local_a7f4b028-cd4a-4445-bcf5-534238f3059f | started | — |
+| 84 | #84 | local_dfe35d35-4f6d-44a4-837a-9edbfb6fcee2 | started | — |
+| 85 | #85 | local_decfbe0d-f593-4f8c-8359-fb93a0efceba | started | — |
+| 86 | #86 | local_5df88ec3-eb42-4aa6-8f02-0f558e534468 | started | — |
 
 All lanes through 75 merged; 0.3.1 released → `plan-history.md` (waves 1–2, lanes 33, 42, 45–51, 60–64, 71–75, close-outs).
 
@@ -38,11 +42,11 @@ Every open issue, once. "Order" is the wave (1 = can start now). "Kind" is `free
 | #85 | 1 | — | — | unattended.md (scope, worker paragraph); work SKILL.md (Precedence, Workflow, Status); templates/plan.md (Kind) | free |
 | #86 | 1 | — | — | coordinate SKILL.md (Scheduling first bullet; Finishing steps 4, 7) | free |
 
-Round 1 (2026-10-31): #83–#86 filed from the WFA scan (8 findings) and code-review (6 findings), all verified by the coordinator against `3703e1f`. Mechanical overlap only: templates/project.md 82 (Alarm) / 83 (checks lines) / 84 (relay.py line); coordinate SKILL.md 82 (Alarm) / 84 (preamble) / 86 (Scheduling, Finishing); work SKILL.md 84 (preamble) / 85 (rest). Briefs written; sessions not yet started: the app refuses starts outside a turn the user typed.
+Round 1 (2026-10-31): #83–#86 filed from the WFA scan (8 findings) and code-review (6 findings), all verified by the coordinator against `3703e1f`. Mechanical overlap only: templates/project.md 82 (Alarm) / 83 (checks lines) / 84 (relay.py line); coordinate SKILL.md 82 (Alarm) / 84 (preamble) / 86 (Scheduling, Finishing); work SKILL.md 84 (preamble) / 85 (rest). Lanes 83–86 started on the user's "Start them" (2026-10-31).
 
 ## Waiting for the user to be present
 
-- Since 2026-10-31 13:51 -0700: any message from the user here, so lanes 83–86 can start (already covered by the standing 0.3.2 go-ahead; the app only starts sessions in a turn the user typed).
+none (lanes 83–86 started on the user's "Start them", 2026-10-31)
 
 ## Waiting for the user's decision
 
