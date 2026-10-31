@@ -73,8 +73,8 @@ ready   read-only. Prints what the coordinator can do next:
             missing folder, or a path outside a checkout: no check.
         --checkout <dir>: a local clone; `git fetch --prune` there, then `git merge-tree` each
         Ready for PR / Ready to merge branch against the default branch; a conflict moves it to
-        Waiting. Pushed heads come from its origin/* refs; without --checkout, from one
-        `git ls-remote` per done lane. Pull requests come from one `gh pr list --state all` per
+        Waiting. Pushed heads come from its origin/* refs; without --checkout, or when that
+        fetch fails, from one `git ls-remote` per done lane. Pull requests come from one `gh pr list --state all` per
         run (a branch missing from a full list gets its own `--head` lookup).
         --repo defaults to what `gh repo view` finds from the current folder.
 
@@ -304,15 +304,16 @@ class ReadyLookups:
 
     def __init__(self, checkout, fetched, lanes):
         self.checkout, self.limit = checkout, max(PR_LIST_MIN, PR_LIST_PER_LANE * lanes)
-        self.heads = {} if checkout and fetched else None
+        self.use_refs, self.heads = bool(checkout and fetched), None
         self.index, self.full, self.error = None, False, None
 
     def pushed(self, branch):
-        if self.heads == {}:
+        if self.use_refs and self.heads is None:
             code, out, _ = run(["git", "for-each-ref", "--format=%(refname:lstrip=3) %(objectname)",
                                 "refs/remotes/origin"], cwd=self.checkout)
-            self.heads = None if code else dict(ln.split() for ln in out.splitlines() if ln.strip())
-        if self.heads is None:
+            self.use_refs = not code
+            self.heads = dict(ln.split() for ln in out.splitlines() if ln.strip())
+        if not self.use_refs:
             return pushed_head(self.checkout, branch)
         return self.heads.get(branch, "")
 
