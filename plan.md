@@ -23,7 +23,6 @@ none (ruling 1, merging on local checks while the repo had no CI, ended when #16
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
 | 91 | #91 #93 #94 | local_ca5e4485-2d6f-4070-b3e2-964b9154bb1e | done; PR #97, waitchecks running (its note for round 3: *Scheduling* could say "the blocked-by of every issue the lane closes") | — |
-| 95 | #95 | local_6bd67f1c-db25-42d5-adbd-448aebe4dc63 | done; PR #96, waitchecks running | — |
 
 All lanes through 75 merged; 0.3.1 released; lane 82 merged → `plan-history.md` (waves 1–2, lanes 33, 42, 45–51, 60–64, 71–75, close-outs, 0.3.2 round 1).
 
@@ -36,7 +35,6 @@ Every open issue, once. "Order" is the wave (1 = can start now). "Kind" is `free
 | #91 | 1 | — | after #83 (merged) | relay.py (cmd_merge, check_commands); tests | free |
 | #93 | 1 | — | — | relay.py (check_pr_body, cmd_localcheck, docstring exit codes); tests | free |
 | #94 | 1 | — | — | relay.py (dependencies); tests; templates/briefs/_template.md (Depends on) | free |
-| #95 | 1 | — | — | unattended.md; coordinate SKILL.md (First turn step 3, Plan); GLOSSARY (Kind); templates/plan.md (Kind) | free |
 
 Round 2 (2026-10-31): code-review found 2 (filed as #93, the deny-list one a regression from #83); WFA scan found 5 (filed as #94, #95); all verified by the coordinator against `3efbf76`. Two lanes, no shared files: lane 91 (#91 #93 #94, relay.py) and lane 95 (#95, docs). Both started on the user's "Start them" (2026-10-31).
 
