@@ -30,6 +30,7 @@ class Base(unittest.TestCase):
         self.records = self.tmp / "records"
         for d in ("status", "briefs", "reports", "pr-bodies"):
             (self.records / d).mkdir(parents=True)
+        (self.records / ".gitattributes").write_text("* text eol=lf\n")
         self.origin = self.tmp / "origin.git"
         self.clone = self.tmp / "clone"
         git("init", "-q", "--bare", "-b", "main", str(self.origin), cwd=self.tmp)
@@ -309,6 +310,15 @@ class ReadyTests(Base):
         out = self.ready()
         self.assertIn("briefs/13.md line 2: invalid UTF-8 (byte 0xc3)", out)
         self.assertIn("pr-bodies/12.md line 3: invalid UTF-8 (byte 0xff)", out)
+
+    def test_missing_gitattributes_warns_with_fix(self):
+        (self.records / ".gitattributes").unlink()
+        out = self.ready()
+        self.assertIn("Records:\n  .gitattributes missing", out)
+        self.assertIn("templates/gitattributes", out)
+        self.assertIn("`git add .gitattributes`, `git add --renormalize .`", out)
+        self.assertIn("git ls-files --eol", out)
+        self.assertEqual(out.count(".gitattributes missing"), 1)
 
     def test_clean_records_print_no_records_section(self):
         (self.records / "plan.md").write_text("# Plan\n\tindented\n")
