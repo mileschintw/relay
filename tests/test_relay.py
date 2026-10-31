@@ -231,6 +231,37 @@ class ReadyTests(Base):
         for text in (".internals", "@acmebots", "acmecorp"):
             self.assertFalse(relay.check_pr_body(self.write_body(text), [1], pats), text)
 
+    def test_deny_list_leading_inline_flags_work(self):
+        (self.records / "deny.txt").write_text("(?i)acme\n(?s)(?x) secret \\s code\n")
+        (self.records / "project.md").write_text("- **Deny list:** `deny.txt`\n")
+        pats = relay.deny_patterns(self.records)
+        self.assertTrue(relay.check_pr_body(self.write_body("the acme co"), [1], pats))
+        self.assertTrue(relay.check_pr_body(self.write_body("a secret code"), [1], pats))
+        self.assertFalse(relay.check_pr_body(self.write_body("acmecorp"), [1], pats))
+        head = self.branch("lane-12")
+        self.done("12", "lane-12", head, body="Closes #12\n\nFor Acme.\n")
+        out = self.ready()
+        self.assertIn("PR body lines [3]: a deny-list name", out)
+        self.assertNotIn("lookup failed", out)
+
+    def test_deny_list_unusable_line_is_one_records_error(self):
+        (self.records / "deny.txt").write_text("# names\nAcme\nacme(?i)corp\n")
+        (self.records / "project.md").write_text("- **Deny list:** `deny.txt`\n")
+        for bad in ("acme(?i)corp", "(?i)", "acme|", "a)|(b", "(?P=acmesecret)"):
+            (self.records / "deny.txt").write_text(f"# names\nAcme\n{bad}\n")
+            with self.assertRaisesRegex(ValueError, "deny.txt line 3 is not a usable pattern") as cm:
+                relay.deny_patterns(self.records)
+            self.assertNotIn("acmesecret", str(cm.exception))
+        for key in ("12", "13"):
+            self.done(key, f"lane-{key}", self.branch(f"lane-{key}"))
+        out = self.ready()
+        self.assertEqual(out.count("deny.txt line 3"), 1, out)
+        self.assertIn("Records:\n  project.md's deny list", out)
+        self.assertNotIn("lookup failed", out)
+        self.assertNotIn("acme(?i)corp", out)
+        self.assertIn("12: deny-list check not run (see Records)", out)
+        self.assertNotIn("Ready for PR", out)
+
     def write_body(self, text):
         path = self.tmp / "body.md"
         path.write_text(f"Closes #1\n\n{text}\n")
@@ -970,6 +1001,15 @@ class MergeTests(Base):
         code, out, err = self.merge("12", "13", "12")
         self.assertEqual((code, self.merges()), (2, []))
         self.assertIn("12: given more than once; nothing merged", err)
+
+    def test_an_unusable_deny_list_is_one_line_before_any_merge(self):
+        (self.records / "deny.txt").write_text("Acme\nacme(?i)corp\n")
+        (self.records / "project.md").write_text("- **Deny list:** `deny.txt`\n")
+        code, out, err = self.merge("12", "13")
+        self.assertEqual((code, self.merges()), (1, []))
+        self.assertEqual(err.strip().splitlines(), [
+            "project.md's deny list deny.txt line 2 is not a usable pattern (the error is not "
+            "shown: it can quote the name); nothing merged"])
 
     def test_failed_merge_stops_the_rest(self):
         code, out, err = self.merge("12", "13", merge_fail={"5": "Head branch was modified"})
