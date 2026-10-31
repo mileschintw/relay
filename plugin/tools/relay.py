@@ -35,7 +35,8 @@ ready   read-only. Prints what the coordinator can do next:
           - Ready to merge: done lanes whose open PR head is the status head, checks all passed
             (at least one, none pending) and no conflict.
           - Waiting: parked lanes with an open dependency; blocked lanes, with their `doing` line;
-            done lanes with a conflict, pending or failed checks, or a failed lookup. A failed
+            done lanes with a conflict, pending or failed checks, a failed lookup, or a deny list
+            Records reports (`deny-list check not run`). A failed
             check whose job never started (no steps, or an annotation saying it was not started:
             billing, a spending limit) shows as `checks could not run (billing)`, not `check failed`.
             A PR with no checks shows as `no CI configured` when the repo has no Actions workflow
@@ -119,7 +120,8 @@ waitchecks  waits for PR <N>'s first check, then watches its checks. Polls `gh p
 
 merge   merges lanes one at a time, in the order given. First, every key must be listed under
         `ready`'s Ready to merge and nowhere else (--checkout as for `ready`, default the current
-        folder), and given once, or nothing merges; so does a failed `git fetch` there.
+        folder), and given once, or nothing merges; so does a failed `git fetch` there, or a
+        deny list `ready` reports under Records (one line, by line number).
         Then, per key, with no wait for checks (Ready to merge already needs them all passed):
         its head still the sha Ready to merge printed; mergeStateStatus `CLEAN` (UNKNOWN, while
         GitHub recomputes after a merge, is asked again after 5, 15 and 30 seconds); `gh pr merge
@@ -293,10 +295,15 @@ LEADING_FLAGS = re.compile(r"(?:\(\?[aiLmsux]+\))+")
 def deny_regex(pat):
     """Deny-list pattern <pat> compiled inside check_pr_body's boundary wrapper, case-insensitive.
     Leading global flags such as `(?i)` move to the front of the wrapper, the only place Python
-    accepts them; re.error for a pattern the wrapper still cannot hold."""
+    accepts them; re.error for a pattern the wrapper cannot hold whole (it would break out of
+    its group, as `a)|(b` does) or that matches empty text, which every line would hit."""
     m = LEADING_FLAGS.match(pat)
     flags, pat = (m.group(), pat[m.end():]) if m else ("", pat)
-    return re.compile(rf"{flags}(?:(?<!\w)|(?=\W))(?:{pat})(?:(?!\w)|(?<=\W))", re.I)
+    re.compile(flags + pat)
+    rx = re.compile(rf"{flags}(?:(?<!\w)|(?=\W))(?:{pat})(?:(?!\w)|(?<=\W))", re.I)
+    if rx.search(""):
+        raise re.error("matches empty text")
+    return rx
 
 
 def deny_patterns(records):
@@ -323,8 +330,8 @@ def deny_patterns(records):
         try:
             deny_regex(pat)
         except re.error as e:
-            raise ValueError(f"project.md's deny list {path.name} line {n}: not a usable "
-                             f"pattern ({e.msg})") from None
+            raise ValueError(f"project.md's deny list {path.name} line {n} is not a usable "
+                             "pattern (the error is not shown: it can quote the name)") from None
         pats.append(pat)
     return pats
 
@@ -572,7 +579,7 @@ def cmd_ready(a):
             if st["state"] == "parked":
                 ready_parked(records, key, repo, out)
             elif st["state"] == "done":
-                ready_done(records, key, st, repo, a.checkout, out, lookups, fetched, deny)
+                ready_done(records, key, st, repo, a.checkout, out, deny, lookups, fetched)
             elif st["state"] == "blocked":
                 out["Waiting"].append(f"{key}: blocked: {st.get('doing', '')}")
         except LOOKUP_ERRORS as e:
@@ -726,13 +733,12 @@ def ready_parked(records, key, repo, out):
         out["Ready for GO"].append(f"{key}: send `GO #{key}`{note}")
 
 
-def ready_done(records, key, st, repo, checkout, out, lookups=None, fetched=True, deny=()):
+def ready_done(records, key, st, repo, checkout, out, deny, lookups=None, fetched=True):
     """Sort done lane <key> into out's sections. `lookups` (a ReadyLookups) shares one PR list and
     one ref read across lanes; without it, one ls-remote and one PR list for this lane. When the
     checkout's fetch failed (`fetched` false), its origin/* refs may be stale or missing: the
     conflict check is skipped and the lane's line says so. `deny`: the deny_patterns the caller
-    loaded once, None when they failed to load (the lane then waits; the caller reports why),
-    () to load them here."""
+    loaded once, None when they failed to load (the lane then waits; the caller reports why)."""
     branch, head = st["branch"], st["head"]
     pushed_of = lookups.pushed if lookups else (lambda b: pushed_head(checkout, b))
     prs_of = lookups.prs if lookups else branch_prs
@@ -749,7 +755,7 @@ def ready_done(records, key, st, repo, checkout, out, lookups=None, fetched=True
         out["Waiting"].append(f"{key}: deny-list check not run (see Records)")
         return
     for problem in check_pr_body(st.get("PR body draft", ""), brief_issues(records, key, "Closes:"),
-                                 deny_patterns(records) if deny == () else deny):
+                                 deny):
         out["Inconsistent"].append(f"{key}: {problem}")
     if prs is None:
         prs = prs_of(repo, branch)
@@ -1106,7 +1112,7 @@ STATE_RETRIES = (5, 15, 30)  # seconds; GitHub says UNKNOWN while it recomputes 
 RUN_WAITS = (0, 10, 20)  # seconds; a push run takes a few seconds to appear
 
 
-def ready_to_merge(records, key, repo, checkout):
+def ready_to_merge(records, key, repo, checkout, deny):
     """(PR number, head sha) when `ready` lists lane <key> under Ready to merge and nowhere else,
     else the reason it does not, as text."""
     path = records / "status" / f"{key}.md"
@@ -1120,7 +1126,7 @@ def ready_to_merge(records, key, repo, checkout):
         return f"state {st.get('state', 'unknown')}"
     out = {k: [] for k in READY_SECTIONS}
     try:
-        ready_done(records, key, st, repo, checkout, out)
+        ready_done(records, key, st, repo, checkout, out, deny)
     except LOOKUP_ERRORS as e:
         return f"lookup failed: {e}"
     prefix = f"{key}: "
@@ -1209,9 +1215,13 @@ def cmd_merge(a):
     if code:
         return fail(f"git fetch failed in {os.path.abspath(a.checkout)}: "
                     f"{' '.join((err or out).split())}; nothing merged")
+    try:
+        deny = deny_patterns(records)
+    except LOOKUP_ERRORS as e:
+        return fail(f"{e}; nothing merged")
     lanes = []
     for key in a.keys:
-        found = ready_to_merge(records, key, repo, a.checkout)
+        found = ready_to_merge(records, key, repo, a.checkout, deny)
         if isinstance(found, str):
             return fail(f"{key}: not under Ready to merge ({found}); nothing merged")
         lanes.append((key, *found))

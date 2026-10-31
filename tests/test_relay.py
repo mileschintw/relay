@@ -247,8 +247,11 @@ class ReadyTests(Base):
     def test_deny_list_unusable_line_is_one_records_error(self):
         (self.records / "deny.txt").write_text("# names\nAcme\nacme(?i)corp\n")
         (self.records / "project.md").write_text("- **Deny list:** `deny.txt`\n")
-        with self.assertRaisesRegex(ValueError, r"deny.txt line 3: .*global flags"):
-            relay.deny_patterns(self.records)
+        for bad in ("acme(?i)corp", "(?i)", "acme|", "a)|(b", "(?P=acmesecret)"):
+            (self.records / "deny.txt").write_text(f"# names\nAcme\n{bad}\n")
+            with self.assertRaisesRegex(ValueError, "deny.txt line 3 is not a usable pattern") as cm:
+                relay.deny_patterns(self.records)
+            self.assertNotIn("acmesecret", str(cm.exception))
         for key in ("12", "13"):
             self.done(key, f"lane-{key}", self.branch(f"lane-{key}"))
         out = self.ready()
@@ -998,6 +1001,15 @@ class MergeTests(Base):
         code, out, err = self.merge("12", "13", "12")
         self.assertEqual((code, self.merges()), (2, []))
         self.assertIn("12: given more than once; nothing merged", err)
+
+    def test_an_unusable_deny_list_is_one_line_before_any_merge(self):
+        (self.records / "deny.txt").write_text("Acme\nacme(?i)corp\n")
+        (self.records / "project.md").write_text("- **Deny list:** `deny.txt`\n")
+        code, out, err = self.merge("12", "13")
+        self.assertEqual((code, self.merges()), (1, []))
+        self.assertEqual(err.strip().splitlines(), [
+            "project.md's deny list deny.txt line 2 is not a usable pattern (the error is not "
+            "shown: it can quote the name); nothing merged"])
 
     def test_failed_merge_stops_the_rest(self):
         code, out, err = self.merge("12", "13", merge_fail={"5": "Head branch was modified"})
