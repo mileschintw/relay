@@ -57,8 +57,8 @@ ready   read-only. Prints what the coordinator can do next:
             closed as not planned (it also holds GO); a PR body
             draft with a title line, a closing keyword outside a `Closes #N` line, or `Closes`
             lines that are not exactly one per issue on the brief's `Closes:` line; a line matching
-            project.md's deny list (`- **Deny list:** <path>`, one regex per line, matched as a
-            whole word; printed by line number only).
+            project.md's deny list (`- **Deny list:** <path>`, one regex per line, matched where
+            no word character touches either end; printed by line number only).
           - Records: invalid UTF-8, or a control character other than tab, LF and a CR right
             before LF, in project.md, plan.md, briefs/*.md or pr-bodies/*.md, by file and line
             (for invalid UTF-8, the first bad byte only). Checked first, so a bad byte is a
@@ -77,7 +77,9 @@ ready   read-only. Prints what the coordinator can do next:
         --checkout <dir>: a local clone; `git fetch --prune` there, then `git merge-tree` each
         Ready for PR / Ready to merge branch against the default branch; a conflict moves it to
         Waiting. Pushed heads come from its origin/* refs; without --checkout, or when that
-        fetch fails, from one `git ls-remote` per done lane. Pull requests come from one
+        fetch fails, from one `git ls-remote` per done lane; a failed fetch also skips the
+        conflict check, and those lanes' lines end `(conflict check skipped: fetch failed)`.
+        Pull requests come from one
         `gh pr list --state all` per run (a branch missing from a full list gets its own `--head`
         lookup).
         --repo defaults to what `gh repo view` finds from the current folder.
@@ -96,8 +98,8 @@ localcheck  the checks CI would run, for when it cannot (billing, quota). In --c
         status file's branch) with core.longpaths on, merge the default branch into it, run
         project.md's `Local checks:` line, else its `Checks before done:` line, then remove the
         worktree, even when a check fails. Commands are the backticked items of the line, split on
-        `;`; `(Windows: `...`)` replaces an item's command on Windows; items marked "main checkout
-        only" are listed as not run. Prints the head and base shas and each command's output;
+        `;`, one per item (an item with two is a usage error); `(Windows: `...`)` replaces an
+        item's command on Windows; items marked "main checkout only" are listed as not run. Prints the head and base shas and each command's output;
         --comment <N> also posts that output on PR <N>.
 
 waitchecks  waits for PR <N>'s first check, then watches its checks. Polls `gh pr view <N> --json
@@ -872,7 +874,8 @@ def check_commands(line, windows=None):
         win = re.search(r"\(Windows:\s*`([^`]+)`", item)
         if len(spans) - bool(win) > 1:
             raise ValueError(f"project.md's checks line has more than one command in one item "
-                             f"(one command per item, items separated by `;`): {line.strip()}")
+                             f"(each backticked span is a command; one per item, items separated "
+                             f"by `;`): {line.strip()}")
         cmd = win.group(1) if win and windows else spans[0]
         (skipped if "main checkout only" in item else commands).append(cmd)
     return commands, skipped

@@ -523,7 +523,8 @@ class ReadyLookupTests(Base):
         self.assertFalse([g for g in gits if g.startswith("merge-tree")], gits)
         self.assertIn(f"  13: PR #6 --match-head-commit {heads['13']} "
                       "(conflict check skipped: fetch failed)", out)
-        self.assertIn(f"  14: lane-14 @ {heads['14'][:7]} (conflict check skipped: fetch failed)", out)
+        self.assertIn(f"  14: lane-14 @ {heads['14'][:7]} "
+                      "(conflict check skipped: fetch failed)", out)
 
     def test_an_unreachable_origin_is_a_lookup_failure_not_unpushed(self):
         self.lanes()
