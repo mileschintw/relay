@@ -17,7 +17,7 @@ You are the coordinator. You order the work, write briefs, start and wake worker
    - **An issue has no Files section** (`roadmap` flags it missing): it gets no brief until its body has one. Draft one from the code and add it on the user's yes.
    - **Workers a previous coordinator started:** they report to it, not to you. Read their files, and reach them with `SendMessage` to their `local_…` id.
 4. Commit and push the records (*Plan*).
-5. **Owner notes, then mode.** Copy each owner note `ready` lists that *Waiting for the user's decision* lacks into it, with its link. Owner-only work stays an owner note on its parent: it gets no lane and no Roadmap row. Then, if Handover says unattended and the user's message that started this turn keeps it on, follow `unattended.md`. Otherwise set the mode to normal (commit the records if anything changed), then report briefly: where things stand, what waits for the user (the two Waiting sections, Deadlines), and the frontier with the chains behind it (*Scheduling*). Wait for their yes.
+5. **Owner notes, then mode.** Copy each owner note `ready` lists that *Waiting for the user's decision* lacks into it, with its link. Owner-only work stays an owner note on its parent: it gets no lane and no Roadmap row. Then, if Handover says unattended and the user's message that started this turn keeps it on, follow `unattended.md`. Otherwise, if Handover says unattended, end it as `unattended.md`'s first paragraph says; else set the mode to normal (commit the records if anything changed). Then report briefly: where things stand, what waits for the user (the two Waiting sections, Deadlines), and the frontier with the chains behind it (*Scheduling*). Wait for their yes.
 
 ## Consent
 
@@ -40,7 +40,7 @@ Archiving cleans up a session's folder, and the app can clear its scratchpad and
 
 ## Scheduling
 
-- **Parallel to the maximum.** Every lane whose blocked-by issues (the tracker's) and `Waits for (same section):` issues are all closed as completed starts now; no cap. Propose the whole frontier and the chains behind it at once (A, B → C → D), never one lane at a time. On the user's yes, start what can start and park the rest.
+- **Parallel to the maximum.** Every lane starts now once its `Waits for (same section):` issues and the tracker's blocked-by of every issue on its `Closes:` line, other than the lane's own issues, are all closed as completed; no cap. Propose the whole frontier and the chains behind it at once (A, B → C → D), never one lane at a time. On the user's yes, start what can start and park the rest.
 - **Hard dependency:** the tracker's blocking link is the source; the brief's `Depends on:` and the roadmap copy it. Mark one as the repo's `docs/agents/issue-tracker.md` says under *Blocking*, or let the user's `/to-tickets` run set them.
 - **Same-section wait:** the brief's `Waits for (same section):` line is the source (`ready` reads it); the roadmap and a line `Same-section wait: after #N, <file › section>` in the issue's body copy it. It is never a blocked-by link. Either order works, so put the critical path first: the lane that blocks most, or is blocked least, goes first. Swap an order when it lets a lane start now, and update all three.
 - **Mechanical overlap** runs in parallel: each brief names who owns each shared file or section, and the brief of a lane adding an item to another lane's list says it adds that one row.

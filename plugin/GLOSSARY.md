@@ -39,7 +39,7 @@ An issue body's `## Files` section: one bullet per file the lane will touch, `Ne
 Two lanes touch the same file in ways that merge cleanly: separate rows of a table, separate sections that do not refer to each other, or one lane adding an item to a list another lane owns.
 
 **Frontier**
-Every lane or open issue, parents aside, that can start now: each issue it is blocked by is closed as completed, and no same-section wait on it is still open.
+Every lane or open issue, parents aside, that can start now: the blocked-by of every issue on its `Closes:` line, other than the lane's own issues (an issue with no lane yet: its own blocked-by), is closed as completed, and no same-section wait on it is still open.
 
 **Wave**
 The lanes started together; a lane's Order in the roadmap is its wave (1 = the frontier).
