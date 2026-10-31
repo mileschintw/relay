@@ -16,7 +16,7 @@ Current state only. Done work moves to `plan-history.md` with a one-line pointer
 
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
-| 12 | #12 | local_8cddf2c9-12f8-4e80-96eb-5eef2ee11d86 (claude/lane-12-c970f3) | started (user: "Triage and start #12", 17:08) | |
+| 12 | #12 | local_8cddf2c9-12f8-4e80-96eb-5eef2ee11d86 (claude/lane-12-c970f3) | done @ 998541a, Ready for PR | |
 
 Started 2026-10-30 16:29 -0700 on the user's "Start wave 1" (16:28). Lanes 1, 2, 3, 7, 8, 9, 10, 11, 16 merged → `plan-history.md`.
 
@@ -37,6 +37,7 @@ none
 ## Waiting for the user's decision
 
 - Archive finished sessions: triage-7-10 (local_25b74a50-b6f9-40d5-86ad-82eae30d7c7f), lane-1, lane-8, lane-9, lane-10, lane-11, lane-7, lane-16, lane-3, lane-2 (merged); since 2026-10-30 16:40 -0700.
+- PR-and-merge for lane 12 (Ready for PR); since 2026-10-30 17:16 -0700.
 
 ## Deadlines
 
