@@ -90,7 +90,7 @@ What the app relays to the starting session when a session ends a turn: the star
 Work only the user can do, recorded on a parent: a block in the parent's body or a comment on it, from a line that starts with the marker `**Owner action after this set:**` to the end of that body or comment. The marker alone makes a block an owner note.
 
 **Alarm**
-The coordinator's background `sleep` that wakes it to read `status/` while lanes run, since a worker's turn end may not.
+The coordinator's background `sleep` that wakes it to read `status/` while lanes run, since a worker's turn end may not. It waits the minutes on project.md's `Alarm:` line, 20 without one.
 
 **CI fallback**
 The path a lane on "merge once CI passes" takes when its CI cannot run or no check appears (`coordinate/ci-fallbacks.md`).
