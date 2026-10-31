@@ -4,7 +4,7 @@ Only when the user turns it on in words. Record in the plan's Handover, in that 
 
 ## The turn the user turns it on is the only one that can start sessions
 
-In that same turn (the user typed it in the desktop app): check the plan as in *First turn*, write a brief for every in-scope lane with no session yet, adding the worker paragraph below, and start them all: lanes free to begin now, the rest parked. Check every `cwd` with `list_sessions`, write the list into the plan's Unattended log, commit the records, then set the alarm (*Following progress*). A lane missed now can only be proposed as a card later.
+In that same turn (the user typed it in the desktop app): check the plan as in *First turn*, write a brief for every in-scope lane with no session yet, adding the worker paragraph below, and start them all: lanes free to begin now, the rest parked. Check where each one landed (`app-limits.md`, *Session folders*), write the list into the plan's Unattended log, commit the records, then set the alarm (*Following progress*). A lane missed now can only be proposed as a card later.
 
 ## What is in scope
 
