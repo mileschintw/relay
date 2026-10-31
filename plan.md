@@ -42,8 +42,8 @@ none
 ## Waiting for the user's decision
 
 - Close-out: archive finished sessions triage-7-10 (local_25b74a50-b6f9-40d5-86ad-82eae30d7c7f), lane-1, -2, -3, -7, -8, -9, -10, -11, -12, -16 (all merged; none shares the coordinator's folder); since 2026-10-30 16:40 -0700.
-- Start wave 2 (#24–#30, all Order 1); since 2026-10-30 17:25 -0700.
-- Small worker notes not filed yet (coordinator's recommendation given 17:25): file or drop; since 2026-10-30 17:18 -0700.
+- Start wave 2 (#24–#30, all Order 1); since 2026-10-30 17:24 -0700.
+- Small worker notes not filed yet (coordinator's recommendation given 17:24): file or drop; since 2026-10-30 17:18 -0700.
 - Release: none of this is released yet (the installed relay plugin is 0.1.0); README › Releasing, on the user's yes; since 2026-10-30 17:18 -0700.
 
 ## Deadlines
