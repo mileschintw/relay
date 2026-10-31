@@ -59,8 +59,8 @@ ready   read-only. Prints what the coordinator can do next:
           - Records: invalid UTF-8, or a control character other than tab, LF and a CR right
             before LF, in plan.md, briefs/*.md or pr-bodies/*.md, by file and line (for invalid
             UTF-8, the first bad byte only). Checked first, so a bad byte is a warning, never a
-            crash; a lane whose brief or PR body draft has one also shows as lookup failed. Also
-            a records folder with no .gitattributes, with the fix.
+            crash; a lane whose brief or PR body draft has one also shows as lookup failed.
+            Also a warning when the records folder has no .gitattributes, naming the fix.
           - Plan: a warning when plan.md has more lines than --plan-limit (default 200).
         --checkout <dir>: a local clone; `git fetch` there, then `git merge-tree` each Ready for
         PR / Ready to merge branch against the default branch; a conflict moves it to Waiting.
@@ -377,7 +377,8 @@ def cmd_ready(a):
     if not (records / ".gitattributes").is_file():
         out["Records"].append(
             ".gitattributes missing, so records stay CRLF on Windows: copy setup's "
-            "templates/gitattributes to .gitattributes, `git add --renormalize .`, commit, then "
+            "templates/gitattributes to .gitattributes, `git add .gitattributes`, "
+            "`git add --renormalize .`, commit, then "
             "delete each file `git ls-files --eol` shows as w/crlf and `git checkout` it again")
     have = {p.stem for p in status_dir.glob("*.md")}
     for b in sorted((records / "briefs").glob("*.md")):

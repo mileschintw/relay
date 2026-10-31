@@ -315,7 +315,7 @@ class ReadyTests(Base):
         out = self.ready()
         self.assertIn("Records:\n  .gitattributes missing", out)
         self.assertIn("templates/gitattributes", out)
-        self.assertIn("git add --renormalize .", out)
+        self.assertIn("`git add .gitattributes`, `git add --renormalize .`", out)
         self.assertIn("git ls-files --eol", out)
         self.assertEqual(out.count(".gitattributes missing"), 1)
 
