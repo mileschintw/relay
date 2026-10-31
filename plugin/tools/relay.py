@@ -1037,6 +1037,9 @@ def cmd_merge(a):
         return fail(f"lookup failed: {e}")
     if a.checkout:
         run(["git", "fetch", "-q", "origin"], cwd=a.checkout)
+    repeated = sorted({k for k in a.keys if a.keys.count(k) > 1})
+    if repeated:
+        return fail(f"{', '.join(repeated)}: given more than once; nothing merged")
     lanes = []
     for key in a.keys:
         found = ready_to_merge(records, key, repo, a.checkout)

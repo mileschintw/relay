@@ -671,7 +671,8 @@ class MergeTests(Base):
             return self.call("merge", str(self.records), *keys, "--repo", "o/r")
 
     def merges(self):
-        calls = pathlib.Path(str(self.fake) + ".calls").read_text().splitlines()
+        path = pathlib.Path(str(self.fake) + ".calls")
+        calls = path.read_text().splitlines() if path.exists() else []
         return [c for c in calls if c.startswith("pr merge")]
 
     def test_two_lanes_merge_in_order_with_match_head_commit(self):
@@ -762,6 +763,9 @@ class MergeTests(Base):
                                     prs={"lane-12": [], "lane-13": []})
         self.assertIn("12: not under Ready to merge (Ready for PR: lane-12 @ ", err)
         self.assertEqual(self.merges(), [])
+        code, out, err = self.merge("12", "13", "12")
+        self.assertEqual((code, self.merges()), (1, []))
+        self.assertIn("12: given more than once; nothing merged", err)
 
     def test_failed_merge_stops_the_rest(self):
         code, out, err = self.merge("12", "13", merge_fail={"5": "Head branch was modified"})
