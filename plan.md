@@ -24,7 +24,7 @@ none (ruling 1, merging on local checks while the repo had no CI, ended when #16
 | 50 | #50 | local_68e9b498-fced-45d1-ae8c-3c3e28589acf (folder lane-26-a6b2f5; own branch claude/lane-50-233944) | done | |
 | 45 | #45 | local_9945d0e9-a04f-4f54-b0cd-5c878b54fb32 (folder lane-31-b7c2a2; own branch claude/lane-45-60dca0) | parked | #51 merged |
 
-Started 2026-10-30 23:14 -0700 on the standing instruction. Every lane landed in an archived lane's folder (lanes 26–33, archived in the close-out), each on its own new branch at `1d023cd`, no live session there: keep those old sessions archived; never unarchive them while these run.
+PRs opened 2026-10-30 23:36 -0700 on the user's 「開 PR，CI 過就合併」 for each of 51, 46 and 48/49/50: #53 (51), #54 (46), #55 (48), #56 (49), #57 (50); merging one at a time in that order once CI passes. Started 2026-10-30 23:14 -0700 on the standing instruction. Every lane landed in an archived lane's folder (lanes 26–33, archived in the close-out), each on its own new branch at `1d023cd`, no live session there: keep those old sessions archived; never unarchive them while these run.
 
 Lane 42 merged (PR #44, 22:10). Lane 33 merged (PR #43, 18:31) → `plan-history.md`. Wave 2: lanes 24–31 merged (PRs #34–#41, 2026-10-30 17:51–18:02 -0700) → `plan-history.md`. Wave 1: all lanes merged: 1, 2, 3, 7, 8, 9, 10, 11, 12, 16 → `plan-history.md`.
 
