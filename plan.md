@@ -22,6 +22,8 @@ none (ruling 1, merging on local checks while the repo had no CI, ended when #16
 
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
+| 91 | #91 #93 #94 | local_ca5e4485-2d6f-4070-b3e2-964b9154bb1e | started | — |
+| 95 | #95 | local_6bd67f1c-db25-42d5-adbd-448aebe4dc63 | started | — |
 
 All lanes through 75 merged; 0.3.1 released; lane 82 merged → `plan-history.md` (waves 1–2, lanes 33, 42, 45–51, 60–64, 71–75, close-outs, 0.3.2 round 1).
 
@@ -36,7 +38,7 @@ Every open issue, once. "Order" is the wave (1 = can start now). "Kind" is `free
 | #94 | 1 | — | — | relay.py (dependencies); tests; templates/briefs/_template.md (Depends on) | free |
 | #95 | 1 | — | — | unattended.md; coordinate SKILL.md (First turn step 3, Plan); GLOSSARY (Kind); templates/plan.md (Kind) | free |
 
-Round 2 (2026-10-31): code-review found 2 (filed as #93, the deny-list one a regression from #83); WFA scan found 5 (filed as #94, #95); all verified by the coordinator against `3efbf76`. Two lanes, no shared files: lane 91 (#91 #93 #94, relay.py) and lane 95 (#95, docs). Briefs written; starting waits for a turn the user types (the app refuses otherwise).
+Round 2 (2026-10-31): code-review found 2 (filed as #93, the deny-list one a regression from #83); WFA scan found 5 (filed as #94, #95); all verified by the coordinator against `3efbf76`. Two lanes, no shared files: lane 91 (#91 #93 #94, relay.py) and lane 95 (#95, docs). Both started on the user's "Start them" (2026-10-31).
 
 #91 filed 2026-10-31 by lane 83 from its review (merge after a failed fetch; Windows override written first): joins round 2 once #83 merges. Lane 83's full suite takes ~18 min on this box (1093 s), not 2.
 
@@ -44,7 +46,7 @@ Round 1 (2026-10-31): #83–#86 filed from the WFA scan (8 findings) and code-re
 
 ## Waiting for the user to be present
 
-- Any message from the user here, so lanes 91 and 95 (round 2) can start: covered by the standing 0.3.2 go-ahead; the app only starts sessions in a turn the user typed.
+none (lanes 91 and 95 started on the user's "Start them", 2026-10-31)
 
 ## Waiting for the user's decision
 
