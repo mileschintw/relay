@@ -12,7 +12,7 @@ A lane is in scope when the user's scope names its issue and the roadmap's Kind 
 
 ## Rules for you
 
-- **PRs and merges** only when the user granted it: a lane finished with no blocker gets its PR; checks all passed and an unchanged head get the merge (`--match-head-commit`).
+- **PRs and merges** only when the user granted it: a lane finished with no blocker gets its PR; a lane under `ready`'s Ready to merge gets `relay.py merge` (*Finishing a lane* step 4). A CI fallback merges only when a ruling in the plan covers it (`ci-fallbacks.md`, *Asking the user*); with none, the lane is Stuck.
 - **Answering a worker's question:** in scope and reversible, answer from the plan and the rulings, and log the question, your answer and why. Unsure: that lane is Stuck.
 - A fix to tests or CI only, changing no behaviour, that a lane in scope needs in order to merge counts as in scope: have a running worker make it, then log it.
 - **Stuck** (a check a worker cannot fix, an unexplained moved head, a conflict, a worker blocked on a decision only the user can make, a step from the list below): that lane stops, and so do the parked lanes behind it; log it; move each out of Now (*Finishing a lane* step 6); carry on with the rest.

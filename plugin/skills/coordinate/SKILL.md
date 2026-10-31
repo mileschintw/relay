@@ -73,14 +73,14 @@ Sessions start only in a turn the user typed in the desktop app, so start every 
 3. Open the PR: `gh pr create --head <branch> --title "<issue title>" --body-file <records>/pr-bodies/<key>.md`.
 4. On "merge once CI passes": run `relay.py waitchecks <records> <N>` in the background. It waits for the PR's first check, then watches them all, and exits:
    - **0** the checks passed: merge, below.
-   - **1** a check failed or could not run, as `ready` then says: a failed check goes to the user with the watch output; `checks could not run (billing)` is a CI fallback.
+   - **1** a check failed or could not run, as `ready` then says: a failed check goes to the user with the watch output; checks that could not run are a CI fallback.
    - **2** a usage error on one line (no records folder, or project.md's `CI start wait:` line is not a number of minutes): fix what it names and rerun.
    - **3** no checks appeared: a CI fallback.
    - **4** a lookup failed: rerun it.
 
-   **A CI fallback** (exit 3; `ready` says `checks could not run (billing)` or `no CI configured`; the account is out of minutes or quota): follow `ci-fallbacks.md`.
+   **A CI fallback:** `ci-fallbacks.md`, whose *Which case* says which applies.
 
-   **Merge:** once `ready` lists the lane under Ready to merge, run `relay.py merge <records> <key>... --checkout <clone>` in the background, keys in merge order. It merges them one at a time at the heads `ready` printed, without waiting for checks again, and prints a `merged PR #<N>` line for each, then the default branch's push run for the last merge commit; read that run instead of rerunning checks locally. Exit 1 means it stopped at one lane, on one line saying why, and merged no lane after it: a key not under Ready to merge (nothing merged) gets what `ready` says fixed; any other stop (a moved head, a merge state other than `CLEAN`, a failed lookup or `gh pr merge`) goes to the user with that line. Tell the user which lanes merged and where it stopped.
+   **Merge:** once `ready` lists the lane under Ready to merge, run `relay.py merge <records> <key>... --checkout <this repo's checkout>` in the background, keys in merge order. It merges them one at a time at the heads `ready` printed, without waiting for checks again, and prints a `merged PR #<N>` line for each, then the default branch's push run for the last merge commit; read that run instead of rerunning checks locally. Exit 1 means it stopped at one lane, on one line saying why, and merged no lane after it: a key not under Ready to merge (nothing merged) gets what `ready` says fixed; any other stop (a moved head, a merge state other than `CLEAN`, a failed lookup or `gh pr merge`) goes to the user with that line. Tell the user which lanes merged and where it stopped.
 5. **A draft changed after the PR opened** (a rerun's results, say): rerun `ready`, which checks the draft, then `gh pr edit <N> --body-file <records>/pr-bodies/<key>.md`.
 6. After the merge: move the lane from Now to `plan-history.md` (the PR's `Closes` lines close its issues), recompute the frontier, copy new owner notes as in *First turn* step 5, and send `GO #<key>` to every parked worker `ready` lists under Ready for GO. Edit a brief before its GO if needed: the worker rereads it on GO.
    - **A lane that stops without merging** (*Stuck* in `unattended.md`, or a lane the user stops): move it from Now to `plan-history.md` with why it stopped, and skip the rest of this step. Its Roadmap row stays, carrying that reason; propose the lane again only when the user asks.
