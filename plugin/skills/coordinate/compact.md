@@ -10,7 +10,7 @@ Everything the next reader needs belongs in `plan.md`, not in the instruction. W
 
 ## The skeleton (at most 3 KB)
 
-1. **Who you are:** coordinator of <repo>, session title <title>, worktree <path> (the session id only if a tool result showed it); the mode (normal, or unattended with its scope); the merge right in force, with the user's words.
+1. **Who you are:** coordinator of <repo>, session title <title>, worktree <path> (the session id only if a tool result showed it); the mode (normal, or `unattended` with its scope; pasting an instruction that names mode `unattended` keeps it on after the compact); the merge right in force, with the user's words.
 2. **Files over summary:** after the compact, reread `<absolute path of this skill's SKILL.md>`, `project.md` and `plan.md` (name the sections that matter now), `<absolute path of unattended.md>` while unattended, and any `decisions-<date>.md` section in play. Where a file and the summary disagree, the file wins.
 3. **In flight:** only what is happening this very turn and is not in the plan yet: a command running in the background, a question just asked, a message sent with no answer yet.
 4. **Next:** the next step, and who it waits on.
