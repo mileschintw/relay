@@ -100,7 +100,8 @@ localcheck  the checks CI would run, for when it cannot (billing, quota). In --c
         worktree, even when a check fails. Commands are the backticked items of the line, split on
         `;`, one per item (an item with two is a usage error); `(Windows: `...`)` replaces an
         item's command on Windows; items marked "main checkout only" are listed as not run. Prints
-        the head and base shas and each command's output; --comment <N> also posts that output on PR <N>.
+        the head and base shas and each command's output; --comment <N> also posts that output
+        on PR <N>.
 
 waitchecks  waits for PR <N>'s first check, then watches its checks. Polls `gh pr view <N> --json
         statusCheckRollup` now and at 1, 3 and 6 minutes; project.md's `CI start wait: <minutes>`
