@@ -32,6 +32,9 @@ Every open issue, once. "Order" is the wave (1 = can start now). "Kind" is `free
 | Issue | Order | Blocked by (GitHub) | Same-section wait | Files it owns | Kind |
 |---|---|---|---|---|---|
 | #91 | 1 | — | after #83 (merged) | relay.py (cmd_merge, check_commands); tests | free |
+| #93 | 1 | — | — | relay.py (check_pr_body, cmd_localcheck, docstring exit codes); tests | free |
+
+Round 2 (2026-10-31): code-review found 2 (verified; filed as #93, the deny-list one a regression from #83). #91 and #93 both own relay.py and tests: plan one lane for both. WFA scan still running.
 
 #91 filed 2026-10-31 by lane 83 from its review (merge after a failed fetch; Windows override written first): joins round 2 once #83 merges. Lane 83's full suite takes ~18 min on this box (1093 s), not 2.
 
