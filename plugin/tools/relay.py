@@ -59,8 +59,8 @@ ready   read-only. Prints what the coordinator can do next:
             project.md's deny list (`- **Deny list:** <path>`, one regex per line, matched as a
             whole word; printed by line number only).
           - Records: invalid UTF-8, or a control character other than tab, LF and a CR right
-            before LF, in project.md, plan.md, briefs/*.md or pr-bodies/*.md, by file and line (for invalid
-            UTF-8, the first bad byte only). Checked first, so a bad byte is a warning, never a
+            before LF, in project.md, plan.md, briefs/*.md or pr-bodies/*.md, by file and line
+            (for invalid UTF-8, the first bad byte only). Checked first, so a bad byte is a warning, never a
             crash; a lane whose brief or PR body draft has one also shows as lookup failed.
             Also a warning when the records folder has no .gitattributes, naming the fix.
           - Plan: a warning when plan.md has more lines than --plan-limit (default 200).
@@ -98,10 +98,10 @@ waitchecks  waits for PR <N>'s first check, then watches its checks. Polls `gh p
         statusCheckRollup` now and at 1, 3 and 6 minutes; project.md's `CI start wait: <minutes>`
         line stretches that to 1/6, 1/2 and all of its minutes. As soon as a check exists (queued
         or pending counts), runs `gh pr checks <N> --watch`, keeping only its errors (with no
-        terminal it reprints the table every 10 s), then prints `gh pr checks <N>` once. None by the last
-        poll: prints `no checks appeared`, plus `no CI configured` when the repo has no Actions
-        workflow and nothing reported on the default branch head (as `ready` decides). A failed
-        poll is retried at the next one. No overall timeout once watching.
+        terminal it reprints the table every 10 s), then prints `gh pr checks <N>` once. None by
+        the last poll: prints `no checks appeared`, plus `no CI configured` when the repo has no
+        Actions workflow and nothing reported on the default branch head (as `ready` decides). A
+        failed poll is retried at the next one. No overall timeout once watching.
 
 merge   merges lanes one at a time, in the order given. First, every key must be listed under
         `ready`'s Ready to merge and nowhere else (--checkout as for `ready`, default the current
