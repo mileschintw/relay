@@ -15,7 +15,10 @@
  "head_statuses": 1, "head_check_runs": 1,      # counts on the default branch head, default 0
  "pr_checks": {"5": {"after": 3, "rollup": [...]}},  # `pr view 5`'s statusCheckRollup: empty
                                                   # before its 3rd call (default 1st), then rollup
- "watch": {"5": [1, "output"]}}                   # `pr checks 5 --watch`: exit code and output
+ "watch": {"5": [1, "output"]},                   # `pr checks 5 --watch`: exit code and output
+ "pr_view": {"5": {"headRefOid": "<sha>", "mergeStateStatus": "CLEAN"}},  # other `pr view 5`
+ "merge_fail": {"5": "message"},                  # `pr merge 5` exits 1 with this message
+ "runs": [{"databaseId": 9, "status": "queued"}]} # `run list`'s answer, default []
 children: an issue's sub-issues. bodies, comments: an issue's body and comments.
 broken: a call with an argument containing one of these fails.
 `pr comment <N> --body-file <f>` appends `#<N>` and the body to $RELAY_FAKE_GH.comments.
@@ -92,6 +95,16 @@ elif a[:2] == ["pr", "checks"] and "--watch" in a:
     code, output = data.get("watch", {}).get(a[2], [0, "all checks passed"])
     print(output)
     sys.exit(code)
+elif a[:2] == ["pr", "view"]:
+    if a[2] not in data.get("pr_view", {}):
+        sys.exit(f"no pull requests found for {a[2]}")
+    print(json.dumps(data["pr_view"][a[2]]))
+elif a[:2] == ["pr", "merge"]:
+    if a[2] in data.get("merge_fail", {}):
+        sys.exit(data["merge_fail"][a[2]])
+    print(f"merged pull request #{a[2]}")
+elif a[:2] == ["run", "list"]:
+    print(json.dumps(data.get("runs", [])))
 elif a[:2] == ["pr", "comment"]:
     body = open(a[a.index("--body-file") + 1], encoding="utf-8").read()
     with open(os.environ["RELAY_FAKE_GH"] + ".comments", "a", encoding="utf-8") as f:

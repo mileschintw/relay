@@ -642,6 +642,114 @@ class WaitchecksTests(Base):
         self.assertEqual(relay.ci_start_schedule(self.records), [0, 60, 180, 360])
 
 
+class MergeTests(Base):
+    """merge takes lanes 12 (PR #5) and 13 (PR #6) from Ready to merge, with time faked."""
+
+    OK = [{"name": "ci", "status": "COMPLETED", "conclusion": "SUCCESS"}]
+
+    def setUp(self):
+        super().setUp()
+        self.heads = {}
+        for key, pr in (("12", 5), ("13", 6)):
+            head = self.branch(f"lane-{key}", content=f"{key}\n")
+            self.done(key, f"lane-{key}", head)
+            self.heads[key] = (pr, head)
+
+    def merge(self, *keys, view=None, **data):
+        prs = {f"lane-{k}": [{"number": pr, "state": "OPEN", "headRefOid": head,
+                              "mergeable": "MERGEABLE", "statusCheckRollup": self.OK}]
+               for k, (pr, head) in self.heads.items()}
+        pr_view = {str(pr): {"headRefOid": head, "mergeStateStatus": "CLEAN", "baseRefName": "main",
+                             "mergedAt": "2026-10-31T07:00:00Z", "mergeCommit": {"oid": f"m{pr}" * 8},
+                             **(view or {}).get(str(pr), {})}
+                   for pr, head in self.heads.values()}
+        self.gh({"prs": prs, "pr_view": pr_view,
+                 "pr_checks": {str(pr): {"rollup": self.OK} for pr, _ in self.heads.values()},
+                 **data})
+        pathlib.Path(str(self.fake) + ".calls").unlink(missing_ok=True)
+        with mock.patch.object(relay.time, "sleep", lambda s: None):
+            return self.call("merge", str(self.records), *keys, "--repo", "o/r")
+
+    def merges(self):
+        calls = pathlib.Path(str(self.fake) + ".calls").read_text().splitlines()
+        return [c for c in calls if c.startswith("pr merge")]
+
+    def test_two_lanes_merge_in_order_with_match_head_commit(self):
+        run = {"databaseId": 9, "status": "in_progress", "conclusion": "",
+               "url": "https://github.com/o/r/actions/runs/9", "headSha": "m6" * 8}
+        code, out, err = self.merge("13", "12", runs=[run])
+        self.assertEqual(code, 0, err)
+        self.assertEqual(self.merges(), [
+            f"pr merge 6 --repo o/r --merge --match-head-commit {self.heads['13'][1]}",
+            f"pr merge 5 --repo o/r --merge --match-head-commit {self.heads['12'][1]}"])
+        self.assertIn("13: merged PR #6 at 2026-10-31T07:00:00Z", out)
+        self.assertIn("12: merged PR #5 at 2026-10-31T07:00:00Z", out)
+        self.assertIn("main push run for m5m5m5m5: in_progress https://github.com/o/r/actions/runs/9", out)
+        calls = pathlib.Path(str(self.fake) + ".calls").read_text()
+        self.assertIn("run list --repo o/r --branch main --event push --commit " + "m5" * 8, calls)
+
+    def test_no_push_run_yet_is_said(self):
+        code, out, err = self.merge("12")
+        self.assertEqual(code, 0, err)
+        self.assertIn("no push run on main for m5m5m5m5 yet", out)
+
+    def assert_stopped(self, code, err, *words):
+        self.assertEqual(code, 1)
+        self.assertEqual(self.merges(), [])
+        line = [l for l in err.splitlines() if l.startswith("12: ")]
+        self.assertEqual(len(line), 1, err)
+        for w in words:
+            self.assertIn(w, line[0])
+
+    def test_moved_head_stops_before_any_merge(self):
+        code, out, err = self.merge("12", "13", view={"5": {"headRefOid": "f" * 40}})
+        self.assert_stopped(code, err, "PR #5", "head ffffffffffff", "not")
+
+    def test_failed_check_stops_before_any_merge(self):
+        failed = [{"name": "ci", "status": "COMPLETED", "conclusion": "FAILURE"}]
+        code, out, err = self.merge("12", "13", pr_checks={"5": {"rollup": failed}},
+                                    watch={"5": [1, "X ci fail"]})
+        self.assert_stopped(code, err, "PR #5", "checks")
+
+    def test_state_not_clean_stops_before_any_merge(self):
+        code, out, err = self.merge("12", "13", view={"5": {"mergeStateStatus": "BLOCKED"}})
+        self.assert_stopped(code, err, "PR #5", "BLOCKED", "CLEAN")
+
+    def test_unknown_state_is_retried(self):
+        calls = iter(["UNKNOWN", "UNKNOWN", "CLEAN"])
+        real_gh = relay.gh
+
+        def gh(*args, **kw):
+            out = real_gh(*args, **kw)
+            if args[:2] == ("pr", "view") and "mergeStateStatus" in args[-1]:
+                out["mergeStateStatus"] = next(calls)
+            return out
+        with mock.patch.object(relay, "gh", gh):
+            code, out, err = self.merge("12")
+        self.assertEqual(code, 0, err)
+        self.assertEqual(len(self.merges()), 1)
+
+    def test_a_key_not_ready_to_merge_is_refused_before_any_merge(self):
+        self.call("status", str(self.records), "14", "--state", "working", "--doing", "x")
+        code, out, err = self.merge("12", "14")
+        self.assertEqual(code, 1)
+        self.assertEqual(self.merges(), [])
+        self.assertIn("14: not under Ready to merge (state working)", err)
+        code, out, err = self.merge("12", "15")
+        self.assertIn("15: not under Ready to merge (no status file)", err)
+        code, out, err = self.merge("12", "13", pr_checks={},
+                                    prs={"lane-12": [], "lane-13": []})
+        self.assertIn("12: not under Ready to merge (Ready for PR: lane-12 @ ", err)
+        self.assertEqual(self.merges(), [])
+
+    def test_failed_merge_stops_the_rest(self):
+        code, out, err = self.merge("12", "13", merge_fail={"5": "Head branch was modified"})
+        self.assertEqual(code, 1)
+        self.assertEqual(len(self.merges()), 1)
+        self.assertIn("12: gh pr merge 5 failed: ", err)
+        self.assertIn("Head branch was modified", err)
+
+
 class ParentTests(Base):
     """An open issue with sub-issues is a parent: listed under Parents, never a lane."""
 
