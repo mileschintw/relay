@@ -8,6 +8,7 @@ import sys
 import tempfile
 import unittest
 from contextlib import redirect_stdout, redirect_stderr
+from unittest import mock
 
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent / "plugin" / "tools"))
@@ -482,6 +483,97 @@ class LocalcheckTests(Base):
                          (["python3 -I t.py", "claude plugin validate ."], ["npm run e2e"]))
         self.assertEqual(relay.check_commands(line, windows=True)[0],
                          ["py -3 -I t.py", "claude plugin validate ."])
+
+
+class WaitchecksTests(Base):
+    """waitchecks polls PR #5 for its first check on a front-loaded schedule, with time faked."""
+
+    QUEUED = [{"name": "test", "status": "QUEUED", "conclusion": ""}]
+    FAILED = [{"name": "test", "status": "COMPLETED", "conclusion": "FAILURE"}]
+
+    def waitchecks(self, after=1, watch=(0, "all checks passed"), project=None, rollup=None,
+                   repo=("--repo", "o/r"), **data):
+        if project is not None:
+            (self.records / "project.md").write_text(project)
+        self.gh({"pr_checks": {"5": {"after": after, "rollup": rollup or self.QUEUED}},
+                 "watch": {"5": list(watch)}, **data})
+        pathlib.Path(str(self.fake) + ".calls").unlink(missing_ok=True)
+        now, self.polls = [0.0], []
+        real_gh = relay.gh
+
+        def poll(*args, **kw):
+            if args[:2] == ("pr", "view"):
+                self.polls.append(now[0])
+            return real_gh(*args, **kw)
+
+        def sleep(s):
+            now[0] += s
+        with mock.patch.object(relay.time, "sleep", sleep), \
+                mock.patch.object(relay.time, "monotonic", lambda: now[0]), \
+                mock.patch.object(relay, "gh", poll):
+            return self.call("waitchecks", str(self.records), "5", *repo)
+
+    def watched(self):
+        calls = pathlib.Path(str(self.fake) + ".calls").read_text().splitlines()
+        return [c for c in calls if c.startswith("pr checks 5")]
+
+    def test_checks_on_first_poll_are_watched_with_no_wait(self):
+        code, out, err = self.waitchecks()
+        self.assertEqual(code, 0, err)
+        self.assertEqual(self.polls, [0.0])
+        self.assertEqual(self.watched(), ["pr checks 5 --repo o/r --watch"])
+        self.assertIn("all checks passed", out)
+
+    def test_checks_on_a_later_poll_are_watched_to_their_result(self):
+        code, out, err = self.waitchecks(after=2)
+        self.assertEqual((code, self.polls), (0, [0.0, 60.0]), err)
+        code, out, err = self.waitchecks(after=4, watch=(1, "X test fail"), rollup=self.FAILED)
+        self.assertEqual(code, 1, err)
+        self.assertEqual(self.polls[:4], [0.0, 60.0, 180.0, 360.0])
+        self.assertIn("X test fail", out)
+
+    def test_a_watch_error_with_no_failed_check_is_a_lookup_failure(self):
+        code, out, err = self.waitchecks(watch=(1, "HTTP 502"))
+        self.assertEqual(code, 4, err)
+        self.assertIn("HTTP 502", out)
+        self.assertIn("no failed check (checks pending)", err)
+
+    def test_no_checks_by_the_last_poll(self):
+        code, out, err = self.waitchecks(after=99)
+        self.assertEqual(code, 3, err)
+        self.assertEqual(self.polls, [0.0, 60.0, 180.0, 360.0])
+        self.assertEqual(self.watched(), [])
+        self.assertIn("no checks appeared on PR #5 within 6 minutes", out)
+        self.assertNotIn("no CI configured", out)
+        code, out, err = self.waitchecks(after=99, workflows=0)
+        self.assertEqual(code, 3, err)
+        self.assertIn("no CI configured", out)
+
+    def test_ci_start_wait_stretches_the_polls(self):
+        project = "- **Repo:** o/r\n- **CI start wait:** 12 minutes.\n"
+        code, out, err = self.waitchecks(after=99, project=project)
+        self.assertEqual(code, 3, err)
+        self.assertEqual(self.polls, [0.0, 120.0, 360.0, 720.0])
+        self.assertIn("within 12 minutes", out)
+        code, _, err = self.waitchecks(project="- **CI start wait:** soon\n")
+        self.assertEqual(code, 2)
+        self.assertIn("CI start wait", err)
+
+    def test_failed_lookups_retry_and_a_failed_last_poll_is_its_own_exit(self):
+        code, out, err = self.waitchecks(after=99, broken=["statusCheckRollup"])
+        self.assertEqual(code, 4, err)
+        self.assertEqual(len(self.polls), 4)
+        self.assertIn("lookup failed", err)
+        code, out, err = self.waitchecks(repo=(), broken=["nameWithOwner"])
+        self.assertEqual((code, self.polls), (4, []), err)
+
+    def test_wait_checks_takes_a_schedule(self):
+        self.gh({"pr_checks": {"5": {"after": 3, "rollup": self.QUEUED}}})
+        with mock.patch.object(relay.time, "sleep", lambda s: None), redirect_stdout(io.StringIO()):
+            self.assertEqual(relay.wait_checks(5, "o/r", [0]), relay.NO_CHECKS)
+            self.assertEqual(relay.wait_checks(5, "o/r", [0, 1]), 0)
+        self.assertEqual(relay.poll_schedule(10), [0, 100, 300, 600])
+        self.assertEqual(relay.ci_start_schedule(self.records), [0, 60, 180, 360])
 
 
 class ParentTests(Base):
