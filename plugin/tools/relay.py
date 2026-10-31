@@ -36,7 +36,8 @@ ready   read-only. Prints what the coordinator can do next:
             check whose job never started (no steps, or an annotation saying it was not started:
             billing, a spending limit) shows as `checks could not run (billing)`, not `check failed`.
             A PR with no checks shows as `no CI configured` when the repo has no Actions workflow
-            (`gh api repos/<repo>/actions/workflows`), else as `no checks reported`.
+            (`gh api repos/<repo>/actions/workflows`) and no status or check-run on the default
+            branch head (`commits/HEAD/status`, `/check-runs`), else as `no checks reported`.
           - No status yet: a brief with no status file.
           - Could not parse: a status file that is not valid UTF-8, or has no valid state or no
             branch, head or time; the other lanes are still listed.
@@ -296,20 +297,24 @@ def never_started(check, repo):
     return any(NOT_STARTED.search(n.get("message") or "") for n in notes)
 
 
-def no_workflows(repo):
-    """True when the repo has no GitHub Actions workflow at all. A failed lookup counts as
-    having one, so the PR keeps waiting on checks."""
+def no_ci(repo):
+    """True when the repo has no GitHub Actions workflow and nothing reported on the default
+    branch head (`commits/HEAD`: a commit status or check-run means CI outside Actions). A
+    failed lookup counts as CI existing, so the PR keeps waiting on checks."""
     if not repo:
         return False
     try:
-        return (gh("api", f"repos/{repo}/actions/workflows") or {}).get("total_count", 1) == 0
+        if (gh("api", f"repos/{repo}/actions/workflows") or {}).get("total_count", 1) != 0:
+            return False
+        return all((gh("api", f"repos/{repo}/commits/HEAD/{kind}") or {}).get("total_count", 1) == 0
+                   for kind in ("status", "check-runs"))
     except (RuntimeError, ValueError, OSError, AttributeError):
         return False
 
 
 def checks_state(rollup, repo=None):
     if not rollup:
-        return "no CI configured" if no_workflows(repo) else "no checks reported"
+        return "no CI configured" if no_ci(repo) else "no checks reported"
     billing = []
     for c in rollup:
         status = (c.get("status") or "COMPLETED").upper()

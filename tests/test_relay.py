@@ -224,6 +224,33 @@ class ReadyTests(Base):
         self.gh({"prs": prs, "workflows": 0, "broken": ["/actions/workflows"]})
         self.assertIn("PR #5 no checks reported", self.ready())
 
+    def test_ci_outside_actions(self):
+        head = self.branch("lane-12")
+        self.done("12", "lane-12", head)
+        prs = {"lane-12": [{"number": 5, "state": "OPEN", "headRefOid": head,
+                            "mergeable": "MERGEABLE", "statusCheckRollup": []}]}
+        self.gh({"prs": prs, "workflows": 0, "head_statuses": 1})
+        self.assertIn("PR #5 no checks reported", self.ready())
+        self.gh({"prs": prs, "workflows": 0, "head_check_runs": 1})
+        self.assertIn("PR #5 no checks reported", self.ready())
+        self.gh({"prs": prs, "workflows": 0})
+        self.assertIn("PR #5 no CI configured", self.ready())
+        self.gh({"prs": prs, "workflows": 0, "broken": ["/status"]})
+        self.assertIn("PR #5 no checks reported", self.ready())
+        self.gh({"prs": prs, "workflows": 0, "broken": ["/check-runs"]})
+        self.assertIn("PR #5 no checks reported", self.ready())
+
+    def test_workflows_skip_head_lookup(self):
+        head = self.branch("lane-12")
+        self.done("12", "lane-12", head)
+        prs = {"lane-12": [{"number": 5, "state": "OPEN", "headRefOid": head,
+                            "mergeable": "MERGEABLE", "statusCheckRollup": []}]}
+        self.gh({"prs": prs, "workflows": 1})
+        self.assertIn("PR #5 no checks reported", self.ready())
+        calls = pathlib.Path(str(self.fake) + ".calls").read_text(encoding="utf-8")
+        self.assertIn("/actions/workflows", calls)
+        self.assertNotIn("commits/HEAD", calls)
+
     def test_stale_status_head(self):
         self.branch("lane-12")
         self.done("12", "lane-12", "abcdef1234")

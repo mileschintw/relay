@@ -11,10 +11,12 @@
                        "mergeable": "MERGEABLE", "statusCheckRollup": [...]}]},
  "jobs": {"<job id>": {"steps": [...]}},          # a missing job ran one step
  "annotations": {"<job id>": [{"message": "..."}]},
- "workflows": 0}                                  # the repo's Actions workflow count, default 1
+ "workflows": 0,                                  # the repo's Actions workflow count, default 1
+ "head_statuses": 1, "head_check_runs": 1}        # counts on the default branch head, default 0
 children: an issue's sub-issues. bodies, comments: an issue's body and comments.
 broken: a call with an argument containing one of these fails.
 `pr comment <N> --body-file <f>` appends `#<N>` and the body to $RELAY_FAKE_GH.comments.
+Every call appends its arguments, one line, to $RELAY_FAKE_GH.calls.
 """
 import json
 import os
@@ -24,6 +26,8 @@ data = json.load(open(os.environ["RELAY_FAKE_GH"], encoding="utf-8"))
 a = sys.argv[1:]
 issues = data.get("issues", {})
 children = data.get("children", {})
+with open(os.environ["RELAY_FAKE_GH"] + ".calls", "a", encoding="utf-8") as f:
+    f.write(" ".join(a) + "\n")
 
 
 def rest(n):
@@ -68,6 +72,10 @@ elif a[0] == "api" and "/actions/jobs/" in a[1]:
 elif a[0] == "api" and a[1].endswith("/actions/workflows"):
     n = data.get("workflows", 1)
     print(json.dumps({"total_count": n, "workflows": [{"name": f"ci{i}"} for i in range(n)]}))
+elif a[0] == "api" and a[1].endswith("/commits/HEAD/status"):
+    print(json.dumps({"total_count": data.get("head_statuses", 0)}))
+elif a[0] == "api" and a[1].endswith("/commits/HEAD/check-runs"):
+    print(json.dumps({"total_count": data.get("head_check_runs", 0)}))
 elif a[0] == "api" and a[1].endswith("/annotations"):
     print(json.dumps(data.get("annotations", {}).get(a[1].split("/")[-2], [])))
 elif a[:2] == ["pr", "comment"]:
