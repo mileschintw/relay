@@ -145,3 +145,4 @@ Finished work moved out of `plan.md`, newest first, for checking only; the plan 
 - PRs #88 (lane 84) and #89 (lane 85; its extra "spend money" line in *Never, unattended* accepted) merged 21:16Z, #90 (lane 86) 21:20Z, all by `waitchecks` + `merge`. Main checkout at `d52d3c0`.
 - PR #92 (lane 83) merged 21:38Z. Round 1 complete; main at `3efbf76`. Lane 83 filed #91 (out-of-scope review findings).
 - Round 2: PR #96 (lane 95, #95) merged 21:56Z; main at `74263d4`.
+- Round 2: PR #97 (lane 91; #91 #93 #94) merged 21:57Z; main at `a082f9d`. Round 2 complete.
