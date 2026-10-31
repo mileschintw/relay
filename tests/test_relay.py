@@ -706,11 +706,17 @@ class MergeTests(Base):
         code, out, err = self.merge("12", "13", view={"5": {"headRefOid": "f" * 40}})
         self.assert_stopped(code, err, "PR #5", "head ffffffffffff", "not")
 
-    def test_failed_check_stops_before_any_merge(self):
-        failed = [{"name": "ci", "status": "COMPLETED", "conclusion": "FAILURE"}]
-        code, out, err = self.merge("12", "13", pr_checks={"5": {"rollup": failed}},
-                                    watch={"5": [1, "X ci fail"]})
-        self.assert_stopped(code, err, "PR #5", "checks")
+    def test_checks_are_not_waited_for_again(self):
+        # Ready to merge already needs every check passed: no poll, no watch, no CI start wait
+        (self.records / "project.md").write_text("- **CI start wait:** soon\n", encoding="utf-8")
+        sleeps = []
+        code, out, err = self.merge("12", "13", sleep=sleeps.append)
+        self.assertEqual(code, 0, err)
+        self.assertEqual(len(self.merges()), 2)
+        calls = pathlib.Path(str(self.fake) + ".calls").read_text().splitlines()
+        self.assertEqual([c for c in calls if "--watch" in c or
+                          c.startswith("pr view") and "statusCheckRollup" in c], [])
+        self.assertEqual([s for s in sleeps if s], list(relay.RUN_WAITS[1:]))
 
     def test_state_not_clean_stops_before_any_merge(self):
         code, out, err = self.merge("12", "13", view={"5": {"mergeStateStatus": "BLOCKED"}})
