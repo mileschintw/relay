@@ -3,19 +3,19 @@
 One word per idea; definitions only. Each rule lives in the one skill that acts on it.
 
 **Coordinator**
-The one session that orders the work, starts worker sessions, gates the user's consent and keeps the plan. It writes no product code. One coordinator edits the plan at a time.
+The one session that orders the work, starts worker sessions, gates the user's consent and keeps the plan. It writes no product code.
 
 **Worker**
 A session that works one lane: its own worktree, its own branch, one pull request. It stops at `done`; the coordinator opens the PR.
 
+**Main checkout**
+The repo's own clone, not a worktree: the first path `git worktree list` prints. A check `project.md` marks "main checkout only" runs there, since it needs files a fresh worktree lacks.
+
 **Lane**
-One unit of parallel work: one issue, or a few small issues closed by one PR, with its brief, its worker and its branch. Named by its **key**: the number of the first issue it closes. Work with no issue gets one opened first, on the user's yes.
+One unit of parallel work: one issue, or a few small issues closed by one PR, with its brief, its worker and its branch. Named by its **key**: the number of the first issue it closes.
 
 **Parent**
 An open issue with sub-issues (its children).
-
-**Owner note**
-Work only the user can do, recorded on a parent: a block in the parent's body or a comment on it, from a line that starts with the marker `**Owner action after this set:**` to the end of that body or comment. The marker alone makes a block an owner note.
 
 **Brief**
 `briefs/<key>.md`: about ten lines, only what is specific to one lane. A worker reads it with `relay:work` and `project.md`, which hold everything the lanes share.
@@ -24,37 +24,52 @@ Work only the user can do, recorded on a parent: a block in the parent's body or
 A worker started before its lane may begin; it waits for GO.
 
 **GO**
-The coordinator's message `GO #<key>` to a parked worker, sent once every issue on the brief's `Depends on:` and `Waits for (same section):` lines is closed as completed.
+The coordinator's message `GO #<key>`, which lets a parked worker start.
 
 **Hard dependency**
-Lane A needs lane B's result. The tracker's blocking link on A's issue (GitHub's blocked-by) is the source; the brief's `Depends on:` and the roadmap copy it.
+Lane A needs lane B's result. Recorded as the tracker's blocking link on A's issue (GitHub's blocked-by).
 
 **Same-section wait**
-Lanes A and B change the same section of a file, though neither needs the other's result: one runs after the other, in either order. The brief's `Waits for (same section):` line is the source (`relay.py ready` reads it); the roadmap and the issue's `Same-section wait:` line copy it. Never blocked-by.
+Lanes A and B change the same section of a file, though neither needs the other's result: one runs after the other, in either order. Recorded on the brief's `Waits for (same section):` line.
 
 **Files section**
-An issue body's `## Files` section: one bullet per file the lane will touch, `New:` before a file it creates, a trailing `(...)` scoping the change. The source for the roadmap's Files it owns and for the overlap check when a lane starts (`relay.py roadmap` prints it).
+An issue body's `## Files` section: one bullet per file the lane will touch, `New:` before a file it creates, a trailing `(...)` scoping the change. `relay.py roadmap` prints it.
 
 **Mechanical overlap**
 Two lanes touch the same file in ways that merge cleanly: separate rows of a table, separate sections that do not refer to each other, or one lane adding an item to a list another lane owns.
 
 **Frontier**
-Every lane that can start now: every issue on its brief's `Depends on:` and `Waits for (same section):` lines is closed as completed.
+Every lane or open issue that can start now: each issue it is blocked by is closed as completed, and no same-section wait on it is still open.
 
 **Wave**
 The lanes started together; a lane's Order in the roadmap is its wave (1 = the frontier).
 
 **State**
-A lane's stage in its status file: `parked`, `working`, `blocked`, `review`, `done`. The plan's Now table also uses `started`, until the first status file appears.
+A lane's stage in its status file: `parked`, `working`, `blocked`, `review`, `done`. The Now table also uses `started`, until the first status file appears.
 
-**Plan**
-`plan.md` in the records folder: the current state only. Done work moves to `plan-history.md`.
-
-**Ruling**
-A decision the user made that the repo does not record yet, kept in the plan with the user's own words until a doc or ADR carries it.
+**Stuck**
+In unattended mode, a lane that stops without merging because the next step needs the user (`coordinate/unattended.md` lists the cases).
 
 **Records folder**
 The checkout of branch `coord`: an orphan branch of this repo, checked out beside the main checkout as `<repo folder>-coord` (`git worktree list` shows it on `[coord]`), or a separate private repo. It holds the plan, briefs, status files, reports, PR body drafts and decision logs, and is never merged into the default branch.
+
+**Plan**
+`plan.md` in the records folder: the current state only. Done work moves to `plan-history.md`. Its sections include Handover, Rulings, Now, Roadmap, the two Waiting for the user sections and Deadlines.
+
+**Handover**
+The plan section naming the current coordinator (title, worktree, id, mode), the user's standing instructions and the unattended log.
+
+**Now table**
+The plan table of lanes with a session: key, issues, session, state, and what a parked lane waits for.
+
+**Roadmap**
+The plan table of every open issue, once: its Order, blocked-by, same-section wait, the files it owns and its Kind.
+
+**Kind**
+A Roadmap column: `free` (needs no user decision, account, special machine or release), `limited: <what>`, or `parent`.
+
+**Ruling**
+A decision the user made that the repo does not record yet, kept in the plan with the user's own words until a doc or ADR carries it.
 
 **Status file**
 `status/<key>.md`, one per lane, written by `relay.py status`.
@@ -63,10 +78,25 @@ The checkout of branch `coord`: an orphan branch of this repo, checked out besid
 `reports/<key>.md`: the worker's full account when it is done or blocked.
 
 **Blocker**
-In a review: a wrong judgement, a behaviour change the issues did not ask for, or a failing test. Everything else is a note.
+In a review: a wrong judgement, a behaviour change the issues did not ask for, or a failing test.
+
+**Review note**
+A review finding that is not a blocker. The worker lists it in the report and the PR body and leaves it.
+
+**Turn-end note**
+What the app relays when a session ends a turn: the first 400 characters of its wrap-up recap and last message.
+
+**Owner note**
+Work only the user can do, recorded on a parent: a block in the parent's body or a comment on it, from a line that starts with the marker `**Owner action after this set:**` to the end of that body or comment. The marker alone makes a block an owner note.
+
+**Alarm**
+The coordinator's background `sleep` that wakes it to read `status/` while lanes run, since a worker's turn end may not.
+
+**CI fallback**
+The path a lane on "merge once CI passes" takes when its CI cannot run or no check appears (`coordinate/ci-fallbacks.md`).
 
 **Unattended**
 A mode the user turns on in words ("I'm going to sleep, carry on"), with a scope and a merge right recorded in the plan.
 
 **Consent**
-The user's explicit yes, typed to the coordinator in its own session, for one named action or a named set.
+The user's explicit yes, typed to the coordinator in its own session, for one named action or a named set; or the user's words that a session the coordinator opened to collect decisions wrote into `decisions-<date>.md`.
