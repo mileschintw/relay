@@ -5,7 +5,7 @@ Current state only. Done work moves to `plan-history.md` with a one-line pointer
 ## Handover
 
 - **Coordinator:** relay-coordinate session in worktree D:\Repos\relay\.claude\worktrees\lane-75-b3c0b3 (branch claude/relay-coordinate-a32074), id local_64ef6796-f1f9-4e2a-afe2-d83002ce2094, mode normal; since 2026-10-31 13:46 -0700, running relay 0.3.1 for the 0.3.2 loop below. Previous coordinator (worktree relay-coordinate-5b7cc3, id local_75cc31e5-4bd1-45b1-92a6-8c63fa48ec22) wrote itself out after releasing 0.3.1 (`release` and tag `relay--v0.3.1` = `3703e1f`). `relay.py` is `project.md`'s line (main checkout): fast-forward it after each merge.
-- **0.3.2 loop:** round 1 done (#82–#86; PRs #87–#90, #92). Round 2 done (#91, #93–#95; PRs #96, #97). Round 3 (scans of `a082f9d`): WFA 2 findings, code-review 2 (one shared), all verified; filed as #98 (docs: unattended end path, frontier wording; includes lane 91's note) and #99 (relay.py deny list inline flag). Round 3 done (PRs #100, #101). Round 4: WFA scan + code-review of `5878ecc` running.
+- **0.3.2 loop:** round 1 done (#82–#86; PRs #87–#90, #92). Round 2 done (#91, #93–#95; PRs #96, #97). Round 3 (scans of `a082f9d`): WFA 2 findings, code-review 2 (one shared), all verified; filed as #98 (docs: unattended end path, frontier wording; includes lane 91's note) and #99 (relay.py deny list inline flag). Round 3 done (PRs #100, #101). Round 4 (scans of `5878ecc`): WFA 2 findings (1 medium), code-review 4 (1 medium: a BOM hides the first deny name; 3 low), all verified; filed as #102 (relay.py deny list) and #103 (coordinate: compact paste keeps unattended; deny-list rules). Lanes 102 and 103 briefed, no shared files; starting waits for a turn the user types. Findings are shrinking to edge cases.
 - **Standing instructions for 0.3.2** (user, 2026-10-31 01:54 and 02:00 -0700): 「把目前已經規劃好的項目跟loop作為0.3.2，並且同意自動開issue跟lane跟CI，但我會在新coordinator執行。」 together with the plan it refers to (「…重跑wfa跟code-review loop，作為0.3.2的主要內容。loop到無問題後，我們視為0.3.2可以發布。」). So, without asking again:
   1. File an issue to make the alarm interval a `project.md` setting (an optional `- **Alarm:** <minutes>` line like `CI start wait:`; coordinate's Alarm bullet reads it, default as today), from the user's 「下一個patch讓鬧鐘時數可以調整config」, and run it as a lane.
   2. Loop: a fresh subagent runs a writing-for-agents scan of every agent-facing file under `plugin/`, and another runs `mattpocock-skills:code-review` of `relay--v0.3.1..main` (the method used for 0.3.1: `plan-history.md`, "Lanes 60–64" and "Close-out … 0.3.1"). Verify each finding against the files; file the real ones as issues (Files section included), group them into lanes by file, start the lanes, and open each PR and merge it once CI passes (`relay.py waitchecks`, then `relay.py merge`). Repeat with a new scan once a round's lanes have merged.
@@ -31,6 +31,8 @@ Every open issue, once. "Order" is the wave (1 = can start now). "Kind" is `free
 
 | Issue | Order | Blocked by (GitHub) | Same-section wait | Files it owns | Kind |
 |---|---|---|---|---|---|
+| #102 | 1 | — | — | relay.py (deny_patterns, deny_regex, deny-list errors); tests | free |
+| #103 | 1 | — | — | coordinate SKILL.md (First turn step 5; Waiting list; Records bullet); compact.md (item 1) | free |
 
 Round 2 (2026-10-31): code-review found 2 (filed as #93, the deny-list one a regression from #83); WFA scan found 5 (filed as #94, #95); all verified by the coordinator against `3efbf76`. Two lanes, no shared files: lane 91 (#91 #93 #94, relay.py) and lane 95 (#95, docs). Both started on the user's "Start them" (2026-10-31).
 
@@ -40,7 +42,7 @@ Round 1 (2026-10-31): #83–#86 filed from the WFA scan (8 findings) and code-re
 
 ## Waiting for the user to be present
 
-none (lanes 98 and 99 started on the user's "Start them", 2026-10-31)
+- Any message from the user here, so lanes 102 and 103 (round 4) can start: covered by the standing 0.3.2 go-ahead; the app only starts sessions in a turn the user typed.
 
 ## Waiting for the user's decision
 
