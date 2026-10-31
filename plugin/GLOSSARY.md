@@ -66,7 +66,7 @@ The plan table of lanes with a session: key, issues, session, state, and what a 
 The plan table of every open issue, once: its Order, blocked-by, same-section wait, the files it owns and its Kind.
 
 **Kind**
-A Roadmap column, judged by the lane's outcome: `free` when the outcome needs no user decision, account, special machine or release (a single limited follow-up step, such as replacing a release asset, is logged for the user and leaves it `free`); `limited: <what>` when the outcome itself needs one; `parent` for an issue with sub-issues. Unattended mode runs only `free` lanes.
+A Roadmap column, judged by the lane's outcome: `free` when the outcome needs no user decision, account, special machine or release (a single limited follow-up step, such as replacing a release asset, is logged for the user and leaves it `free`); `limited: <what>` when the outcome itself needs one; `parent` for an issue with sub-issues.
 
 **Ruling**
 A decision the user made that the repo does not record yet, kept in the plan with the user's own words until a doc or ADR carries it.
