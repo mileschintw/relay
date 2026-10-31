@@ -39,7 +39,7 @@ Run `relay.py status` from your lane's worktree (it reads the branch and head th
 
 - **Blocked** on a decision only the user or the coordinator can make, or needing an off-limits file: `--state blocked`, the options in the report, and a `SendMessage` to the coordinator's id with one short question. Once answered, set the state back to the step you were on.
 - **Waiting on your own background runs**: at each turn end before `done`, rerun the same `relay.py status` command with the same `--state` and a `--doing` naming what still runs (`"still running <X>, <Y>"`). The coordinator then tells waiting from a stall without reading your transcript.
-- A finding that changes another lane's work (a broken check, a shared file): one short `SendMessage` to the coordinator, and carry on.
+- A problem outside your lane (a broken check, a shared file, a bug in relay itself): look it up first, with `gh issue list --search "<key words>" --state all` and the Roadmap in the records folder's `plan.md`. Already there: name that issue in the report and send no message. Not there: one short `SendMessage` to the coordinator. Either way, carry on.
 
 ## Report
 
@@ -53,6 +53,7 @@ Run `relay.py status` from your lane's worktree (it reads the branch and head th
 - how each conflict was resolved;
 - review findings and how each was handled;
 - issues opened;
+- problems outside the lane that the tracker or the Roadmap already holds, each with its issue number;
 - anything created, installed or removed outside the repo and your scratchpad, and whether you undid it;
 - **every decision the user made in this session, with their words** (the coordinator cannot see your `AskUserQuestion` answers);
 - when the brief says the user is away, a *Decided while unattended* section;
