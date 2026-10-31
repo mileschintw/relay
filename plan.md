@@ -33,6 +33,9 @@ Every open issue, once. "Order" is the wave (1 = can start now). "Kind" is `free
 | Issue | Order | Blocked by (GitHub) | Same-section wait | Files it owns | Kind |
 |---|---|---|---|---|---|
 | #83 | 1 | — | — | relay.py (check_commands, check_pr_body, cmd_status, conflicts); tests; templates/project.md (checks lines) | free |
+| #91 | 2 | — | after #83 (relay.py › check_commands) | relay.py (cmd_merge, check_commands); tests | free |
+
+#91 filed 2026-10-31 by lane 83 from its review (merge after a failed fetch; Windows override written first): joins round 2 once #83 merges. Lane 83's full suite takes ~18 min on this box (1093 s), not 2.
 
 Round 1 (2026-10-31): #83–#86 filed from the WFA scan (8 findings) and code-review (6 findings), all verified by the coordinator against `3703e1f`. Mechanical overlap only: templates/project.md 82 (Alarm) / 83 (checks lines) / 84 (relay.py line); coordinate SKILL.md 82 (Alarm) / 84 (preamble) / 86 (Scheduling, Finishing); work SKILL.md 84 (preamble) / 85 (rest). Lanes 83–86 started on the user's "Start them" (2026-10-31).
 
