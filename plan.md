@@ -17,7 +17,7 @@ none (ruling 1, merging on local checks while the repo had no CI, ended when #16
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
 | 61 | #61 | local_955327e8-f19c-4d39-9b44-e8ae04a594c7 | review | |
-| 64 | #64 | local_9138d2b4-f743-4490-8d19-b640c2302e2d (started from the card; folder suspicious-swanson-e455f9, branch claude/suspicious-swanson-e455f9; the worker resets it to origin/main) | started | |
+| 64 | #64 | local_9138d2b4-f743-4490-8d19-b640c2302e2d (started from the card; folder suspicious-swanson-e455f9, branch claude/suspicious-swanson-e455f9; the worker resets it to origin/main) | review | |
 
 Lanes 60–63 started 2026-10-31 00:12 -0700 on the user's 「照推薦開四個lan執行所有問題，並在結束後再跑一次wfa跟code-review」.  Lanes 62, 63 merged (PRs #65, #66, 00:49, via `relay.py merge`, first real run) → `plan-history.md`. Lane 60 merged (PR #67, 00:53). Lane 64 (#64, 「要，一起做」) proposed as a card (task_913c43b8) after the start was refused in an event turn; the user started it 00:51.
 
