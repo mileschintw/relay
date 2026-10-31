@@ -146,3 +146,4 @@ Finished work moved out of `plan.md`, newest first, for checking only; the plan 
 - PR #92 (lane 83) merged 21:38Z. Round 1 complete; main at `3efbf76`. Lane 83 filed #91 (out-of-scope review findings).
 - Round 2: PR #96 (lane 95, #95) merged 21:56Z; main at `74263d4`.
 - Round 2: PR #97 (lane 91; #91 #93 #94) merged 21:57Z; main at `a082f9d`. Round 2 complete.
+- Round 3: PR #100 (lane 98, #98) merged 22:10Z; main at `5461ad4`.
