@@ -262,6 +262,50 @@ class ReadyTests(Base):
         self.assertIn("12: deny-list check not run (see Records)", out)
         self.assertNotIn("Ready for PR", out)
 
+    def test_deny_list_with_a_bom_matches_its_first_line(self):
+        (self.records / "deny.txt").write_bytes("Acme\nGlobex\n".encode("utf-8-sig"))
+        (self.records / "project.md").write_text("- **Deny list:** `deny.txt`\n")
+        self.assertEqual(relay.deny_patterns(self.records), ["Acme", "Globex"])
+        head = self.branch("lane-12")
+        self.done("12", "lane-12", head, body="Closes #12\n\nFor Acme.\n")
+        self.assertIn("PR body lines [3]: a deny-list name", self.ready())
+
+    def test_deny_list_not_utf8_names_the_file_and_line(self):
+        (self.records / "project.md").write_text("- **Deny list:** `deny.txt`\n")
+        for data, line in (("Acmesecret\n".encode("utf-16"), 1),
+                           ("Acme\n# names\nAcmesecrét\n".encode("cp1252"), 3)):
+            (self.records / "deny.txt").write_bytes(data)
+            with self.assertRaises(ValueError) as cm:
+                relay.deny_patterns(self.records)
+            self.assertEqual(str(cm.exception),
+                             f"project.md's deny list deny.txt line {line} is not valid UTF-8")
+        head = self.branch("lane-12")
+        self.done("12", "lane-12", head)
+        out = self.ready()
+        self.assertIn("Records:\n  project.md's deny list deny.txt line 3 is not valid UTF-8", out)
+        self.assertNotIn("Acmesecr", out)
+        self.assertNotIn("codec", out)
+        self.assertIn("12: deny-list check not run (see Records)", out)
+
+    def test_deny_list_refuses_zero_length_matches_by_line(self):
+        (self.records / "project.md").write_text("- **Deny list:** `deny.txt`\n")
+        for bad in (r"\b", r"\B", r"(?<=\w)", r"(?=\W)", r"acmesecret|\b", r"(?i)\b", "$",
+                    "(?=[a-z])", "acmesecret|(?=9)"):
+            (self.records / "deny.txt").write_text(f"# names\nAcme\n{bad}\n")
+            with self.assertRaisesRegex(ValueError, "deny.txt line 3 is not a usable pattern") as cm:
+                relay.deny_patterns(self.records)
+            self.assertNotIn("acmesecret", str(cm.exception))
+        (self.records / "deny.txt").write_text("Acme\\b\n\\bGlobex\n")
+        self.assertEqual(len(relay.deny_patterns(self.records)), 2)
+
+    def test_deny_list_verbose_comments_work(self):
+        (self.records / "deny.txt").write_text("(?x) acme \\s corp  # the old name\n")
+        (self.records / "project.md").write_text("- **Deny list:** `deny.txt`\n")
+        pats = relay.deny_patterns(self.records)
+        self.assertTrue(relay.check_pr_body(self.write_body("at acme corp today"), [1], pats))
+        self.assertFalse(relay.check_pr_body(self.write_body("acme corporate"), [1], pats))
+        self.assertFalse(relay.check_pr_body(self.write_body("the old name"), [1], pats))
+
     def write_body(self, text):
         path = self.tmp / "body.md"
         path.write_text(f"Closes #1\n\n{text}\n")
@@ -1010,6 +1054,11 @@ class MergeTests(Base):
         self.assertEqual(err.strip().splitlines(), [
             "project.md's deny list deny.txt line 2 is not a usable pattern (the error is not "
             "shown: it can quote the name); nothing merged"])
+        (self.records / "deny.txt").write_bytes("Acmesecret\n".encode("utf-16"))
+        code, out, err = self.merge("12", "13")
+        self.assertEqual((code, self.merges()), (1, []))
+        self.assertEqual(err.strip().splitlines(), [
+            "project.md's deny list deny.txt line 1 is not valid UTF-8; nothing merged"])
 
     def test_failed_merge_stops_the_rest(self):
         code, out, err = self.merge("12", "13", merge_fail={"5": "Head branch was modified"})
