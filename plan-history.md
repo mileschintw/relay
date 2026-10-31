@@ -39,3 +39,12 @@ Finished work moved out of `plan.md`, newest first, for checking only; the plan 
 
 - Resolved its conflict with lane 1 at 40eb713. User's 「解完衝突、本機檢查過就合併」; coordinator ran tests (40 OK) and plugin validate on 40eb713 merged onto main.
 - Lane 16's Actions billing block cleared after the repo was made public (16:50, per lane 16's status); user had said 「我讓他重試了」.
+
+## 2026-10-30 17:02 -0700, lanes 16 and 3 merged (coordinator local_75cc31e5-4bd1-45b1-92a6-8c63fa48ec22)
+
+| Key | Issue | Session | Branch @ head | PR |
+|---|---|---|---|---|
+| 16 | #16 CI workflow | local_2fe47f57-11a8-4d72-a4e7-2c91bd1aa81c | claude/lane-16-3bf73f @ a907962 | #20 |
+| 3 | #3 Owner notes; hand back when roadmap empties | local_9bd0484c-821d-4349-9663-678666c9e033 | claude/lane-3-af9107 @ f1f09a5 | #21 |
+
+- User's "Open and merge both" (16:58). First merges with real CI: #20 and #21 each passed test (ubuntu, windows) and validate. Rulings on local-check merges are no longer needed from here.
