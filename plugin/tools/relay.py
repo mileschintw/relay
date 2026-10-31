@@ -35,6 +35,8 @@ ready   read-only. Prints what the coordinator can do next:
             done lanes with a conflict, pending or failed checks, or a failed lookup. A failed
             check whose job never started (no steps, or an annotation saying it was not started:
             billing, a spending limit) shows as `checks could not run (billing)`, not `check failed`.
+            A PR with no checks shows as `no CI configured` when the repo has no Actions workflow
+            (`gh api repos/<repo>/actions/workflows`), else as `no checks reported`.
           - No status yet: a brief with no status file.
           - Could not parse: a status file that is not valid UTF-8, or has no valid state or no
             branch, head or time; the other lanes are still listed.
@@ -294,9 +296,20 @@ def never_started(check, repo):
     return any(NOT_STARTED.search(n.get("message") or "") for n in notes)
 
 
+def no_workflows(repo):
+    """True when the repo has no GitHub Actions workflow at all. A failed lookup counts as
+    having one, so the PR keeps waiting on checks."""
+    if not repo:
+        return False
+    try:
+        return (gh("api", f"repos/{repo}/actions/workflows") or {}).get("total_count", 1) == 0
+    except (RuntimeError, ValueError, OSError, AttributeError):
+        return False
+
+
 def checks_state(rollup, repo=None):
     if not rollup:
-        return "no checks reported"
+        return "no CI configured" if no_workflows(repo) else "no checks reported"
     billing = []
     for c in rollup:
         status = (c.get("status") or "COMPLETED").upper()

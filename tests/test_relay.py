@@ -209,6 +209,21 @@ class ReadyTests(Base):
                                       "mergeable": "MERGEABLE", "statusCheckRollup": []}]}})
         self.assertIn("PR #5 no checks reported", self.ready())
 
+    def test_no_ci_configured(self):
+        head = self.branch("lane-12")
+        self.done("12", "lane-12", head)
+        prs = {"lane-12": [{"number": 5, "state": "OPEN", "headRefOid": head,
+                            "mergeable": "MERGEABLE", "statusCheckRollup": []}]}
+        self.gh({"prs": prs, "workflows": 0})
+        out = self.ready()
+        self.assertIn("12: PR #5 no CI configured", out)
+        self.assertNotIn("no checks reported", out)
+        self.assertNotIn("checks pending", out)
+        self.gh({"prs": prs, "workflows": 1})
+        self.assertIn("PR #5 no checks reported", self.ready())
+        self.gh({"prs": prs, "workflows": 0, "broken": ["/actions/workflows"]})
+        self.assertIn("PR #5 no checks reported", self.ready())
+
     def test_stale_status_head(self):
         self.branch("lane-12")
         self.done("12", "lane-12", "abcdef1234")
