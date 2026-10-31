@@ -111,3 +111,8 @@ Finished work moved out of `plan.md`, newest first, for checking only; the plan 
 
 - Roadmap note for #45–#51, moved from plan.md:
   Filed 2026-10-30 from the second retro on the user's 「6 項都開」. Mechanical overlap: relay.py and test_relay.py #45 (new subcommand) / #46 and #47 (both add a check in `cmd_ready`: name each one's line in the briefs); coordinate SKILL.md #45 (step 4) / #48 (Alarm) / #50 (Consent). #51 came from the user's side session (local_219aad9f), relayed and confirmed here with 「另開 issue，#45 等它」; #45 is blocked by #51 on GitHub (merge reuses `waitchecks`), and both touch coordinate SKILL.md step 4. Lanes started 2026-10-30 23:14 (Now). Wave 2's overlap notes → `plan-history.md`. Not filed, by recommendation: unpinned claude-code in CI, stall detection.
+
+## Lanes 60–64 (writing-for-agents scan), 2026-10-31
+
+- #60–#63 filed from the coordinator's WFA scan on the user's 「照推薦開四個lan執行所有問題，並在結束後再跑一次wfa跟code-review」; lanes started 00:12. Lane 63 opened #64 (stopped lanes leaving Now).
+- PRs #65 (62) and #66 (63) opened on 「開 PR，CI 過就合併」, merged 00:49 by `relay.py waitchecks` + `relay.py merge` (first real run of `merge`: both merged, push run reported).
