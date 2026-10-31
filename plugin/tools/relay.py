@@ -291,7 +291,7 @@ def check_pr_body(path, closes=None, deny=None):
 
 
 LEADING_FLAGS = re.compile(r"(?:\(\?[aiLmsux]+\))+")
-DENY_PROBE = "Aa1_ .,-@#/\té中()[]"
+DENY_PROBE = "Aa1_ .,-@#/\té中()[] a.Z-9@b_c"
 
 
 def deny_regex(pat):
@@ -332,7 +332,7 @@ def deny_patterns(records):
     try:
         text = data.decode("utf-8")
     except UnicodeDecodeError as e:
-        n = data[:e.start].count(b"\n") + 1
+        n = data.count(b"\n", 0, e.start) + 1
         raise ValueError(f"project.md's deny list {path.name} line {n} is not valid UTF-8") from None
     pats = []
     for n, line in enumerate(text.splitlines(), 1):

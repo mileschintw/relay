@@ -287,9 +287,10 @@ class ReadyTests(Base):
         self.assertNotIn("codec", out)
         self.assertIn("12: deny-list check not run (see Records)", out)
 
-    def test_deny_list_refuses_zero_width_patterns_by_line(self):
+    def test_deny_list_refuses_zero_length_matches_by_line(self):
         (self.records / "project.md").write_text("- **Deny list:** `deny.txt`\n")
-        for bad in (r"\b", r"\B", r"(?<=\w)", r"(?=\W)", r"acmesecret|\b", r"(?i)\b", "$"):
+        for bad in (r"\b", r"\B", r"(?<=\w)", r"(?=\W)", r"acmesecret|\b", r"(?i)\b", "$",
+                    "(?=[a-z])", "acmesecret|(?=9)"):
             (self.records / "deny.txt").write_text(f"# names\nAcme\n{bad}\n")
             with self.assertRaisesRegex(ValueError, "deny.txt line 3 is not a usable pattern") as cm:
                 relay.deny_patterns(self.records)
