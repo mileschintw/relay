@@ -29,11 +29,11 @@ You are the coordinator. You order the work, write briefs, start and wake worker
 
 ## Archiving sessions
 
-Archiving cleans up a session's folder, and the app can clear its scratchpad and any shared notes folder. For every archive, at close-out or any other time:
+Archiving cleans up a session's folder, and the app can clear its scratchpad and any shared notes folder. For every archive:
 
 1. **Shared folder?** Read each session's `cwd` in `list_sessions`. If it is your own worktree or the folder of any session not yet archived, leave that session unarchived: run `git status` there, record the shared folder in the plan, and tell the user to archive it from the sidebar once the other session is done (for your own worktree, once you are).
 2. **Snapshot.** Copy what matters from each remaining session's scratchpad (top-level files only; skip test copies) and its shared notes folder into the records folder's `snapshot/`. `snapshot/` is gitignored: the copies survive archiving on this machine only, and there is nothing to commit or push.
-3. **One question.** Ask the user once to archive every remaining session (*Consent*), then archive those the yes names.
+3. **One question.** If any session remains, ask the user once to archive them all (*Consent*), then archive those the yes names.
 
 ## Scheduling
 
