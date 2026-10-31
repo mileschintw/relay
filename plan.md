@@ -25,7 +25,7 @@ Every open issue, once. "Order" is the wave (1 = can start now). "Kind" is `free
 
 | Issue | Order | Blocked by (GitHub) | Same-section wait | Files it owns | Kind |
 |---|---|---|---|---|---|
-| #33 CI outside GitHub Actions reads as no CI configured (needs-triage; filed by lane 25) | 1 after triage | none | none (#25 merged) | relay.py (`no_workflows` / `checks_state`), fake_gh.py, test_relay.py | free |
+| #33 CI outside GitHub Actions reads as no CI configured (filed by lane 25; triaged 2026-10-30, ready-for-agent) | 1 | none | none | relay.py (`no_workflows` / `checks_state`, `ready` docstring), fake_gh.py (`commits/HEAD/status`, `/check-runs`), test_relay.py, setup SKILL.md (step 9) | free |
 
 Filed 2026-10-30 from the coordinator's retro on the user's 「7點都能file」. Mechanical overlap: relay.py #25/#27 (different functions; #27 touches only the section list); setup SKILL.md #25 (new CI step) / #26 (copy step and check); coordinate SKILL.md #24 (top line) / #25 (step 4) / #28 and #31 (Plan: same-section wait, #31 after #28); work SKILL.md #24 (intro) / #30. #29 was widened on the user's 「把值得作的三項開issue或更新現有issue」 with lane 8's two notes; #31 filed the same time (lane 9's note). Not filed, by recommendation: unpinned claude-code in CI, stall detection. Triage of #7–#10: `decisions-2026-10-30.md`.
 
@@ -36,7 +36,6 @@ none
 ## Waiting for the user's decision
 
 - Records follow-ups from wave 2: add `- **relay.py:** D:/Repos/relay/plugin/tools/relay.py` to `project.md` (#24, lane 24's report); add `.gitattributes` (`* text eol=lf`) to this records folder and renormalize (#26, lane 26's report). Since 2026-10-30 17:57 -0700.
-- Triage #33 (needs-triage, filed by lane 25) before it gets a lane.
 - Close-out: archive finished sessions triage-7-10 (local_25b74a50-b6f9-40d5-86ad-82eae30d7c7f), lane-1, -2, -3, -7, -8, -9, -10, -11, -12, -16 (all merged; none shares the coordinator's folder); since 2026-10-30 16:40 -0700.
 
 ## Deadlines
