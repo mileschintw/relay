@@ -297,20 +297,23 @@ def branch_prs(repo, branch):
 
 class ReadyLookups:
     """What `ready` looks up once per run instead of once per done lane: pushed heads from the
-    checkout's just-fetched origin/* refs (ls-remote per branch without a checkout), and every
-    PR from one `gh pr list --state all`. A failed list fails each lane that asks for it."""
+    checkout's just-fetched origin/* refs (ls-remote per branch without a checkout, or when the
+    fetch or the ref read failed), and every PR from one `gh pr list --state all`. In a full
+    list, a branch with no merged PR there gets its own lookup, since older PRs may be cut off.
+    A failed list fails each lane that asks for it."""
 
-    def __init__(self, checkout, lanes):
+    def __init__(self, checkout, fetched, lanes):
         self.checkout, self.limit = checkout, max(PR_LIST_MIN, PR_LIST_PER_LANE * lanes)
-        self.heads = self.index = self.error = None
+        self.heads = {} if checkout and fetched else None
+        self.index, self.full, self.error = None, False, None
 
     def pushed(self, branch):
-        if not self.checkout:
-            return pushed_head(None, branch)
-        if self.heads is None:
+        if self.heads == {}:
             code, out, _ = run(["git", "for-each-ref", "--format=%(refname:lstrip=3) %(objectname)",
                                 "refs/remotes/origin"], cwd=self.checkout)
-            self.heads = dict(line.split() for line in out.splitlines() if line.strip())
+            self.heads = None if code else dict(ln.split() for ln in out.splitlines() if ln.strip())
+        if self.heads is None:
+            return pushed_head(self.checkout, branch)
         return self.heads.get(branch, "")
 
     def prs(self, repo, branch):
@@ -326,8 +329,9 @@ class ReadyLookups:
             self.full, self.index = len(listed) >= self.limit, {}
             for p in listed:
                 self.index.setdefault(p["headRefName"], []).append(p)
-        if branch in self.index or not self.full:
-            return self.index.get(branch, [])
+        listed = self.index.get(branch, [])
+        if not self.full or any(p["state"].upper() == "MERGED" for p in listed):
+            return listed
         return branch_prs(repo, branch)
 
 
@@ -475,11 +479,12 @@ def cmd_ready(a):
             out["Plan"].append(f"plan.md has {n} lines (limit {a.plan_limit}): prune it "
                                "(move, never delete; the kinds the top of plan.md names stay)")
     repo = a.repo
+    fetched = False
     if a.checkout:
-        run(["git", "fetch", "-q", "--prune", "origin"], cwd=a.checkout)
+        fetched = not run(["git", "fetch", "-q", "--prune", "origin"], cwd=a.checkout)[0]
     out["relay.py"] += relay_py_behind(records, a.checkout)
     repo, parents = ready_parents(repo, out)
-    lookups = ReadyLookups(a.checkout, len(have))
+    lookups = ReadyLookups(a.checkout, fetched, len(have))
     print("Lanes:")
     for path in sorted(status_dir.glob("*.md")):
         key = path.stem
@@ -653,10 +658,9 @@ def ready_done(records, key, st, repo, checkout, out, lookups=None):
     if not (records / "reports" / f"{key}.md").exists():
         out["Inconsistent"].append(f"{key}: done with no report file")
     pushed = pushed_of(branch)
-    prs = None
-    if not pushed:  # a branch deleted after its merge is still Merged
-        prs = prs_of(repo, branch)
-    if not pushed.startswith(head) and not any(p["state"].upper() == "MERGED" for p in prs or []):
+    prs = None if pushed else prs_of(repo, branch)  # a branch deleted after its merge is Merged
+    if not pushed.startswith(head) and not any(p["state"].upper() == "MERGED"
+                                               and p["headRefOid"].startswith(head) for p in prs or []):
         out["Inconsistent"].append(f"{key}: status head {head} is not the pushed head "
                                    f"{pushed[:12] or '(branch not pushed)'}")
         return
@@ -665,8 +669,9 @@ def ready_done(records, key, st, repo, checkout, out, lookups=None):
         out["Inconsistent"].append(f"{key}: {problem}")
     if prs is None:
         prs = prs_of(repo, branch)
-    if any(p["state"].upper() == "MERGED" for p in prs):
-        out["Merged"].append(f"{key}: PR #{[p for p in prs if p['state'].upper() == 'MERGED'][0]['number']}")
+    merged = next((p for p in prs if p["state"].upper() == "MERGED"), None)
+    if merged:
+        out["Merged"].append(f"{key}: PR #{merged['number']}")
         return
     pr = next((p for p in prs if p["state"].upper() == "OPEN"), None)
     if pr is None and prs:

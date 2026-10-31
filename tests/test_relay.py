@@ -487,9 +487,28 @@ class ReadyLookupTests(Base):
         self.assertIn("14: status head", out)
         self.assertIn("(branch not pushed)", out)
 
-    def test_a_full_list_falls_back_to_one_lookup_per_missing_branch(self):
+    def test_merged_pr_of_another_head_on_a_deleted_branch_is_not_merged(self):
         self.lanes()
-        with mock.patch.object(relay, "PR_LIST_MIN", 1), mock.patch.object(relay, "PR_LIST_PER_LANE", 0):
+        self.gh({"prs": {"lane-12": [{"number": 5, "state": "MERGED", "headRefOid": "f" * 40}]}})
+        git("push", "-q", "origin", "--delete", "lane-12", cwd=self.clone)
+        out, _, _ = self.counted_ready("--checkout", str(self.clone))
+        self.assertIn("12: status head", out)
+        self.assertNotIn("Merged", out)
+
+    def test_a_failed_fetch_falls_back_to_ls_remote(self):
+        self.lanes()
+        real = relay.run
+
+        def run(cmd, cwd=None):
+            return (1, "", "offline") if cmd[1] == "fetch" else real(cmd, cwd)
+        with mock.patch.object(relay, "run", run):
+            out, gits, _ = self.counted_ready("--checkout", str(self.clone))
+        self.assertEqual(len([g for g in gits if g.startswith("ls-remote")]), 3, gits)
+        self.assertIn("Ready for PR:\n  14: lane-14", out)
+
+    def test_a_full_list_looks_up_each_branch_without_a_merged_pr(self):
+        self.lanes()
+        with mock.patch.object(relay, "PR_LIST_MIN", 2), mock.patch.object(relay, "PR_LIST_PER_LANE", 0):
             out, _, prs = self.counted_ready("--checkout", str(self.clone))
         self.assertEqual(prs[1:], ["pr list --repo o/r --head lane-13 --state all --json "
                                    "number,state,headRefOid,mergeable,statusCheckRollup",
