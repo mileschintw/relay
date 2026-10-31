@@ -39,10 +39,10 @@ Run `relay.py status` from your lane's worktree (it reads the branch and head th
 
 - **Blocked** on a decision only the user or the coordinator can make, or needing an off-limits file: `--state blocked`, the options in the report, and a `SendMessage` to the coordinator's id with one short question. Once answered, set the state back to the step you were on.
 - **Waiting on your own background runs**: at each turn end before `done`, rerun the same `relay.py status` command with the same `--state` and a `--doing` naming what still runs (`"still running <X>, <Y>"`). The coordinator then tells waiting from a stall without reading your transcript.
-- A problem outside your lane (a review finding outside the lane's scope, a check that breaks after step 1, a shared file, a bug every lane hits): look it up first, with `gh issue list --search "<key words>" --state all` and the Roadmap in the records folder's `plan.md`, then carry on.
+- A problem outside your lane (a review finding outside the lane's scope, a check that breaks after step 1, a shared file, a bug every lane hits): look it up first, with `gh issue list --search "<key words>" --state all` and the Roadmap in the records folder's `plan.md`.
   - An open issue or a Roadmap row holds it: name that issue in the report.
   - Only a closed issue holds it, or nothing does: open a new issue (`Refs` the closed issue when there is one, else an issue on your brief's *Closes* line) and list it in the report under issues opened. When it will hit other lanes too, also send the coordinator one short `SendMessage` naming the new issue.
-  - It stops your lane: block (**Blocked** above).
+  - It stops your lane: block (**Blocked** above). Otherwise, carry on.
 
 ## Report
 
