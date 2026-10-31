@@ -65,6 +65,7 @@ Only `plugin/` is installed; everything else is for developing relay.
 | `plugin/GLOSSARY.md` | the terms |
 | `.claude-plugin/marketplace.json` | the catalog; its entry installs `plugin/` from the `release` branch |
 | `tests/` | `python3 -I tests/test_relay.py` |
+| `.github/workflows/test.yml` | CI: the tests (Ubuntu, Windows) and `claude plugin validate .` |
 | `docs/getting-started.md` | the longer walkthrough and how relay splits work with mattpocock-skills |
 
 ## Releasing

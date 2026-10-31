@@ -4,13 +4,14 @@
  "blocked_by": {"12": [11]},
  "issues": {"10": ["OPEN", null], "11": ["CLOSED", "COMPLETED"]},
  "children": {"10": ["11"]},
- "bodies": {"10": "## Files\\n\\n- a.py\\n"},
+ "bodies": {"10": "issue body"},
+ "comments": {"10": [{"body": "...", "html_url": "https://..."}]},
  "broken": ["/sub_issues"],
  "prs": {"<branch>": [{"number": 5, "state": "OPEN", "headRefOid": "<sha>",
                        "mergeable": "MERGEABLE", "statusCheckRollup": [...]}]},
  "jobs": {"<job id>": {"steps": [...]}},          # a missing job ran one step
  "annotations": {"<job id>": [{"message": "..."}]}}
-children: an issue's sub-issues. bodies: issue bodies (default empty).
+children: an issue's sub-issues. bodies, comments: an issue's body and comments.
 broken: a call with an argument containing one of these fails.
 `pr comment <N> --body-file <f>` appends `#<N>` and the body to $RELAY_FAKE_GH.comments.
 """
@@ -43,8 +44,13 @@ elif a[0] == "api" and any("/issues?state=open" in x for x in a):
             kids = [rest(c) for c in children.get(n, [])]
             done = sum(k["state_reason"] == "completed" for k in kids)
             print(json.dumps({"number": int(n), "title": f"issue {n}",
-                              "body": data.get("bodies", {}).get(n, ""),
+                              "body": data.get("bodies", {}).get(n),
+                              "html_url": f"https://github.com/{data['repo']}/issues/{n}",
                               "sub_issues_summary": {"total": len(kids), "completed": done}}))
+elif a[0] == "api" and any("/comments" in x for x in a):
+    n = next(x for x in a if "/comments" in x).split("/")[-2]
+    for c in data.get("comments", {}).get(n, []):
+        print(json.dumps(c))
 elif a[0] == "api" and any("/sub_issues" in x for x in a):
     n = next(x for x in a if "/sub_issues" in x).split("/")[-2]
     for c in children.get(n, []):

@@ -570,5 +570,52 @@ class RoadmapTests(Base):
         self.assertIn("broken", err)
 
 
+class OwnerNoteTests(Base):
+    """A parent's body or comment holding the owner-note marker is listed under Owner notes."""
+
+    MARK = "**Owner action after this set:**"
+
+    def parent(self, body="", comments=(), **extra):
+        self.gh({"issues": {"1": ["OPEN", None], "2": ["OPEN", None]}, "children": {"1": ["2"]},
+                 "bodies": {"1": body}, "comments": {"1": list(comments)}, **extra})
+
+    def test_marked_comment_links_to_it(self):
+        self.parent(comments=[
+            {"body": "Unrelated chatter.", "html_url": "https://x/1#issuecomment-10"},
+            {"body": f"Context first.\n\n{self.MARK} grill the next stage\n- before the paid run",
+             "html_url": "https://x/1#issuecomment-11"}])
+        out = self.ready()
+        self.assertIn("Owner notes:\n  #1 https://x/1#issuecomment-11\n"
+                      "    **Owner action after this set:** grill the next stage\n"
+                      "    - before the paid run\n", out)
+        self.assertNotIn("issuecomment-10", out)
+        self.assertNotIn("Context first", out)
+
+    def test_marked_body_links_to_the_issue(self):
+        self.parent(body=f"{self.MARK} book the GPU")
+        self.assertIn("  #1 https://github.com/o/r/issues/1\n    **Owner action after this set:** "
+                      "book the GPU\n", self.ready())
+
+    def test_unmarked_and_mid_line_markers_ignored(self):
+        self.parent(body=f"Mentions {self.MARK} mid-line.",
+                    comments=[{"body": "Owner action after this set: no bold",
+                               "html_url": "https://x/1#issuecomment-12"}])
+        self.assertNotIn("Owner notes:", self.ready())
+
+    def test_only_parents_are_read(self):
+        self.gh({"issues": {"1": ["OPEN", None]}, "bodies": {"1": f"{self.MARK} x"}})
+        self.assertNotIn("Owner notes:", self.ready())
+
+    def test_failed_comment_lookup_does_not_hold_go(self):
+        (self.records / "briefs" / "2.md").write_text("Depends on: none\n")
+        self.call("status", str(self.records), "2", "--state", "parked", "--doing", "parked")
+        self.parent(body=f"{self.MARK} still listed", broken=["/comments"])
+        out = self.ready()
+        self.assertIn("Owner notes:\n  #1 https://github.com/o/r/issues/1\n"
+                      "    **Owner action after this set:** still listed\n"
+                      "  #1: comments lookup failed:", out)
+        self.assertIn("2: send `GO #2`", out)
+
+
 if __name__ == "__main__":
     unittest.main()

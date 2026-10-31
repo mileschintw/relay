@@ -41,6 +41,9 @@ ready   read-only. Prints what the coordinator can do next:
             children's open and closed counts, and whether every child closed as completed. A
             parent is never a lane: a status file keyed on one is Inconsistent and gets no GO.
             While this lookup fails, parked lanes wait instead of getting GO.
+          - Owner notes: each parent's body or comment with a line that starts with the owner-note
+            marker (GLOSSARY.md), with its link and the block from the marker to the end of that
+            body or comment. A failed lookup is listed here and holds nothing.
           - Inconsistent: a done lane's status head that is not the pushed one; done with no report
             file; a PR head that is not the status head; a PR closed without merging; a dependency
             closed as not planned (it also holds GO); a PR body
@@ -96,6 +99,7 @@ STATES = ("parked", "working", "blocked", "review", "done")
 FIELDS = ("state", "branch", "head", "PR body draft", "time", "doing")
 CLOSING = re.compile(r"\b(close[sd]?|fix(e[sd])?|resolve[sd]?)\b:?\s*#\d+", re.I)
 CLOSES_LINE = re.compile(r"^Closes #\d+\s*$")
+OWNER_NOTE = re.compile(r"^\*\*Owner action after this set:\*\*", re.M)
 CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]|\r(?!\n)")
 
 
@@ -327,8 +331,8 @@ def cmd_ready(a):
         print(f"no records folder at {records}", file=sys.stderr)
         return 2
     out = {k: [] for k in ("Ready for GO", "Ready for PR", "Ready to merge", "Waiting",
-                           "No status yet", "Merged", "Parents", "Inconsistent", "Could not parse",
-                           "Records", "Plan")}
+                           "No status yet", "Merged", "Parents", "Owner notes", "Inconsistent",
+                           "Could not parse", "Records", "Plan")}
     plan = records / "plan.md"
     for path in [plan, *sorted((records / "briefs").glob("*.md")),
                  *sorted((records / "pr-bodies").glob("*.md"))]:
@@ -389,8 +393,8 @@ def ready_parents(repo, out):
     """Open issues with sub-issues (GitHub's sub_issues_summary), listed under Parents with their
     children's open and closed counts. Returns (repo, the parents' numbers), or (repo, None) when
     the lookup fails. A parent is never a lane."""
-    issue_jq = ".[] | select(.pull_request == null) | {number, title, sub_issues_summary}"
-    parents = set()
+    issue_jq = ".[] | select(.pull_request == null) | {number, title, body, html_url, sub_issues_summary}"
+    parents, parent_issues = set(), []
     try:
         repo = repo or gh("repo", "view", "--json", "nameWithOwner")["nameWithOwner"]
         for issue in gh("api", "--paginate", f"repos/{repo}/issues?state=open&per_page=100",
@@ -409,10 +413,33 @@ def ready_parents(repo, out):
                          else "; every child closed as completed")
             parents.add(n)
             out["Parents"].append(line)
+            parent_issues.append(issue)
     except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
         out["Parents"].append(f"lookup failed: {e}")
         return repo, None
+    for issue in parent_issues:
+        ready_owner_notes(repo, issue, out)
     return repo, parents
+
+
+def ready_owner_notes(repo, issue, out):
+    """List under Owner notes each block in a parent's body or comments that starts with the
+    owner-note marker at the start of a line, with the link to that body or comment."""
+    n = issue["number"]
+
+    def add(post):
+        m = OWNER_NOTE.search(post.get("body") or "")
+        if m:
+            block = m.string[m.start():].rstrip().splitlines()
+            out["Owner notes"].append(f"#{n} {post['html_url']}\n" +
+                                      "\n".join(f"    {line}" for line in block))
+    add(issue)
+    try:
+        for comment in gh("api", "--paginate", f"repos/{repo}/issues/{n}/comments?per_page=100",
+                          "--jq", ".[] | {body, html_url}", jsonl=True):
+            add(comment)
+    except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
+        out["Owner notes"].append(f"#{n}: comments lookup failed: {e}")
 
 
 def ready_parked(records, key, repo, out):
