@@ -59,7 +59,7 @@ Only `plugin/` is installed; everything else is for developing relay.
 | Path | What |
 |---|---|
 | `plugin/skills/setup` | `/relay:setup`: turn relay on in a repo |
-| `plugin/skills/coordinate` | `/relay:coordinate`: the coordinator; `unattended.md`, `compact.md`, `large-outputs.md`, `cross-machine.md`, `app-limits.md` are read on demand |
+| `plugin/skills/coordinate` | `/relay:coordinate`: the coordinator; `unattended.md`, `compact.md`, `large-outputs.md`, `cross-machine.md`, `app-limits.md`, `ci-fallbacks.md` are read on demand |
 | `plugin/skills/work` | `relay:work`: what each worker follows |
 | `plugin/tools/relay.py` | `status` (a worker's status file), `ready` (what the coordinator can do next), `roadmap` (each open issue's blocked-by and Files section), `localcheck` (the checks, run locally when CI cannot), `waitchecks` (wait for a PR's first check, then watch its checks), `merge` (merge Ready to merge lanes one at a time, stopping on the first problem) |
 | `plugin/GLOSSARY.md` | the terms |

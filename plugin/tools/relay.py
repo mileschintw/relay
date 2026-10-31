@@ -102,19 +102,20 @@ waitchecks  waits for PR <N>'s first check, then watches its checks. Polls `gh p
 
 merge   merges lanes one at a time, in the order given. First, every key must be listed under
         `ready`'s Ready to merge and nowhere else (--checkout as for `ready`), or nothing merges.
-        Then, per key: waitchecks on its PR; its head still the sha Ready to merge printed;
-        mergeStateStatus `CLEAN` (UNKNOWN, while GitHub recomputes after a merge, is asked again
-        after 5, 15 and 30 seconds); `gh pr merge <N> --merge --match-head-commit <sha>`; one line
-        with the merge time. The first key that fails a test gets one line saying why, and no
-        later key merges. After the last merge, prints the default branch's push run for the
-        merge commit (`gh run list --event push --commit`), or that none has appeared yet.
+        Then, per key, with no wait for checks (Ready to merge already needs them all passed):
+        its head still the sha Ready to merge printed; mergeStateStatus `CLEAN` (UNKNOWN, while
+        GitHub recomputes after a merge, is asked again after 5, 15 and 30 seconds); `gh pr merge
+        <N> --merge --match-head-commit <sha>`; one line with the merge time. The first key that
+        fails a test gets one line saying why, and no later key merges. After the last merge,
+        prints the default branch's push run for the merge commit (`gh run list --event push
+        --commit`), or that none has appeared yet.
 
 Exit: status 0 when written, 1 when a check fails; ready 0 after printing; roadmap 0 after
 printing, 1 when a lookup fails; localcheck 0 when every command passed, else 1 (a command, the
 merge, a lookup or the comment failed); waitchecks 0 when the checks passed, 1 when one failed,
 3 when no check appeared, 4 when a lookup failed (the last poll's, or a watch that failed with
 no failed check behind it, a gh error say); merge 0 when every key merged, 1 when it stopped;
-2 on a usage error (waitchecks, merge: a CI start wait that is not a number of minutes) or a
+2 on a usage error (waitchecks: a CI start wait that is not a number of minutes) or a
 missing records folder. `gh` is called through $RELAY_GH when set (a command line, for tests).
 Standard library only, Python 3.10+.
 """
@@ -961,14 +962,10 @@ def ready_to_merge(records, key, repo, checkout):
     return "; ".join(others) or "not listed"
 
 
-def merge_lane(key, pr, sha, repo, schedule):
-    """Wait for PR <pr>'s checks, require head <sha> and mergeStateStatus CLEAN, then merge with
-    --match-head-commit. Returns (merge commit sha or None, base branch), or None after printing
-    one line on why it stopped."""
-    code = wait_checks(pr, repo, schedule)
-    if code:
-        fail(f"{key}: PR #{pr} checks did not pass (waitchecks exit {code})")
-        return None
+def merge_lane(key, pr, sha, repo):
+    """Require PR <pr>'s head <sha> and mergeStateStatus CLEAN, then merge with --match-head-commit.
+    Returns (merge commit sha or None, base branch), or None after printing one line on why it
+    stopped."""
     try:
         for wait in (*STATE_RETRIES, None):
             view = gh("pr", "view", str(pr), "--repo", repo, "--json",
@@ -1027,11 +1024,6 @@ def cmd_merge(a):
         print(f"no records folder at {records}", file=sys.stderr)
         return 2
     try:
-        schedule = ci_start_schedule(records)
-    except ValueError as e:
-        print(e, file=sys.stderr)
-        return 2
-    try:
         repo = a.repo or gh("repo", "view", "--json", "nameWithOwner")["nameWithOwner"]
     except LOOKUP_ERRORS as e:
         return fail(f"lookup failed: {e}")
@@ -1048,7 +1040,7 @@ def cmd_merge(a):
         lanes.append((key, *found))
     last = None
     for key, pr, sha in lanes:
-        last = merge_lane(key, pr, sha, repo, schedule)
+        last = merge_lane(key, pr, sha, repo)
         if last is None:
             return 1
     if last[0]:
