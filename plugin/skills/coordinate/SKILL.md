@@ -74,7 +74,7 @@ Sessions start only in a turn the user typed in the desktop app, so start every 
 
 - Rewrite the lines a change touches, at every state change: a lane started, parked, done, merged, a ruling, a question to the user. The records commit time is the plan's update time, so the top of the plan carries no time. Entries that carry one (a Waiting "since", the Unattended log) take it from a command (`date "+%Y-%m-%d %H:%M %z"`; PowerShell `Get-Date -Format "yyyy-MM-dd HH:mm zzz"`), never from your estimate.
 - The roadmap table is the only list of open issues: change it when any issue opens or closes.
-- **Move, never delete.** Done waves, process logs and rulings now carried by a repo doc go to `plan-history.md`, leaving a one-line pointer. The kinds named at the top of `plan.md` stay. When `ready` warns the plan is over its limit, do one pruning pass of everything else.
+- **Move, never delete.** Done waves, process logs and rulings now carried by a repo doc are appended to the end of `plan-history.md` (oldest first), leaving a one-line pointer. The kinds named at the top of `plan.md` stay. When `ready` warns the plan is over its limit, do one pruning pass of everything else.
 - **Commit the records** after each change, workers' status, reports and PR bodies included: `git -C <records> add -A`, `git -C <records> commit -m "<summary>"`, `git -C <records> push origin coord`. Only you push `coord`, so it never needs a rebase or a force push.
 - Write a new brief with the Write tool from the template; change existing lines of the plan and briefs with the Edit tool, never a shell rewrite (it breaks encodings and line endings). On Windows, write a commit message with a double quote in it to a file and use `git commit -F`.
 
