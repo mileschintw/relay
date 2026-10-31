@@ -95,7 +95,8 @@ waitchecks  waits for PR <N>'s first check, then watches its checks. Polls `gh p
 Exit: status 0 when written, 1 when a check fails; ready 0 after printing; roadmap 0 after
 printing, 1 when a lookup fails; localcheck 0 when every command passed, else 1 (a command, the
 merge, a lookup or the comment failed); waitchecks 0 when the checks passed, 1 when one failed,
-3 when no check appeared, 4 when the last poll's lookup failed; 2 on a usage error (waitchecks: a
+3 when no check appeared, 4 when a lookup failed (the last poll's, or a watch that failed with
+no failed check behind it, a gh error say); 2 on a usage error (waitchecks: a
 CI start wait that is not a number of minutes) or a missing records folder. `gh` is
 called through $RELAY_GH when set (a command line, for tests). Standard library only, Python 3.10+.
 """
@@ -126,6 +127,7 @@ def run(cmd, cwd=None):
 
 
 def gh_base():
+    """The gh command line: $RELAY_GH when set, else `gh`."""
     return [t.strip('"') for t in shlex.split(os.environ.get("RELAY_GH", "gh"), posix=False)]
 
 
@@ -769,25 +771,41 @@ def cmd_localcheck(a):
 # waitchecks -----------------------------------------------------------------------------------
 
 NO_CHECKS, LOOKUP_FAILED = 3, 4
+CI_START_WAIT = 6  # minutes, when project.md has no `CI start wait:` line
 
 
-def poll_schedule(minutes=6):
+def poll_schedule(minutes):
     """Poll times in seconds: now, then 1/6, 1/2 and all of the CI start wait (6: 0, 1, 3, 6 min)."""
     return [0, minutes * 10, minutes * 30, minutes * 60]
+
+
+def ci_start_schedule(records):
+    """poll_schedule for project.md's `CI start wait: <minutes>` line, else CI_START_WAIT.
+    ValueError when the line is not a positive number of minutes."""
+    line = project_line(records, "CI start wait")
+    if line is None:
+        return poll_schedule(CI_START_WAIT)
+    m = re.fullmatch(r"`?(\d+(?:\.\d+)?)`?(?:\s*min(?:ute)?s?)?\.?", line.strip())
+    if not (m and float(m.group(1)) > 0):
+        raise ValueError(f"project.md's CI start wait is not a number of minutes: {line}")
+    return poll_schedule(float(m.group(1)))
+
+
+def pr_rollup(pr, repo):
+    return (gh("pr", "view", str(pr), "--repo", repo, "--json", "statusCheckRollup")
+            or {})["statusCheckRollup"]
 
 
 def wait_checks(pr, repo, schedule):
     """Poll PR <pr>'s checks at each time in schedule (seconds from now) until one exists, queued
     or pending included, then `gh pr checks --watch` it. Returns 0 when the checks passed, 1 when
     one failed, NO_CHECKS when none appeared by the last poll, LOOKUP_FAILED when the last poll's
-    lookup failed with none seen."""
+    lookup failed with none seen, or the watch failed with no failed check behind it."""
     start, error = time.monotonic(), None
     for i, at in enumerate(schedule, 1):
         time.sleep(max(0, at - (time.monotonic() - start)))
         try:
-            rollup = (gh("pr", "view", str(pr), "--repo", repo, "--json", "statusCheckRollup")
-                      or {})["statusCheckRollup"]
-            error = None
+            rollup, error = pr_rollup(pr, repo), None
         except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
             rollup, error = None, e
             print(f"poll {i} at {at / 60:g} min: lookup failed: {e}", file=sys.stderr)
@@ -795,7 +813,17 @@ def wait_checks(pr, repo, schedule):
             print(f"poll {i} at {at / 60:g} min: {len(rollup)} check(s); watching", flush=True)
             code, out, err = run(gh_base() + ["pr", "checks", str(pr), "--repo", repo, "--watch"])
             print((out + err).rstrip())
-            return 0 if code == 0 else 1
+            if code == 0:
+                return 0
+            # gh exits 1 on a failed check and on its own errors alike: ask the rollup which
+            try:
+                state = checks_state(pr_rollup(pr, repo), repo)
+            except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
+                state = f"lookup failed: {e}"
+            if state.startswith(("check failed", "checks could not run")):
+                return 1
+            print(f"the watch failed with no failed check ({state})", file=sys.stderr)
+            return LOOKUP_FAILED
         if error is None:
             print(f"poll {i} at {at / 60:g} min: no checks yet", flush=True)
     if error is not None:
@@ -811,17 +839,17 @@ def cmd_waitchecks(a):
     if not records.is_dir():
         print(f"no records folder at {records}", file=sys.stderr)
         return 2
-    line = project_line(records, "CI start wait")
-    m = re.fullmatch(r"`?(\d+(?:\.\d+)?)`?(?:\s*min(?:ute)?s?)?\.?", line.strip()) if line else None
-    if line and not (m and float(m.group(1)) > 0):
-        print(f"project.md's CI start wait is not a number of minutes: {line}", file=sys.stderr)
+    try:
+        schedule = ci_start_schedule(records)
+    except ValueError as e:
+        print(e, file=sys.stderr)
         return 2
     try:
         repo = a.repo or gh("repo", "view", "--json", "nameWithOwner")["nameWithOwner"]
     except (RuntimeError, ValueError, KeyError, TypeError, OSError) as e:
         print(f"lookup failed: {e}", file=sys.stderr)
         return LOOKUP_FAILED
-    return wait_checks(a.pr, repo, poll_schedule(float(m.group(1)) if m else 6))
+    return wait_checks(a.pr, repo, schedule)
 
 
 def fail(msg):

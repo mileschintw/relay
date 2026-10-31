@@ -12,7 +12,7 @@
  "jobs": {"<job id>": {"steps": [...]}},          # a missing job ran one step
  "annotations": {"<job id>": [{"message": "..."}]},
  "workflows": 0,                                  # the repo's Actions workflow count, default 1
- "head_statuses": 1, "head_check_runs": 1,       # counts on the default branch head, default 0
+ "head_statuses": 1, "head_check_runs": 1,      # counts on the default branch head, default 0
  "pr_checks": {"5": {"after": 3, "rollup": [...]}},  # `pr view 5`'s statusCheckRollup: empty
                                                   # before its 3rd call (default 1st), then rollup
  "watch": {"5": [1, "output"]}}                   # `pr checks 5 --watch`: exit code and output

@@ -7,8 +7,8 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from unittest import mock
 from contextlib import redirect_stdout, redirect_stderr
+from unittest import mock
 
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent / "plugin" / "tools"))
@@ -489,11 +489,13 @@ class WaitchecksTests(Base):
     """waitchecks polls PR #5 for its first check on a front-loaded schedule, with time faked."""
 
     QUEUED = [{"name": "test", "status": "QUEUED", "conclusion": ""}]
+    FAILED = [{"name": "test", "status": "COMPLETED", "conclusion": "FAILURE"}]
 
-    def waitchecks(self, after=1, watch=(0, "all checks passed"), project=None, **data):
+    def waitchecks(self, after=1, watch=(0, "all checks passed"), project=None, rollup=None,
+                   repo=("--repo", "o/r"), **data):
         if project is not None:
             (self.records / "project.md").write_text(project)
-        self.gh({"pr_checks": {"5": {"after": after, "rollup": self.QUEUED}},
+        self.gh({"pr_checks": {"5": {"after": after, "rollup": rollup or self.QUEUED}},
                  "watch": {"5": list(watch)}, **data})
         pathlib.Path(str(self.fake) + ".calls").unlink(missing_ok=True)
         now, self.polls = [0.0], []
@@ -509,7 +511,7 @@ class WaitchecksTests(Base):
         with mock.patch.object(relay.time, "sleep", sleep), \
                 mock.patch.object(relay.time, "monotonic", lambda: now[0]), \
                 mock.patch.object(relay, "gh", poll):
-            return self.call("waitchecks", str(self.records), "5", "--repo", "o/r")
+            return self.call("waitchecks", str(self.records), "5", *repo)
 
     def watched(self):
         calls = pathlib.Path(str(self.fake) + ".calls").read_text().splitlines()
@@ -525,9 +527,16 @@ class WaitchecksTests(Base):
     def test_checks_on_a_later_poll_are_watched_to_their_result(self):
         code, out, err = self.waitchecks(after=2)
         self.assertEqual((code, self.polls), (0, [0.0, 60.0]), err)
-        code, out, err = self.waitchecks(after=4, watch=(1, "X test fail"))
-        self.assertEqual((code, self.polls), (1, [0.0, 60.0, 180.0, 360.0]), err)
+        code, out, err = self.waitchecks(after=4, watch=(1, "X test fail"), rollup=self.FAILED)
+        self.assertEqual(code, 1, err)
+        self.assertEqual(self.polls[:4], [0.0, 60.0, 180.0, 360.0])
         self.assertIn("X test fail", out)
+
+    def test_a_watch_error_with_no_failed_check_is_a_lookup_failure(self):
+        code, out, err = self.waitchecks(watch=(1, "HTTP 502"))
+        self.assertEqual(code, 4, err)
+        self.assertIn("HTTP 502", out)
+        self.assertIn("no failed check (checks pending)", err)
 
     def test_no_checks_by_the_last_poll(self):
         code, out, err = self.waitchecks(after=99)
@@ -555,6 +564,8 @@ class WaitchecksTests(Base):
         self.assertEqual(code, 4, err)
         self.assertEqual(len(self.polls), 4)
         self.assertIn("lookup failed", err)
+        code, out, err = self.waitchecks(repo=(), broken=["nameWithOwner"])
+        self.assertEqual((code, self.polls), (4, []), err)
 
     def test_wait_checks_takes_a_schedule(self):
         self.gh({"pr_checks": {"5": {"after": 3, "rollup": self.QUEUED}}})
@@ -562,6 +573,7 @@ class WaitchecksTests(Base):
             self.assertEqual(relay.wait_checks(5, "o/r", [0]), relay.NO_CHECKS)
             self.assertEqual(relay.wait_checks(5, "o/r", [0, 1]), 0)
         self.assertEqual(relay.poll_schedule(10), [0, 100, 300, 600])
+        self.assertEqual(relay.ci_start_schedule(self.records), [0, 60, 180, 360])
 
 
 class ParentTests(Base):
