@@ -22,7 +22,7 @@ none (ruling 1, merging on local checks while the repo had no CI, ended when #16
 
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
-| 99 | #99 | local_cc7d0f0f-e8f3-4322-9234-0c312fe6cfe4 | started | — |
+| 99 | #99 | local_cc7d0f0f-e8f3-4322-9234-0c312fe6cfe4 | done; PR #101, waitchecks running | — |
 
 All lanes through 75 merged; 0.3.1 released; lane 82 merged → `plan-history.md` (waves 1–2, lanes 33, 42, 45–51, 60–64, 71–75, close-outs, 0.3.2 round 1).
 
