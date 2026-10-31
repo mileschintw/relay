@@ -22,7 +22,7 @@ none (ruling 1, merging on local checks while the repo had no CI, ended when #16
 | 74 | #74, #68 | local_b101bb59-4460-4470-a8e7-832b77cef7d2 | working (own fix) | |
 | 75 | #75 | local_30621d25-0afa-430c-a754-e65b2e1c1c02 | working (own fix) | |
 
-Lanes 71–75 started 2026-10-31 01:22 -0700 on the user's 「照推薦開 A–E」, each in its own new folder. Ruling for this batch (01:32): 「讓他們各自修補自己發現的小問題，先不要再開新issue，我想早點發布patch」: each lane fixes what it found inside the batch, no new issues; then release 0.3.1. Lane 74 fixes its never-list drift note; lane 75 adds the three GLOSSARY rules to coordinate (Plan, Consent, Same-section wait lines). Merge order when several finish together: 71 before 72 (both relay.py). After all merge: release 0.3.1 on the user's yes. Lanes 60–64 (WFA scan) all merged (PRs #65–#67, #69, #70) → `plan-history.md`.
+Lanes 71–75 started 2026-10-31 01:22 -0700 on the user's 「照推薦開 A–E」, each in its own new folder. Merge right for 71–75 and the 0.3.1 release: 「好，一路到發布」 (01:34): open each PR when done, merge once CI passes, then release 0.3.1 per README › Releasing. Ruling for this batch (01:32): 「讓他們各自修補自己發現的小問題，先不要再開新issue，我想早點發布patch」: each lane fixes what it found inside the batch, no new issues; then release 0.3.1. Lane 74 fixes its never-list drift note; lane 75 adds the three GLOSSARY rules to coordinate (Plan, Consent, Same-section wait lines). Merge order when several finish together: 71 before 72 (both relay.py). After all merge: release 0.3.1 on the user's yes. Lanes 60–64 (WFA scan) all merged (PRs #65–#67, #69, #70) → `plan-history.md`.
 
 Lanes 51, 46, 48, 49, 50 merged (PRs #53–#57, 23:38–23:40) → `plan-history.md`. Lane 47 merged (PR #58, 23:41). Lane 45 got GO after #53 merged; lane 45 merged (PR #59, 00:04).
 
