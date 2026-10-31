@@ -32,6 +32,9 @@ Lane A needs lane B's result. The tracker's blocking link on A's issue (GitHub's
 **Same-section wait**
 Lanes A and B change the same section of a file, though neither needs the other's result: one runs after the other, in either order. The brief's `Waits for (same section):` line is the source (`relay.py ready` reads it); the roadmap and the issue's `Same-section wait:` line copy it. Never blocked-by.
 
+**Files section**
+An issue body's `## Files` section: one bullet per file the lane will touch, `New:` before a file it creates, a trailing `(...)` scoping the change. The source for the roadmap's Files it owns and for the overlap check when a lane starts (`relay.py roadmap` prints it).
+
 **Mechanical overlap**
 Two lanes touch the same file in ways that merge cleanly: separate rows of a table, separate sections that do not refer to each other, or one lane adding an item to a list another lane owns.
 

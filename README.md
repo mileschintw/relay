@@ -61,7 +61,7 @@ Only `plugin/` is installed; everything else is for developing relay.
 | `plugin/skills/setup` | `/relay:setup`: turn relay on in a repo |
 | `plugin/skills/coordinate` | `/relay:coordinate`: the coordinator; `unattended.md`, `compact.md`, `large-outputs.md`, `cross-machine.md`, `app-limits.md` are read on demand |
 | `plugin/skills/work` | `relay:work`: what each worker follows |
-| `plugin/tools/relay.py` | `status` (a worker's status file), `ready` (what the coordinator can do next), `localcheck` (the checks, run locally when CI cannot) |
+| `plugin/tools/relay.py` | `status` (a worker's status file), `ready` (what the coordinator can do next), `roadmap` (each open issue's blocked-by and Files section), `localcheck` (the checks, run locally when CI cannot) |
 | `plugin/GLOSSARY.md` | the terms |
 | `.claude-plugin/marketplace.json` | the catalog; its entry installs `plugin/` from the `release` branch |
 | `tests/` | `python3 -I tests/test_relay.py` |

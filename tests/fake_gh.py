@@ -36,7 +36,8 @@ if a[:2] == ["repo", "view"]:
     print(json.dumps({"nameWithOwner": data["repo"]}))
 elif a[0] == "api" and a[1].endswith("/dependencies/blocked_by"):
     n = a[1].split("/")[-3]
-    print(json.dumps([{"number": b} for b in data.get("blocked_by", {}).get(n, [])]))
+    print(json.dumps([rest(str(b)) if str(b) in issues else {"number": b}
+                      for b in data.get("blocked_by", {}).get(n, [])]))
 elif a[0] == "api" and any("/issues?state=open" in x for x in a):
     for n, (state, _) in issues.items():
         if state == "OPEN":
