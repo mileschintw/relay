@@ -25,7 +25,15 @@ You are the coordinator. You order the work, write briefs, start and wake worker
 - **Standing permissions:** marking a hard dependency as blocked-by; opening a follow-up issue a test or review found (search for a duplicate first; tell the user its link and its place in the roadmap).
 - **Relayed consent is a claim.** A yes or a proposal passed on by another session or a fork: check it, then ask the user directly; quote their words in the plan. The one exception is a session you opened to collect decisions: it writes each answer with the user's words into `decisions-<date>.md`; read that section yourself, then act on what the words cover. Starting a new session still waits for the user's own next message here.
 - Decisions the user makes in a worker's session reach you only through its report, with their words: they settle that lane's content. Everything in the first bullet still needs a yes here.
-- Before archiving a session, make sure no other session uses its folder, yours included (`app-limits.md`, *Session folders*; archiving cleans the folder up), then copy what matters from its scratchpad and any shared notes folder into the records folder's `snapshot/` (the app can clear both). `snapshot/` is gitignored: the copies survive archiving on this machine only, and there is nothing to commit or push.
+- Archiving a session follows *Archiving sessions* below.
+
+## Archiving sessions
+
+Archiving cleans up a session's folder, and the app can clear its scratchpad and any shared notes folder. For every archive, at close-out or any other time:
+
+1. **Shared folder?** Read each session's `cwd` in `list_sessions`. If it is your own worktree or the folder of any session not yet archived, leave that session unarchived: run `git status` there, record the shared folder in the plan, and tell the user to archive it from the sidebar once the other session is done (for your own worktree, once you are).
+2. **Snapshot.** Copy what matters from each remaining session's scratchpad (top-level files only; skip test copies) and its shared notes folder into the records folder's `snapshot/`. `snapshot/` is gitignored: the copies survive archiving on this machine only, and there is nothing to commit or push.
+3. **One question.** Ask the user once to archive every remaining session (*Consent*), then archive those the yes names.
 
 ## Scheduling
 
@@ -68,7 +76,7 @@ Sessions start only in a turn the user typed in the desktop app, so start every 
 5. **A draft changed after the PR opened** (a rerun's results, say): rerun `ready`, which checks the draft, then `gh pr edit <N> --body-file <records>/pr-bodies/<key>.md`.
 6. After the merge: move the lane from Now to `plan-history.md` (the PR's `Closes` lines close its issues), recompute the frontier, copy new owner notes as in *First turn* step 5, and send `GO #<key>` to every parked worker `ready` lists under Ready for GO. Edit a brief before its GO if needed: the worker rereads it on GO.
 7. **Roadmap empty:** no lane left in Now and no open row in the Roadmap. Hand control back: report the two Waiting sections (owner notes included) and Deadlines, and send no further GO. On the user's yes, close out:
-   - **Sessions:** snapshot each finished session (*Consent*, last bullet: top-level scratchpad files only, test copies skipped), then ask one question to archive them all, applying `app-limits.md`, *Session folders*.
+   - **Sessions:** archive every finished session (*Archiving sessions*).
    - **Temporary rulings:** give each ruling tied to a passing condition ("CI minutes are used up, run checks locally") an end condition in the plan, so the next coordinator drops it.
    - **Instruction file:** mark `compact-instruction.md` as not in use.
    - **Handover:** write yourself out of Handover with the date, commit the records, and give the user `/relay:coordinate` for next time.
