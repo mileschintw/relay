@@ -117,3 +117,4 @@ Finished work moved out of `plan.md`, newest first, for checking only; the plan 
 - #60–#63 filed from the coordinator's WFA scan on the user's 「照推薦開四個lan執行所有問題，並在結束後再跑一次wfa跟code-review」; lanes started 00:12. Lane 63 opened #64 (stopped lanes leaving Now).
 - PRs #65 (62) and #66 (63) opened on 「開 PR，CI 過就合併」, merged 00:49 by `relay.py waitchecks` + `relay.py merge` (first real run of `merge`: both merged, push run reported).
 - PR #67 (lane 60) merged 00:53 the same way. Main checkout at `54de98b`.
+- PRs #69 (lane 61) and #70 (lane 64) merged 01:13 by `relay.py merge` (with lane 61, `merge` no longer re-waits). Main checkout at `41e6567`. #68 (step 7 hand-back) left open for the rescan, on the user's 「併進重掃」.

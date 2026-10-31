@@ -16,8 +16,6 @@ none (ruling 1, merging on local checks while the repo had no CI, ended when #16
 
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
-| 61 | #61 | local_955327e8-f19c-4d39-9b44-e8ae04a594c7 | done, PR #69 | |
-| 64 | #64 | local_9138d2b4-f743-4490-8d19-b640c2302e2d (started from the card; folder suspicious-swanson-e455f9, branch claude/suspicious-swanson-e455f9; the worker resets it to origin/main) | done, PR #70 | |
 
 Lanes 60–63 started 2026-10-31 00:12 -0700 on the user's 「照推薦開四個lan執行所有問題，並在結束後再跑一次wfa跟code-review」.  Lanes 62, 63 merged (PRs #65, #66, 00:49, via `relay.py merge`, first real run) → `plan-history.md`. Lane 60 merged (PR #67, 00:53). Lane 64 (#64, 「要，一起做」) proposed as a card (task_913c43b8) after the start was refused in an event turn; the user started it 00:51.
 
@@ -31,11 +29,9 @@ Every open issue, once. "Order" is the wave (1 = can start now). "Kind" is `free
 
 | Issue | Order | Blocked by (GitHub) | Same-section wait | Files it owns | Kind |
 |---|---|---|---|---|---|
-| #61 coordinate: step 4 keeps the common merge path; CI fallbacks move to ci-fallbacks.md | 1 | none | none | coordinate SKILL.md (Finishing step 4; Other branches), New: ci-fallbacks.md, relay.py (`cmd_merge` wait), test_relay.py, fake_gh.py, README Layout | free |
-| #64 coordinate: say when a stopped lane leaves the Now table | 1 | none | none | coordinate SKILL.md (Finishing a lane step 6, or where a lane stops), unattended.md (Stuck) | free |
 | #68 coordinate: step 7 hand-back when only stopped lanes remain in the Roadmap | 1 | none | none | coordinate SKILL.md (Finishing a lane step 7) | free |
 
-#68 opened by lane 64 (standing permission); folded into the post-batch WFA + code-review rescan on the user's 「併進重掃」. PRs #69 (61) and #70 (64) opened on 「開 PR，CI 過就合併」. #64 opened by lane 63 (standing permission, a gap its review found), no lane yet. Filed 2026-10-31 from the writing-for-agents scan, on the user's 「照推薦開四個lan執行所有問題…」. Mechanical overlap in coordinate SKILL.md: 61 (step 4), 62 (Consent, step 7), 63 (First turn step 3, Alarm). #45–#51 (second retro) all merged → `plan-history.md`.
+#68 opened by lane 64 (standing permission); folded into the post-batch WFA + code-review rescan on the user's 「併進重掃」. Lanes 61, 64 merged (PRs #69, #70, 01:13). Now running the requested WFA rescan + code-review of relay--v0.3.0..main. #64 opened by lane 63 (standing permission, a gap its review found), no lane yet. Filed 2026-10-31 from the writing-for-agents scan, on the user's 「照推薦開四個lan執行所有問題…」. Mechanical overlap in coordinate SKILL.md: 61 (step 4), 62 (Consent, step 7), 63 (First turn step 3, Alarm). #45–#51 (second retro) all merged → `plan-history.md`.
 
 ## Waiting for the user to be present
 
