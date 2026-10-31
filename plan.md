@@ -16,8 +16,16 @@ none (ruling 1, merging on local checks while the repo had no CI, ended when #16
 
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
+| 24 | #24 | local_8223afdd-4397-49a4-9540-378b5018e7e2 (worktree lane-24-228c28) | started | — |
+| 25 | #25 | local_a390b9b2-f8f2-4f4f-a349-7f44774378c1 (worktree lane-25-cf22e5) | started | — |
+| 26 | #26 | local_49c6f09b-66aa-40be-bb3d-c809c925fb34 (worktree lane-26-a6b2f5) | started | — |
+| 27 | #27 | local_c8055d4a-f2ac-47c7-abda-54f081a0a26d (worktree lane-27-9a7274) | started | — |
+| 28 | #28 | local_644f77a7-f3ea-412a-8136-9f6d0c0c1b08 (worktree lane-28-272abc) | started | — |
+| 29 | #29 | local_c0e33f80-d81b-42f9-b22f-622232add8bb (worktree lane-29-ea9758) | started | — |
+| 30 | #30 | local_4a03addc-5329-4b11-a472-c53ee8e846e3 (worktree lane-30-fd4564) | started | — |
+| 31 | #31 | local_ada54677-b465-4cc6-b678-479d0e40935c (worktree lane-31-b7c2a2) | started | #28 merges (GO #31) |
 
-All lanes merged: 1, 2, 3, 7, 8, 9, 10, 11, 12, 16 → `plan-history.md`.
+Wave 2 started 2026-10-30 17:37 -0700 on the user's 「開始wave2」; every lane in its own worktree (checked with list_sessions). Wave 1: all lanes merged: 1, 2, 3, 7, 8, 9, 10, 11, 12, 16 → `plan-history.md`.
 
 ## Roadmap
 
@@ -43,7 +51,6 @@ none
 ## Waiting for the user's decision
 
 - Close-out: archive finished sessions triage-7-10 (local_25b74a50-b6f9-40d5-86ad-82eae30d7c7f), lane-1, -2, -3, -7, -8, -9, -10, -11, -12, -16 (all merged; none shares the coordinator's folder); since 2026-10-30 16:40 -0700.
-- Start wave 2 (#24–#30 now, #31 parked until #28 merges): user said 「我compact完再接著執行wave2」 — treat that as the go-ahead once the compact is done; start every lane in the first turn after it.
 
 ## Deadlines
 
