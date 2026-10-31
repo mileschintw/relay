@@ -841,13 +841,14 @@ class SafeExitTests(Base):
         self.assertNotIn("Refreshing", out)
 
     def test_a_repo_with_workflows_behaves_as_before_apart_from_the_timing(self):
+        # fake_gh reports one workflow by default: no no-CI lookup, the same calls as before #51
         code, out, err = self.waitchecks(after=2)
         self.assertEqual((code, self.polls), (0, [0.0, 60.0]), err)
         calls = pathlib.Path(str(self.fake) + ".calls").read_text().splitlines()
         self.assertEqual(calls, ["pr view 5 --repo o/r --json statusCheckRollup"] * 2 +
                          ["pr checks 5 --repo o/r --watch", "pr checks 5 --repo o/r"])
 
-    def test_a_merge_moves_the_next_prs_state(self):
+    def test_a_pr_left_behind_by_an_earlier_merge_stops(self):
         self.lanes()
         base = {"headRefOid": self.heads["12"][1], "baseRefName": "main",
                 "mergedAt": "2026-10-31T07:00:00Z", "mergeCommit": {"oid": "m5" * 20}}

@@ -60,8 +60,9 @@ ready   read-only. Prints what the coordinator can do next:
             whole word; printed by line number only).
           - Records: invalid UTF-8, or a control character other than tab, LF and a CR right
             before LF, in project.md, plan.md, briefs/*.md or pr-bodies/*.md, by file and line
-            (for invalid UTF-8, the first bad byte only). Checked first, so a bad byte is a warning, never a
-            crash; a lane whose brief or PR body draft has one also shows as lookup failed.
+            (for invalid UTF-8, the first bad byte only). Checked first, so a bad byte is a
+            warning, never a crash; a lane whose brief or PR body draft has one also shows as
+            lookup failed.
             Also a warning when the records folder has no .gitattributes, naming the fix.
           - Plan: a warning when plan.md has more lines than --plan-limit (default 200).
           - relay.py: a warning when the git checkout holding project.md's `relay.py:` path
@@ -98,7 +99,8 @@ waitchecks  waits for PR <N>'s first check, then watches its checks. Polls `gh p
         statusCheckRollup` now and at 1, 3 and 6 minutes; project.md's `CI start wait: <minutes>`
         line stretches that to 1/6, 1/2 and all of its minutes. As soon as a check exists (queued
         or pending counts), runs `gh pr checks <N> --watch`, keeping only its errors (with no
-        terminal it reprints the table every 10 s), then prints `gh pr checks <N>` once. None by
+        terminal it reprints the table every 10 s, to stdout), then prints `gh pr checks <N>`
+        once; both calls' errors go to stderr. None by
         the last poll: prints `no checks appeared`, plus `no CI configured` when the repo has no
         Actions workflow and nothing reported on the default branch head (as `ready` decides). A
         failed poll is retried at the next one. No overall timeout once watching.
@@ -118,11 +120,12 @@ Exit: status 0 when written, 1 when a check fails; ready 0 after printing; roadm
 printing, 1 when a lookup fails; localcheck 0 when every command passed, else 1 (a command, the
 merge, a lookup or the comment failed); waitchecks 0 when the checks passed, 1 when one failed,
 3 when no check appeared, 4 when a lookup failed (the last poll's, or a watch that failed with
-no failed check behind it, a gh error say); merge 0 when every key merged, 1 when it stopped;
+no failed check behind it, a gh error say); merge 0 when every key merged, 1 when it stopped
+(a key not ready, or a lookup, merge state or `gh pr merge` that failed);
 2 on a usage error (waitchecks: a CI start wait that is not a number of minutes, or a
 project.md that is not UTF-8; merge: a key given twice) or a missing records folder.
-waitchecks and merge never exit 1 on an error of their own: any other error exits 4 with one
-line, and output the console cannot encode is replaced, not fatal.
+waitchecks and merge: an error not named above (a bug, say) exits 4 with one line, never 1;
+output the console cannot encode is replaced, not fatal.
 `gh` is called through $RELAY_GH when set (a command line, for tests).
 Standard library only, Python 3.10+.
 """
@@ -519,7 +522,9 @@ def relay_py_behind(records, checkout):
         return [f"{behind}, but it is {on}, not {name}: update it by hand once its work is safe "
                 "(no command offered: one would move that work off its branch)"]
     code, ahead, _ = run(["git", "rev-list", "--count", f"{default}..HEAD"], cwd=top)
-    if code or ahead.strip() != "0":
+    if code or not ahead.strip().isdigit():
+        return []
+    if int(ahead):
         return [f"{behind}, but its {name} has commits {default} does not, so a fast-forward "
                 "would fail: merge or move those commits by hand"]
     git_c = f'git -C "{where}"' if " " in where else f"git -C {where}"
@@ -917,9 +922,9 @@ def wait_checks(pr, repo, schedule):
             # errors, then print the final table once
             code, _, err = run(gh_base() + ["pr", "checks", str(pr), "--repo", repo, "--watch"])
             _, out, table_err = run(gh_base() + ["pr", "checks", str(pr), "--repo", repo])
-            print((out + table_err).rstrip())
-            if err.strip():
-                print(err.rstrip(), file=sys.stderr)
+            print(out.rstrip())
+            if (err + table_err).strip():
+                print((err + table_err).rstrip(), file=sys.stderr)
             if code == 0:
                 return 0
             # gh exits 1 on a failed check and on its own errors alike: ask the rollup which
