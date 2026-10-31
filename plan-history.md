@@ -100,3 +100,9 @@ Finished work moved out of `plan.md`, newest first, for checking only; the plan 
 - User: 「發布0.3.0，接著更新這個coordinator到新release」. A fresh subagent sorted unfiled worker notes first: one optional item (work SKILL.md step 3 vs Status) went to Waiting for the user's decision; the rest were handled or not worth an issue. PR #52 raised `version` to 0.3.0 (CI green, merged 23:06); `release` fast-forwarded fa817ff..1d023cd; annotated tag `relay--v0.3.0` pushed. Main checkout fast-forwarded to 1d023cd.
 - Plugin: `claude plugin marketplace update relay` and `claude plugin update relay@relay --scope local` (HTTPS rewrite via one-command GIT_CONFIG env) updated the main checkout's entry to 0.3.0; this worktree's entry in installed_plugins.json was pointed at 0.3.0 by hand (backup `installed_plugins.json.bak-relay-0.3.0`).
 - Wave 2 overlap notes (moved from the Roadmap): relay.py #25/#27; setup SKILL.md #25/#26; coordinate SKILL.md #24/#25/#28 and #31; work SKILL.md #24/#30. Triage of #7–#10: `decisions-2026-10-30.md`.
+
+## Lanes 45–51 (from the second retro), 2026-10-30
+
+- Started 23:14 -0700 on the standing instruction 「我compact完再接著直接繼續解issue」: seven lanes, 45 parked on #51. Every lane landed in an archived lane's folder (lanes 26–33), each on its own new branch at `1d023cd`.
+- PRs opened 23:36 on the user's 「開 PR，CI 過就合併」 (asked per lane: 51, 46, and 48/49/50 together). Merged in order, all CI green: #53 (lane 51, waitchecks) 23:38, #54 (46) 23:38, #55 (48) 23:39, #56 (49) 23:39, #57 (50) 23:40. Main checkout fast-forwarded to `d51a8c7`. GO #45 sent after #53.
+- Not run by lane 51: `waitchecks` against a real PR (needs the merged relay.py); try it on the next PR.
