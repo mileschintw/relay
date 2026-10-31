@@ -326,15 +326,30 @@ def check_encoding(path, name):
     return out
 
 
+# cmd_ready's output sections, in print order. One per line, so lanes adding a section don't conflict.
+READY_SECTIONS = (
+    "Ready for GO",
+    "Ready for PR",
+    "Ready to merge",
+    "Waiting",
+    "No status yet",
+    "Merged",
+    "Parents",
+    "Owner notes",
+    "Inconsistent",
+    "Could not parse",
+    "Records",
+    "Plan",
+)
+
+
 def cmd_ready(a):
     records = pathlib.Path(a.records)
     status_dir = records / "status"
     if not records.is_dir():
         print(f"no records folder at {records}", file=sys.stderr)
         return 2
-    out = {k: [] for k in ("Ready for GO", "Ready for PR", "Ready to merge", "Waiting",
-                           "No status yet", "Merged", "Parents", "Owner notes", "Inconsistent",
-                           "Could not parse", "Records", "Plan")}
+    out = {k: [] for k in READY_SECTIONS}
     plan = records / "plan.md"
     for path in [plan, *sorted((records / "briefs").glob("*.md")),
                  *sorted((records / "pr-bodies").glob("*.md"))]:
