@@ -140,6 +140,19 @@ class ReadyTests(Base):
         self.assertIn("13: parked on #14 open", out)
         self.assertNotIn("Ready for GO", out)
 
+    def test_blocked_by_of_every_issue_the_lane_closes(self):
+        self.gh({"blocked_by": {"13": [20]}, "issues": {"20": ["OPEN", None]}})
+        self.park("12", "Depends on: none\n- **Closes:** #12 #13\n")
+        out = self.ready()
+        self.assertIn("12: parked on #20 open", out)
+        self.assertNotIn("Ready for GO", out)
+        # an issue the lane closes is never its own dependency; no Closes line: the key alone
+        self.gh({"blocked_by": {"13": [12], "12": [13]}, "issues": {"12": ["OPEN", None],
+                                                                   "13": ["OPEN", None]}})
+        self.assertIn("12: send `GO #12`", self.ready())
+        self.park("12", "Depends on: none\n")
+        self.assertIn("12: parked on #13 open", self.ready())
+
     def test_not_planned_blocker_holds_go(self):
         self.gh({"issues": {"12": ["CLOSED", "NOT_PLANNED"]}})
         self.park("13", "Depends on: #12\n")
@@ -204,9 +217,21 @@ class ReadyTests(Base):
         (self.records / "project.md").write_text("- **Deny list:** `deny.txt`\n")
         head = self.branch("lane-12")
         body = ("Closes #12\n\nPinged @acmebot.\nIn C++ code.\nUse .internal hosts.\n"
-                "@acmebots and C++x and .internals\n")
+                "@acmebots and .internals\n")
         self.done("12", "lane-12", head, body=body)
         self.assertIn("PR body lines [3, 4, 5]: a deny-list name", self.ready())
+
+    def test_deny_list_ends_next_to_a_word_character(self):
+        pats = [r"\.internal", "@acmebot", r"C\+\+", "acme co", "acme"]
+        for text in ("build.internal", "dev@acmebot", "cc @acmebot", "C++", "the acme co"):
+            self.assertTrue(relay.check_pr_body(self.body(text), [1], pats), text)
+        for text in (".internals", "@acmebots", "acmecorp"):
+            self.assertFalse(relay.check_pr_body(self.body(text), [1], pats), text)
+
+    def body(self, text):
+        path = self.tmp / "body.md"
+        path.write_text(f"Closes #1\n\n{text}\n")
+        return path
 
     def test_closed_unmerged_pr(self):
         head = self.branch("lane-12")
@@ -683,6 +708,25 @@ class LocalcheckTests(Base):
         self.assertEqual(relay.check_commands("`a` (Windows: `b`).", windows=False), (["a"], []))
         self.assertEqual(relay.check_commands("`a` (Windows: `b`).", windows=True), (["b"], []))
 
+    def test_windows_override_written_before_the_command(self):
+        line = "(Windows: `b`) `a`; `c`"
+        self.assertEqual(relay.check_commands(line, windows=False), (["a", "c"], []))
+        self.assertEqual(relay.check_commands(line, windows=True), (["b", "c"], []))
+        for line in ("`a`; (Windows: `b`)", "(Windows: `b`) main checkout only"):
+            for windows in (False, True):
+                with self.assertRaisesRegex(ValueError, "only a Windows override") as e:
+                    relay.check_commands(line, windows=windows)
+                self.assertIn(line, str(e.exception))
+
+    def test_non_utf8_project_md_exits_2_with_one_line(self):
+        self.lane()
+        (self.records / "project.md").write_bytes(b"- **Local checks:** `x` caf\xe9\n")
+        code, out, err = self.localcheck()
+        self.assertEqual(code, 2, out + err)
+        self.assertEqual(len(err.strip().splitlines()), 1, err)
+        self.assertIn("not valid UTF-8", err)
+        self.assertEqual(len(self.worktrees()), 1)
+
     def test_two_commands_in_one_item_exits_2_naming_the_line(self):
         self.lane()
         self.project(f"- **Local checks:** {self.py('print(5)')}, `npm run lint`\n")
@@ -1022,6 +1066,20 @@ class SafeExitTests(Base):
         self.assertEqual((code, self.merges()), (1, []), err)
         self.assertIn("12: not under Ready to merge (Waiting: ", err)
         self.assertIn("conflict", err)
+
+    def test_merge_stops_when_its_fetch_fails(self):
+        self.lanes()
+        real = relay.run
+
+        def run(cmd, cwd=None):
+            return (1, "", "offline") if cmd[:2] == ["git", "fetch"] else real(cmd, cwd)
+        with mock.patch.object(relay, "run", run):
+            code, out, err = self.merge("12")
+        self.assertEqual((code, self.merges()), (1, []), err)
+        self.assertIn("git fetch failed", err)
+        self.assertIn("offline", err)
+        self.assertIn("nothing merged", err)
+        self.assertNotIn("merge-tree", err)
 
     def test_merge_refuses_a_checkout_that_is_not_a_git_checkout(self):
         (self.tmp / "outside").mkdir()

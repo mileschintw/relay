@@ -27,9 +27,10 @@ status  writes <records>/status/<key>.md, a worker's status file, then reads it 
 
 ready   read-only. Prints what the coordinator can do next:
           - Ready for GO: parked lanes whose every dependency is closed as completed. The
-            dependencies are the GitHub blocked-by list of issue <key> (numeric keys only) plus
+            dependencies are the GitHub blocked-by lists of every issue on the brief's `Closes:`
+            line (issue <key> when it has none; numeric keys only), minus those issues, plus
             every `#N` on the brief's `Waits for (same section):` line; the brief's
-            `Depends on:` line counts only when GitHub lists no blocked-by entry.
+            `Depends on:` line counts only when those blocked-by lists hold no other issue.
           - Ready for PR: done lanes with no pull request, status head equal to the pushed head.
           - Ready to merge: done lanes whose open PR head is the status head, checks all passed
             (at least one, none pending) and no conflict.
@@ -57,8 +58,8 @@ ready   read-only. Prints what the coordinator can do next:
             closed as not planned (it also holds GO); a PR body
             draft with a title line, a closing keyword outside a `Closes #N` line, or `Closes`
             lines that are not exactly one per issue on the brief's `Closes:` line; a line matching
-            project.md's deny list (`- **Deny list:** <path>`, one regex per line, matched where
-            no word character touches either end; printed by line number only).
+            project.md's deny list (`- **Deny list:** <path>`, one regex per line; an end of the
+            match that is a word character must not touch another; printed by line number only).
           - Records: invalid UTF-8, or a control character other than tab, LF and a CR right
             before LF, in project.md, plan.md, briefs/*.md or pr-bodies/*.md, by file and line
             (for invalid UTF-8, the first bad byte only). Checked first, so a bad byte is a
@@ -98,8 +99,8 @@ localcheck  the checks CI would run, for when it cannot (billing, quota). In --c
         status file's branch) with core.longpaths on, merge the default branch into it, run
         project.md's `Local checks:` line, else its `Checks before done:` line, then remove the
         worktree, even when a check fails. Commands are the backticked items of the line, split on
-        `;`, one per item (an item with two is a usage error); `(Windows: `...`)` replaces an
-        item's command on Windows; items marked "main checkout only" are listed as not run. Prints
+        `;`, one per item (an item with two, or with only a `(Windows: `...`)`, is a usage error);
+        `(Windows: `...`)` replaces an item's command on Windows; items marked "main checkout only" are listed as not run. Prints
         the head and base shas and each command's output; --comment <N> also posts that output
         on PR <N>.
 
@@ -115,7 +116,7 @@ waitchecks  waits for PR <N>'s first check, then watches its checks. Polls `gh p
 
 merge   merges lanes one at a time, in the order given. First, every key must be listed under
         `ready`'s Ready to merge and nowhere else (--checkout as for `ready`, default the current
-        folder), and given once, or nothing merges.
+        folder), and given once, or nothing merges; so does a failed `git fetch` there.
         Then, per key, with no wait for checks (Ready to merge already needs them all passed):
         its head still the sha Ready to merge printed; mergeStateStatus `CLEAN` (UNKNOWN, while
         GitHub recomputes after a merge, is asked again after 5, 15 and 30 seconds); `gh pr merge
@@ -129,10 +130,11 @@ printing, 1 when a lookup fails; localcheck 0 when every command passed, else 1 
 merge, a lookup or the comment failed); waitchecks 0 when the checks passed, 1 when one failed,
 3 when no check appeared, 4 when a lookup failed (the last poll's, or a watch that failed with
 no failed check behind it, a gh error say); merge 0 when every key merged, 1 when it stopped
-(a key not ready, or a lookup, merge state or `gh pr merge` that failed);
+(a key not ready, or a fetch, lookup, merge state or `gh pr merge` that failed);
 2 on a usage error (waitchecks: a CI start wait that is not a number of minutes, or a
 project.md that is not UTF-8; merge: a key given twice, or a --checkout that is not a git
-checkout; localcheck: a checks line with more than one command in one item) or a missing
+checkout; localcheck: a project.md that is not UTF-8, or a checks line with more than one
+command, or only a Windows override, in one item) or a missing
 records folder (status too: it creates only status/ inside it).
 waitchecks and merge: an error not named above (a bug, say) exits 4 with one line, never 1;
 output the console cannot encode is replaced, not fatal.
@@ -247,9 +249,10 @@ def cmd_status(a):
 
 def check_pr_body(path, closes=None, deny=None):
     """Problems with a PR body draft. closes: the issues the brief's Closes line lists (None or []:
-    not known). deny: regex patterns, each matched where no word character touches either end of
-    the match (so a pattern may start or end with `@`, `+` or `.`); a hit is reported by line
-    number only."""
+    not known). deny: regex patterns; an end of a match that is a word character must not touch
+    another one, an end that is not one may (so `acme` misses `acmecorp`, while `@acmebot` matches
+    `dev@acmebot` and `\\.internal` matches `build.internal`); a hit is reported by line number
+    only."""
     p = pathlib.Path(path)
     if not p.exists():
         return ["no PR body draft"]
@@ -275,7 +278,7 @@ def check_pr_body(path, closes=None, deny=None):
             if n not in closes:
                 problems.append(f"PR body line {where[0]}: `Closes #{n}`, but the brief's Closes does not list it")
     hits = sorted({i for i, l in enumerate(lines, 1) for pat in deny or []
-                   if re.search(rf"(?<!\w)(?:{pat})(?!\w)", l, re.I)})
+                   if re.search(rf"(?:(?<!\w)|(?=\W))(?:{pat})(?:(?!\w)|(?<=\W))", l, re.I)})
     if hits:
         problems.append(f"PR body lines {hits}: a deny-list name (lines only, never the name)")
     return problems
@@ -363,10 +366,14 @@ class ReadyLookups:
 
 
 def dependencies(records, key, repo):
-    deps, source = [], "github"
-    if key.isdigit():
-        blocked = gh("api", f"repos/{repo}/issues/{key}/dependencies/blocked_by") or []
-        deps = [b["number"] for b in blocked]
+    """(issue numbers, source): the GitHub blocked-by of every issue the lane closes (the brief's
+    `Closes:` line, else issue <key>), minus those issues; the brief's `Depends on:` when that is
+    empty (source "brief"); plus the brief's `Waits for (same section):` either way."""
+    deps, source = set(), "github"
+    closes = brief_issues(records, key, "Closes:") or ([int(key)] if key.isdigit() else [])
+    for n in closes:
+        deps |= {b["number"] for b in gh("api", f"repos/{repo}/issues/{n}/dependencies/blocked_by") or []}
+    deps -= set(closes)
     if not deps:
         deps, source = brief_issues(records, key, "Depends on:") or [], "brief"
     waits = brief_issues(records, key, "Waits for (same section):") or []
@@ -854,9 +861,10 @@ def project_line(records, label):
 
 def check_commands(line, windows=None):
     """(commands, skipped) from a project.md checks line: `;`-separated items, each command in
-    backticks. A `(Windows: `...`)` in an item replaces its command on Windows; an item marked
-    "main checkout only" is skipped. ValueError, naming the line, when an item holds more than one
-    command outside its Windows override (never run only the first)."""
+    backticks. A `(Windows: `...`)` in an item, before or after its command, replaces that command
+    on Windows; an item marked "main checkout only" is skipped. ValueError, naming the line, when
+    an item holds more than one command outside its Windows override (never run only the first),
+    or only an override (no command for other systems)."""
     windows = os.name == "nt" if windows is None else windows
     items, cur, tick = [], "", False
     for ch in line:
@@ -869,14 +877,17 @@ def check_commands(line, windows=None):
     items.append(cur)
     commands, skipped = [], []
     for item in items:
-        spans = re.findall(r"`([^`]+)`", item)
-        if not spans:
-            continue
         win = re.search(r"\(Windows:\s*`([^`]+)`", item)
-        if len(spans) - bool(win) > 1:
+        spans = re.findall(r"`([^`]+)`", item[:win.start()] + item[win.end():] if win else item)
+        if not spans and not win:
+            continue
+        if len(spans) > 1:
             raise ValueError(f"project.md's checks line has more than one command in one item "
                              f"(each backticked span is a command; one per item, items separated "
                              f"by `;`): {line.strip()}")
+        if not spans:
+            raise ValueError(f"project.md's checks line has an item with only a Windows override "
+                             f"(write the command, then `(Windows: `...`)`): {line.strip()}")
         cmd = win.group(1) if win and windows else spans[0]
         (skipped if "main checkout only" in item else commands).append(cmd)
     return commands, skipped
@@ -888,11 +899,11 @@ def cmd_localcheck(a):
         print(f"no records folder at {records}", file=sys.stderr)
         return 2
     checkout = os.path.abspath(a.checkout)
-    line = project_line(records, "Local checks") or project_line(records, "Checks before done")
-    if line is None:
-        return fail(f"{records / 'project.md'} has no `- **Local checks:**` line and no "
-                    "`- **Checks before done:**` line: add the command that runs the checks")
     try:
+        line = project_line(records, "Local checks") or project_line(records, "Checks before done")
+        if line is None:
+            return fail(f"{records / 'project.md'} has no `- **Local checks:**` line and no "
+                        "`- **Checks before done:**` line: add the command that runs the checks")
         commands, skipped = check_commands(line)
     except ValueError as e:
         print(e, file=sys.stderr)
@@ -1161,7 +1172,10 @@ def cmd_merge(a):
         print(f"{os.path.abspath(a.checkout)} is not a git checkout: pass --checkout <a clone of "
               f"{repo}>", file=sys.stderr)
         return 2
-    run(["git", "fetch", "-q", "origin"], cwd=a.checkout)
+    code, out, err = run(["git", "fetch", "-q", "origin"], cwd=a.checkout)
+    if code:
+        return fail(f"git fetch failed in {os.path.abspath(a.checkout)}: "
+                    f"{' '.join((err or out).split())}; nothing merged")
     lanes = []
     for key in a.keys:
         found = ready_to_merge(records, key, repo, a.checkout)
