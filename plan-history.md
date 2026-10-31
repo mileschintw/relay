@@ -107,3 +107,7 @@ Finished work moved out of `plan.md`, newest first, for checking only; the plan 
 - PRs opened 23:36 on the user's 「開 PR，CI 過就合併」 (asked per lane: 51, 46, and 48/49/50 together). Merged in order, all CI green: #53 (lane 51, waitchecks) 23:38, #54 (46) 23:38, #55 (48) 23:39, #56 (49) 23:39, #57 (50) 23:40. Main checkout fast-forwarded to `d51a8c7`. GO #45 sent after #53.
 - Not run by lane 51: `waitchecks` against a real PR (needs the merged relay.py); try it on the next PR.
 - PR #58 (lane 47) opened on the same answer, merged 23:41 after the batch. Main checkout at `d874a5f`.
+- PR #59 (lane 45) opened 2026-10-31 00:01 on the same answer; `waitchecks` ran on it for real (checks seen on the first poll, watched to pass), merged 00:04. Main checkout at `93f84b2`. All of #45–#51 closed.
+
+- Roadmap note for #45–#51, moved from plan.md:
+  Filed 2026-10-30 from the second retro on the user's 「6 項都開」. Mechanical overlap: relay.py and test_relay.py #45 (new subcommand) / #46 and #47 (both add a check in `cmd_ready`: name each one's line in the briefs); coordinate SKILL.md #45 (step 4) / #48 (Alarm) / #50 (Consent). #51 came from the user's side session (local_219aad9f), relayed and confirmed here with 「另開 issue，#45 等它」; #45 is blocked by #51 on GitHub (merge reuses `waitchecks`), and both touch coordinate SKILL.md step 4. Lanes started 2026-10-30 23:14 (Now). Wave 2's overlap notes → `plan-history.md`. Not filed, by recommendation: unpinned claude-code in CI, stall detection.
