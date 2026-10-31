@@ -36,6 +36,8 @@ ready   read-only. Prints what the coordinator can do next:
             check whose job never started (no steps, or an annotation saying it was not started:
             billing, a spending limit) shows as `checks could not run (billing)`, not `check failed`.
           - No status yet: a brief with no status file.
+          - Could not parse: a status file that is not valid UTF-8, or has no valid state or no
+            branch, head or time; the other lanes are still listed.
           - Merged: done lanes whose PR merged (move them to plan-history.md).
           - Parents: open issues with sub-issues (GitHub's sub_issues_summary), with their
             children's open and closed counts, and whether every child closed as completed. A
@@ -354,7 +356,11 @@ def cmd_ready(a):
     print("Lanes:")
     for path in sorted(status_dir.glob("*.md")):
         key = path.stem
-        st = parse_status(path.read_text(encoding="utf-8"))
+        try:
+            st = parse_status(path.read_text(encoding="utf-8"))
+        except UnicodeDecodeError:
+            out["Could not parse"].append(f"{key}: invalid UTF-8")
+            continue
         missing = [f for f in ("state", "branch", "head", "time") if f not in st]
         if missing or st.get("state") not in STATES:
             out["Could not parse"].append(f"{key}: missing or bad {missing or ['state']}")
@@ -646,7 +652,10 @@ def cmd_localcheck(a):
     if not commands:
         return fail(f"no backticked command on project.md's checks line: {line}")
     status = records / "status" / f"{a.key}.md"
-    st = parse_status(status.read_text(encoding="utf-8")) if status.exists() else {}
+    try:
+        st = parse_status(status.read_text(encoding="utf-8")) if status.exists() else {}
+    except UnicodeDecodeError:
+        return fail(f"{status}: invalid UTF-8")
     branch = st.get("branch", "none")
     if branch == "none":
         return fail(f"lane {a.key} has no branch in {status}")

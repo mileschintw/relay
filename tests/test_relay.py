@@ -136,6 +136,13 @@ class ReadyTests(Base):
         self.park("13", "Depends on: #12\n")
         self.assertIn("parked on #12 closed", self.ready())
 
+    def test_invalid_utf8_status_is_could_not_parse(self):
+        self.call("status", str(self.records), "13", "--state", "working", "--doing", "x")
+        (self.records / "status" / "12.md").write_bytes(b"- state: working\n- doing: \xff\n")
+        out = self.ready()
+        self.assertIn("Could not parse:\n  12: invalid UTF-8", out)
+        self.assertIn("  13: working", out)
+
     def test_ready_for_pr_then_merge(self):
         head = self.branch("lane-12")
         self.done("12", "lane-12", head)
@@ -416,6 +423,15 @@ class LocalcheckTests(Base):
         code, out, err = self.localcheck("--comment", "5")
         self.assertEqual(code, 1)
         self.assertIn("could not post on PR #5", err)
+
+    def test_invalid_utf8_status_is_a_one_line_error(self):
+        self.lane()
+        self.project(f"- **Local checks:** {self.py('print(5)')}\n")
+        (self.records / "status" / "12.md").write_bytes(b"- state: done\n- doing: \xff\n")
+        code, out, err = self.localcheck()
+        self.assertEqual(code, 1)
+        self.assertEqual(len(err.strip().splitlines()), 1, err)
+        self.assertIn("invalid UTF-8", err)
 
     def test_command_parsing(self):
         line = ("`python3 -I t.py` (Windows: `py -3 -I t.py`); `claude plugin validate .`; "
