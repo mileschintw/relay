@@ -9,8 +9,6 @@
  "broken": ["/sub_issues"],
  "prs": {"<branch>": [{"number": 5, "state": "OPEN", "headRefOid": "<sha>",
                        "mergeable": "MERGEABLE", "statusCheckRollup": [...]}]},
-                                                  # `pr list --head <branch>`; without --head,
-                                                  # every PR with its headRefName, cut at --limit
  "jobs": {"<job id>": {"steps": [...]}},          # a missing job ran one step
  "annotations": {"<job id>": [{"message": "..."}]},
  "workflows": 0,                                  # the repo's Actions workflow count, default 1
@@ -22,6 +20,8 @@
                    "mergedAt": "<time>", "mergeCommit": {"oid": "<sha>"}}},  # other `pr view 5`
  "merge_fail": {"5": "message"},                  # `pr merge 5` exits 1 with this message
  "runs": [{"databaseId": 9, "status": "queued"}]} # `run list`'s answer, default []
+prs: `pr list --head <branch>`'s answer; without --head, every PR with its headRefName, cut at
+--limit.
 children: an issue's sub-issues. bodies, comments: an issue's body and comments.
 broken: a call with an argument containing one of these fails.
 `pr comment <N> --body-file <f>` appends `#<N>` and the body to $RELAY_FAKE_GH.comments.

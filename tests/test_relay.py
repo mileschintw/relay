@@ -506,6 +506,13 @@ class ReadyLookupTests(Base):
         self.assertEqual(len([g for g in gits if g.startswith("ls-remote")]), 3, gits)
         self.assertIn("Ready for PR:\n  14: lane-14", out)
 
+    def test_an_unreachable_origin_is_a_lookup_failure_not_unpushed(self):
+        self.lanes()
+        git("remote", "set-url", "origin", str(self.tmp / "gone.git"), cwd=self.clone)
+        out, _, _ = self.counted_ready("--checkout", str(self.clone))
+        self.assertIn("14: lookup failed: git ls-remote origin lane-14", out)
+        self.assertNotIn("branch not pushed", out)
+
     def test_a_full_list_looks_up_each_branch_without_a_merged_pr(self):
         self.lanes()
         with mock.patch.object(relay, "PR_LIST_MIN", 2), mock.patch.object(relay, "PR_LIST_PER_LANE", 0):

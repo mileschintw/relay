@@ -282,7 +282,11 @@ def deny_patterns(records):
 
 
 def pushed_head(checkout, branch):
-    code, ls, _ = run(["git", "ls-remote", "origin", f"refs/heads/{branch}"], cwd=checkout)
+    """The sha of origin's <branch>, "" when origin has no such branch; RuntimeError when
+    ls-remote fails (no repo, no network), so the lane reads lookup failed, not unpushed."""
+    code, ls, err = run(["git", "ls-remote", "origin", f"refs/heads/{branch}"], cwd=checkout)
+    if code:
+        raise RuntimeError(f"git ls-remote origin {branch}: {err.strip() or ls.strip()}")
     return ls.split()[0] if ls.strip() else ""
 
 
@@ -319,13 +323,13 @@ class ReadyLookups:
 
     def prs(self, repo, branch):
         if self.error:
-            raise self.error
+            raise RuntimeError(self.error)
         if self.index is None:
             try:
                 listed = gh("pr", "list", "--repo", repo, "--state", "all", "--limit",
                             str(self.limit), "--json", "headRefName," + PR_FIELDS) or []
             except LOOKUP_ERRORS as e:
-                self.error = e
+                self.error = str(e)
                 raise
             self.full, self.index = len(listed) >= self.limit, {}
             for p in listed:
