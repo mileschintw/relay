@@ -42,7 +42,7 @@ Round 1 (2026-10-31): #83–#86 filed from the WFA scan (8 findings) and code-re
 
 ## Waiting for the user to be present
 
-- Since 2026-10-31 13:58 -0700: any message from the user here, so lanes 83–86 can start (already covered by the standing 0.3.2 go-ahead; the app only starts sessions in a turn the user typed).
+- Since 2026-10-31 13:51 -0700: any message from the user here, so lanes 83–86 can start (already covered by the standing 0.3.2 go-ahead; the app only starts sessions in a turn the user typed).
 
 ## Waiting for the user's decision
 
