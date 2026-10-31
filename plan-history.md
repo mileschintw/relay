@@ -56,3 +56,12 @@ Finished work moved out of `plan.md`, newest first, for checking only; the plan 
 | 2 | #2 `## Files` section; `relay.py roadmap` | local_fb37449e-58c9-49eb-b7f4-6878eebd3515 | claude/lane-2-ccd448 @ be6fc5e | #22 |
 
 - User's "Yes, open and merge" (17:02). Resolved conflicts with #21 first; CI passed (test ubuntu/windows, validate). Wave 1 and its follow-ups are all merged; only #12 stays open.
+
+## 2026-10-30 17:18 -0700, lane 12 merged; roadmap empty (coordinator local_75cc31e5-4bd1-45b1-92a6-8c63fa48ec22)
+
+| Key | Issue | Session | Branch @ head | PR |
+|---|---|---|---|---|
+| 12 | #12 Invalid UTF-8 in a status file | local_8cddf2c9-12f8-4e80-96eb-5eef2ee11d86 | claude/lane-12-c970f3 @ 998541a | #23 |
+
+- #12 triaged by the coordinator on the user's "Triage and start #12" (17:08): labels `ready-for-agent`, `bug`; Triage and Files sections added. User's "Open and merge" (17:16); CI passed.
+- Ruling 1 moved here (ended with #16's CI): "The repo has no CI. For lanes 8, 9 and 10 the user chose 「本機檢查通過就合併」 and, for lane 9, 「開 PR，本機檢查過就合併」: merge after the coordinator runs project.md's checks on the PR head merged onto current main." Also applied, each on its own yes, to lanes 1, 7, 11.
