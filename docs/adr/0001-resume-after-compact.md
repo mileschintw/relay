@@ -4,7 +4,7 @@ status: accepted
 
 # Resume after a compact through a plugin hook and Handover › Next
 
-After a compact, relay points the coordinator or the lane worker back at its records with a plugin `SessionStart` hook (`compact` matcher, `plugin/hooks/hooks.json` running `plugin/tools/resume.py`). The next step lives in the plan's Handover › Next. The user no longer pastes a compact instruction. We chose this because a pasted instruction is only a hint to the summarizer, while hook output is added to the new context as written, and the records already hold every fact the instruction repeated. The hook is relay's first part that is not a skill and runs in every session with relay installed, so dropping it later means bringing back a resume path in the skills.
+After a compact, relay points the coordinator or the lane worker back at its records with a plugin `SessionStart` hook (`compact` matcher, `plugin/hooks/hooks.json` running `plugin/tools/resume.py`). The next step lives in the plan's Handover › Next. The user no longer pastes a compact instruction. We chose this because a pasted instruction is only a hint to the summarizer, while hook output is added to the new context as written, and the records already hold every fact the instruction repeated. The hook is relay's first part that runs without a skill calling it, in every session with relay installed, so dropping it later means bringing back a resume path in the skills.
 
 ## Context
 
@@ -26,7 +26,7 @@ After a compact, relay points the coordinator or the lane worker back at its rec
 
 The docs say `SessionStart` hooks fire in the desktop app but do not name the Code tab, so #111 tested it before shipping:
 
-- **It fires in a Code tab session.** A test plugin whose only content was this hook was installed, a new Code tab session (Claude Code 2.1.309) ran `/compact`, and that session's transcript records `hook_success SessionStart:compact` with the hook's stdout right after the compact boundary. The test plugin was then removed.
+- **It fires in a Code tab session.** A test plugin whose only content was this hook was installed, a new Code tab session (Claude Code 2.1.309) ran `/compact`, and that session's transcript records `hook_success SessionStart:compact` with the test command's stdout (`relay-spike-fired`) right after the compact boundary. `resume.py` printed nothing there, as designed: that worktree was neither a coordinator's nor a lane's. The test plugin was then removed.
 - **Its output reaches the model.** In a CLI fixture (2.1.312, `--plugin-dir plugin`) of a coordinator worktree, the model quoted the resume note's lines word for word after `/compact` and answered in the language the note named.
 
 ## Consequences
