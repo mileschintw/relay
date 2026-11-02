@@ -1,6 +1,6 @@
 # Unattended
 
-Only when the user turns it on in words. Record in the plan's Handover, in that turn: their words, the scope (which issues), the merge right, the time, and mode `unattended`. It ends when the user speaks to you again, unless they say it does not; when it ends, in that turn: remove the worker paragraph below from every brief that carries it, `SendMessage` each unparked worker to reread its brief and ask the user again from now on, set Handover's mode to normal, and commit the records.
+Only when the user turns it on in words. Record in the plan's Handover, in that turn: their words as they typed them (SKILL.md, *Consent*, **The user's words**), the scope (which issues), the merge right, the time, and mode `unattended`. It ends when the user speaks to you again, unless they say it does not; when it ends, in that turn: remove the worker paragraph below from every brief that carries it, `SendMessage` each unparked worker to reread its brief and ask the user again from now on, move the Unattended log to `plan-history.md` leaving one summary line, set Handover's mode to normal, and commit the records.
 
 ## The turn the user turns it on is the only one that can start sessions
 

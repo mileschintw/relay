@@ -57,7 +57,7 @@ The checkout of branch `coord`: an orphan branch of this repo, checked out besid
 `plan.md` in the records folder: the current state only. Done work moves to `plan-history.md`.
 
 **Handover**
-The plan section naming the current coordinator (title, worktree, id, mode), the user's standing instructions and the unattended log.
+The plan section naming the current coordinator (title, worktree, id, mode), the next step and who it waits on, the user's standing instructions and the unattended log. What a coordinator rereads to resume after a compact or a handover.
 
 **Now table**
 The plan table of lanes with a session: key, issues, session, state, and what a parked lane waits for.
@@ -69,7 +69,7 @@ The plan table of every open issue, once: its Order, blocked-by, same-section wa
 A Roadmap column, judged by the lane's outcome: `free` when the outcome needs no user decision, account, special machine or release (a single limited follow-up step, such as replacing a release asset, is logged for the user and leaves it `free`); `limited: <what>` when the outcome itself needs one; `parent` for an issue with sub-issues.
 
 **Ruling**
-A decision the user made that the repo does not record yet, kept in the plan with the user's own words until a doc or ADR carries it.
+A decision the user made that the repo does not record yet, kept in the plan as one line with its date until a doc or ADR carries it.
 
 **Status file**
 `status/<key>.md`, one per lane, written by `relay.py status`.
@@ -99,7 +99,7 @@ The path a lane on "merge once CI passes" takes when its CI cannot run or no che
 A mode the user turns on in words ("I'm going to sleep, carry on"), with a scope (which issues) and a merge right (which PRs the coordinator may merge without asking) recorded in the plan.
 
 **Mode**
-The coordinator's mode, recorded in Handover: `normal` or `unattended`.
+The coordinator's mode, recorded in Handover: `normal`, `unattended`, or `paused` (the user said pause: no GO and no new session until they resume).
 
 **Consent**
-The user's explicit yes, typed to the coordinator in its own session, for one named action or a named set; or the user's words that a session the coordinator opened to collect decisions wrote into `decisions-<date>.md`.
+The user's explicit yes, typed to the coordinator in its own session, for one named action or a named set; a decision the user typed in a fork of the coordinator, once the coordinator checks it came from the user there; or the user's words that a session the coordinator opened to collect decisions wrote into `decisions-<date>.md`. Only a yes typed to the coordinator covers starting a session.
