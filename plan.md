@@ -18,6 +18,7 @@ none (ruling 1, merging on local checks while the repo had no CI, ended when #16
 |---|---|---|---|---|
 | 108 | #108 | local_a0f1a0ee-96dd-48c7-9fd3-8fe803ea07e1 (lane-108-1f422e) | review | — |
 | 111 | #111 | local_3679c022-425d-48f7-a400-765c7c5000c9 (lane-111-ef42aa) | GO sent 2026-11-02 after #107 merged | — |
+| 120 | #120 | local_9b1890b3-e353-42ba-a29e-f451e2827eb8 (folder pending: still starting) | started | — |
 
 Wave 1 started 2026-11-02 00:38 -0800 on the user's "開始第一波". Coordinator id: local_41066841-894c-4b9c-8f9e-2ce0ab11a088.
 
@@ -32,7 +33,7 @@ Every open issue, once. "Order" is the wave (1 = can start now). "Kind" is `free
 | #108 Plan limit in bytes, pruning that fires, shorter ready output, line-ending check | 1 | none | none | relay.py (cmd_ready); tests/test_relay.py; setup/templates/plan.md (header line); coordinate/SKILL.md (Plan) | free |
 | #110 Inventory every skill rule with its trigger, incident source and decision | 1 | none | none | local `relay-notes/inventory-2026-11/inventory.md` only (Files section is unparsable: needs a fix on the user's yes) | limited: user reviews the table |
 | #111 Spike: resume after compact with a plugin SessionStart(compact) hook | running | none | none (#107 merged) | New plugin/hooks/hooks.json; New plugin/tools/resume.py; tests/test_relay.py; compact.md; setup/templates/README.md; README.md (Layout) | limited: proving the hook fires in a Code tab session needs the plugin loaded in the app |
-| #120 coordinate Following progress: rulings no longer quote the user; GO steps honour Pause (found by lane 107) | 1 | #107 (closed) | none (#109 merged) | coordinate/SKILL.md (Following progress, Finishing a lane step 6) | free |
+| #120 coordinate Following progress: rulings no longer quote the user; GO steps honour Pause (found by lane 107) | running | #107 (closed) | none (#109 merged) | coordinate/SKILL.md (Following progress, Finishing a lane step 6) | free |
 | #112 Slim the skills by the reviewed inventory | 3 | #110, #107, #108, #109 | none | all skill files; relay.py (ready hints); tests; GLOSSARY.md; README.md (Layout) | limited: the user's review of #110's table |
 | #113 ADR 0001: resume after compact through a hook and Handover | 3 | #111 | none | New docs/adr/0001-resume-after-compact.md | free |
 | #114 Merge right scoped to a round | — | none | none | coordinate/SKILL.md (Consent, Finishing a lane); setup/templates/plan.md (Handover) | needs-triage |
@@ -53,7 +54,6 @@ none
 
 ## Waiting for the user's decision
 
-- Since 2026-11-02 00:56 -0800: start lane 120 (#120, now unblocked)?
 - Since 2026-11-02 00:37 -0800: add a parsable `## Files` line to #110 and give it a lane?
 - Since 2026-11-02 00:37 -0800: triage #114–#119 (labelled needs-triage, "not scheduled until triaged").
 
