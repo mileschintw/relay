@@ -16,8 +16,8 @@ none (ruling 1, merging on local checks while the repo had no CI, ended when #16
 
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
-| 111 | #111 | local_3679c022-425d-48f7-a400-765c7c5000c9 (lane-111-ef42aa) | done; spike fired in the Code tab; test plugin removed (verified); asked the user the PR-and-merge question | — |
-| 123 | #123 #126 | local_c6324e85-4f6b-46a4-8fce-688fed1e67e6 (lane-123-e04fcc) | done; asked the user the PR-and-merge question | — |
+| 111 | #111 | local_3679c022-425d-48f7-a400-765c7c5000c9 (lane-111-ef42aa) | PR #127 open, merge once CI passes (user picked "Open PR, merge once CI passes", 2026-11-02); test plugin removed (verified) | — |
+| 123 | #123 #126 | local_c6324e85-4f6b-46a4-8fce-688fed1e67e6 (lane-123-e04fcc) | PR #128 open, merge once CI passes (user picked "Open PR, merge once CI passes", 2026-11-02) | — |
 
 Wave 1 started 2026-11-02 00:38 -0800 on the user's "開始第一波". Coordinator id: local_41066841-894c-4b9c-8f9e-2ce0ab11a088.
 
