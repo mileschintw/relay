@@ -16,9 +16,9 @@ none (ruling 1, merging on local checks while the repo had no CI, ended when #16
 
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
-| 108 | #108 | local_a0f1a0ee-96dd-48c7-9fd3-8fe803ea07e1 (lane-108-1f422e) | done; asked the user the PR-and-merge question | — |
+| 108 | #108 | local_a0f1a0ee-96dd-48c7-9fd3-8fe803ea07e1 (lane-108-1f422e) | PR #124 open, merge once CI passes (user picked "Open PR, merge once CI passes", 2026-11-02) | — |
 | 111 | #111 | local_3679c022-425d-48f7-a400-765c7c5000c9 (lane-111-ef42aa) | GO sent 2026-11-02 after #107 merged; waiting for the user in its session | — |
-| 120 | #120 | local_9b1890b3-e353-42ba-a29e-f451e2827eb8 (lane-120-62ed6f) | done; asked the user the PR-and-merge question | — |
+| 120 | #120 | local_9b1890b3-e353-42ba-a29e-f451e2827eb8 (lane-120-62ed6f) | PR #125 open, merge once CI passes (user picked "Open PR, merge once CI passes", 2026-11-02) | — |
 
 Wave 1 started 2026-11-02 00:38 -0800 on the user's "開始第一波". Coordinator id: local_41066841-894c-4b9c-8f9e-2ce0ab11a088.
 
@@ -55,7 +55,6 @@ none
 
 ## Waiting for the user's decision
 
-- Since 2026-11-02 01:01 -0800: the Release line in project.md gets a review-rounds sentence (relayed from the grilling session local_eeab451f; confirm with the user here).
 - Since 2026-11-02 00:37 -0800: add a parsable `## Files` line to #110 and give it a lane?
 - Since 2026-11-02 00:37 -0800: triage #114–#119 (labelled needs-triage, "not scheduled until triaged").
 
