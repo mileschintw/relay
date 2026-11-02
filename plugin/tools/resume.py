@@ -89,8 +89,8 @@ def resume(cwd):
                      "Handover › Next when the authorization recorded there covers it.",
             f"- Reread {plan}: Handover (with Next), Now, and both Waiting for the user sections.",
             "- Read plan.md with the Read tool before you edit it (the Edit tool needs a Read first).",
-            f"- Run `{relay_py} ready {records}` and act on its Plan warning, if any, "
-            "before adding to plan.md.",
+            f"- Run relay.py's `ready` call as your skill gives it (relay.py: {relay_py}) and act on "
+            "its Plan warning, if any, before adding to plan.md.",
         ])) + "\n"
     branch = git(top, "rev-parse", "--abbrev-ref", "HEAD").strip()
     for st in sorted((records / "status").glob("*.md")):

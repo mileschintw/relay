@@ -1522,7 +1522,7 @@ class ResumeTests(unittest.TestCase):
         self.assertIn(f"Reread {self.records / 'plan.md'}: Handover (with Next), Now", out)
         self.assertIn("Read tool before you edit it", out)
         self.assertIn("- Mode normal, as Handover records it", out)
-        self.assertIn(f"{(HERE.parent / 'plugin' / 'tools' / 'relay.py').resolve()} ready", out)
+        self.assertIn(f"(relay.py: {(HERE.parent / 'plugin' / 'tools' / 'relay.py').resolve()})", out)
         self.assertNotIn("SKILL.md", out)
 
     def test_coordinator_path_with_other_slashes(self):
@@ -1549,7 +1549,7 @@ class ResumeTests(unittest.TestCase):
         (self.records / "project.md").write_text(
             "- **relay.py:** `tools/relay.py` (vendored)\n", encoding="utf-8")
         out = self.resume(self.coord)
-        self.assertIn(f"{self.coord / 'tools' / 'relay.py'} ready", out)
+        self.assertIn(f"(relay.py: {self.coord / 'tools' / 'relay.py'})", out)
         self.assertNotIn("Language", out)
 
     def test_separate_repo_pointer_line(self):

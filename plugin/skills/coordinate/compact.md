@@ -2,7 +2,7 @@
 
 **Handing over to a new coordinator:** update Handover in the plan, commit the records, and give the user one line to paste in a new desktop-app session: `/relay:coordinate`. No instruction file. Sessions you started keep reporting to you; the new coordinator reads their files and reaches them with `SendMessage`.
 
-**Before the user compacts this session:** empty your head into the plan (below); `/compact` needs no text after it. After any compact, manual or automatic, the plugin's `SessionStart` hook (`tools/resume.py`) adds a pointer to the new context: the user's language line, the mode Handover records, and what to reread (Handover with Next, Now, both Waiting sections; `plan.md` read before it is edited; `relay.py ready`'s Plan warning). A worker gets its language line and the paths of its brief, status and report.
+**Before the user compacts this session:** empty your head into the plan (below); `/compact` needs no text after it. After any compact, manual or automatic, the plugin's `SessionStart` hook (`tools/resume.py`) adds a resume note to the new context: the user's language line, the mode Handover records, and what to reread (Handover with Next, Now, both Waiting sections; `plan.md` read before it is edited; `relay.py ready`'s Plan warning). A worker gets its language line and the paths of its brief, status and report.
 
 ## First, empty your head into the plan
 
