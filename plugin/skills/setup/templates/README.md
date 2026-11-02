@@ -11,5 +11,4 @@ The `coord` branch: an orphan branch that never merges into the default branch. 
 | `reports/<key>.md` | A worker's full report | worker |
 | `pr-bodies/<key>.md` | PR body drafts | worker |
 | `decisions-<date>.md` | Decisions the user made in a session the coordinator opened to collect them, with their words | that session |
-| `compact-instruction.md` | The coordinator's latest compact instruction | coordinator |
 | `snapshot/` | Copies of scratchpads and notes folders the app may clear (not committed) | coordinator |

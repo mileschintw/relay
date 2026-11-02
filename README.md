@@ -62,6 +62,8 @@ Only `plugin/` is installed; everything else is for developing relay.
 | `plugin/skills/coordinate` | `/relay:coordinate`: the coordinator; `unattended.md`, `compact.md`, `large-outputs.md`, `cross-machine.md`, `app-limits.md`, `ci-fallbacks.md` are read on demand |
 | `plugin/skills/work` | `relay:work`: what each worker follows |
 | `plugin/tools/relay.py` | `status` (a worker's status file), `ready` (what the coordinator can do next), `roadmap` (each open issue's blocked-by and Files section), `localcheck` (the checks, run locally when CI cannot), `waitchecks` (wait for a PR's first check, then watch its checks), `merge` (merge Ready to merge lanes one at a time, stopping on the first problem) |
+| `plugin/tools/resume.py` | the `SessionStart` (`compact`) hook: after a compact, points the coordinator or a worker at its records (language line, what to reread) |
+| `plugin/hooks/hooks.json` | registers `resume.py` on `SessionStart` with the `compact` matcher |
 | `plugin/GLOSSARY.md` | the terms |
 | `.claude-plugin/marketplace.json` | the catalog; its entry installs `plugin/` from the `release` branch |
 | `tests/` | `python3 -I tests/test_relay.py` |
