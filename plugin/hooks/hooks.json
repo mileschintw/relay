@@ -1,0 +1,17 @@
+{
+  "description": "After a compact, point a relay coordinator or worker at its records.",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/tools/resume.py\" || py -3 -I \"${CLAUDE_PLUGIN_ROOT}/tools/resume.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

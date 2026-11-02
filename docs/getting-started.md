@@ -32,7 +32,7 @@ On another machine: `git fetch origin coord`, then, in the main checkout, `git w
 4. **Workers** follow `relay:work`: branch, `mattpocock-skills:tdd`, `mattpocock-skills:code-review` until no blocker, a PR body draft, a report, `done`. They talk to you directly when they need a decision; answer there.
 5. **PR and merge.** For each finished lane the coordinator asks one question: open the PR and merge when CI passes, or only open it. After a merge it sends `GO` to the parked lanes that were waiting.
 6. **Away?** Tell the coordinator "unattended" with the scope and whether it may merge; it starts everything in that turn and logs what it did in the plan.
-7. **Long session?** Ask the coordinator for a compact instruction before `/compact`.
+7. **Long session?** Ask the coordinator to update the plan before `/compact`; after it, relay's hook points the coordinator back at its records.
 
 ## Who does what
 

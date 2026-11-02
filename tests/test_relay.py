@@ -1480,5 +1480,96 @@ class OwnerNoteTests(Base):
         self.assertIn("2: send `GO #2`", out)
 
 
+class ResumeTests(unittest.TestCase):
+    """resume.py, the SessionStart (compact) hook, run the way the hook runs it."""
+    RESUME = HERE.parent / "plugin" / "tools" / "resume.py"
+
+    def setUp(self):
+        self.tmp = pathlib.Path(tempfile.mkdtemp()).resolve()
+        self.main = self.tmp / "repo"
+        git("init", "-q", "-b", "main", str(self.main), cwd=self.tmp)
+        for k, v in (("user.email", "t@example.com"), ("user.name", "t")):
+            git("config", k, v, cwd=self.main)
+        git("commit", "-q", "--allow-empty", "-m", "init", cwd=self.main)
+        self.records = self.tmp / "repo-coord"
+        git("worktree", "add", "-q", "--detach", str(self.records), cwd=self.main)
+        git("switch", "-q", "--orphan", "coord", cwd=self.records)
+        for d in ("status", "briefs", "reports"):
+            (self.records / d).mkdir()
+        (self.records / "project.md").write_text(
+            "- **Language:** talk to the user in Traditional Chinese (繁體中文).\n"
+            "- **relay.py:** none\n", encoding="utf-8")
+        self.coord = self.tmp / "coordwt"
+        self.lane = self.tmp / "lanewt"
+        git("worktree", "add", "-q", "-b", "c", str(self.coord), cwd=self.main)
+        git("worktree", "add", "-q", "-b", "claude/lane-7-ab", str(self.lane), cwd=self.main)
+        (self.records / "plan.md").write_text(
+            f"# Plan\n\n## Handover\n\n- **Coordinator:** title t, worktree {self.coord}, "
+            "id unknown, mode normal.\n", encoding="utf-8")
+        (self.records / "status" / "7.md").write_text(
+            "# 7 status\n\n- state: working\n- branch: claude/lane-7-ab\n- head: 1\n")
+
+    def resume(self, cwd):
+        r = subprocess.run([sys.executable, "-I", str(self.RESUME)], capture_output=True,
+                           input=json.dumps({"cwd": str(cwd), "source": "compact"}).encode())
+        self.assertEqual(r.returncode, 0)
+        return r.stdout.decode("utf-8")
+
+    def test_coordinator_gets_language_and_plan(self):
+        out = self.resume(self.coord)
+        self.assertIn("relay coordinator", out)
+        self.assertIn("- Language: talk to the user in Traditional Chinese (繁體中文).", out)
+        self.assertIn(f"Reread {self.records / 'plan.md'}: Handover (with Next), Now", out)
+        self.assertIn("Read tool before you edit it", out)
+        self.assertIn("- Mode normal, as Handover records it", out)
+        self.assertIn(f"(relay.py: {(HERE.parent / 'plugin' / 'tools' / 'relay.py').resolve()})", out)
+        self.assertNotIn("SKILL.md", out)
+
+    def test_coordinator_path_with_other_slashes(self):
+        plan = self.records / "plan.md"
+        plan.write_text(plan.read_text(encoding="utf-8").replace(
+            str(self.coord), self.coord.as_posix() + "/"), encoding="utf-8")
+        self.assertIn("relay coordinator", self.resume(self.coord))
+
+    def test_worker_gets_its_lane_files_from_a_subfolder(self):
+        (self.lane / "sub").mkdir()
+        out = self.resume(self.lane / "sub")
+        self.assertIn("relay worker for lane 7", out)
+        self.assertIn("(繁體中文)", out)
+        for f in (self.records / "briefs" / "7.md", self.records / "status" / "7.md",
+                  self.records / "reports" / "7.md"):
+            self.assertIn(str(f), out)
+        self.assertNotIn("coordinator", out)
+
+    def test_unrelated_worktree_and_folder_print_nothing(self):
+        self.assertEqual(self.resume(self.main), "")
+        self.assertEqual(self.resume(self.tmp), "")
+
+    def test_relay_py_line_relative_to_checkout(self):
+        (self.records / "project.md").write_text(
+            "- **relay.py:** `tools/relay.py` (vendored)\n", encoding="utf-8")
+        out = self.resume(self.coord)
+        self.assertIn(f"(relay.py: {self.coord / 'tools' / 'relay.py'})", out)
+        self.assertNotIn("Language", out)
+
+    def test_separate_repo_pointer_line(self):
+        other = self.tmp / "repo-records"
+        other.mkdir()
+        (other / "status").mkdir()
+        (other / "project.md").write_text("- **Language:** English.\n", encoding="utf-8")
+        (other / "status" / "7.md").write_text("- branch: claude/lane-7-ab\n")
+        (self.lane / "CLAUDE.md").write_text(
+            "Multi-session work: records in ../repo-records beside the main checkout, cloned "
+            "from https://x/r.git on branch coord (never merged); the coordinator runs "
+            "/relay:coordinate, workers follow relay:work.\n")
+        out = self.resume(self.lane)
+        self.assertIn(f"records at {other}", out)
+        self.assertIn("- Language: English.", out)
+
+    def test_no_records_prints_nothing(self):
+        (self.records / "project.md").unlink()
+        self.assertEqual(self.resume(self.coord), "")
+
+
 if __name__ == "__main__":
     unittest.main()
