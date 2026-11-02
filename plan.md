@@ -51,7 +51,7 @@ Filled 2026-11-02 from `relay.py roadmap`. #112, #115, #116, #117 list several p
 
 ## Waiting for the user to be present
 
-none
+- Since 2026-11-02 01:07 -0800: lane 111 needs the user to run `/compact` in a new Code tab session to check the `relay-spike` test plugin's hook (installed with user scope from lane 111's session); the user answers in lane 111's session. Remove the test plugin when the lane ends.
 
 ## Waiting for the user's decision
 
