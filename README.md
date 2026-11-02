@@ -69,6 +69,7 @@ Only `plugin/` is installed; everything else is for developing relay.
 | `tests/` | `python3 -I tests/test_relay.py` |
 | `.github/workflows/test.yml` | CI: the tests (Ubuntu, Windows) and `claude plugin validate .` |
 | `docs/getting-started.md` | the longer walkthrough and how relay splits work with mattpocock-skills |
+| `docs/adr/` | decisions and why: `0001` resume after a compact through the hook and Handover › Next |
 
 ## Releasing
 
