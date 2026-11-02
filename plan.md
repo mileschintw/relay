@@ -4,7 +4,8 @@ Current state only. Done work moves to `plan-history.md` with a one-line pointer
 
 ## Handover
 
-- **Coordinator:** the `/relay:coordinate` session in worktree D:\Repos\relay\.claude\worktrees\lane-102-f7b67c (branch `claude/relay-coordinate-342391`), since 2026-11-02 00:37 -0800; id local_41066841-894c-4b9c-8f9e-2ce0ab11a088. Mode: normal. The previous coordinator (worktree lane-75-b3c0b3, id local_64ef6796-f1f9-4e2a-afe2-d83002ce2094) wrote itself out on 2026-10-31 after releasing 0.3.2 (`release` and tag `relay--v0.3.2` = `ec4aba9`; → `plan-history.md`, "Close-out of 0.3.2"). `relay.py` is `project.md`'s line (main checkout, at `02d1f2d`): fast-forward it after each merge.
+- **Coordinator:** none. The previous coordinator (worktree D:\Repos\relay\.claude\worktrees\lane-102-f7b67c, id local_41066841-894c-4b9c-8f9e-2ce0ab11a088) wrote itself out on 2026-11-02 after the round of lanes 107–123 (→ `plan-history.md`, "Lanes 107–111"; its 7 lane sessions archived, scratchpads in `snapshot/`). The next coordinator starts with `/relay:coordinate` in a new desktop-app session. `relay.py` is `project.md`'s line (main checkout, at `02d1f2d`): fast-forward it after each merge.
+- **Next:** waits on the user: #110's Files section fix, then its lane; #114–#119 triage. The compact hook (#111) is on main but reaches the user only with the next release (installed relay is 0.3.2); a release runs `project.md`'s one review pass first. Records `compact-instruction.md` is no longer used by the new flow; kept until the user decides.
 - **Alarm:** `project.md`'s `Alarm: 10` (the user's 10 minutes, 2026-10-31 01:51 「可以就這樣改」, moved there when #82 merged); waiting on CI relies on the background `waitchecks` ending, not the alarm.
 - **Unattended log:** none.
 
@@ -16,8 +17,6 @@ none (ruling 1, merging on local checks while the repo had no CI, ended when #16
 
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
-
-Wave 1 started 2026-11-02 00:38 -0800 on the user's "開始第一波". Coordinator id: local_41066841-894c-4b9c-8f9e-2ce0ab11a088.
 
 Lanes 109 (PR #121), 107 (PR #122), 108 (PR #124), 120 (PR #125), 111 (PR #127), 123 (PR #128) and 113 (PR #129) merged → `plan-history.md`, "Lanes 107–111". All lanes through 103 merged; 0.3.2 released → `plan-history.md` (waves 1–2, lanes 33, 42, 45–51, 60–64, 71–75, 0.3.1 and 0.3.2 rounds, close-outs).
 

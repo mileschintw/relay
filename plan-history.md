@@ -189,3 +189,4 @@ Finished work moved out of `plan.md`, newest first, for checking only; the plan 
 - Lane 123 (#123, #126 folded in by the coordinator): session local_c6324e85-4f6b-46a4-8fce-688fed1e67e6, folder lane-123-e04fcc; PR #128 merged 2026-11-02 09:26 UTC (fbe7a2d) on the user picking "Open PR, merge once CI passes".
 | #113 ADR 0001: resume after compact through a hook and Handover | running | #111 (closed) | none | New docs/adr/0001-resume-after-compact.md | free |
 - Lane 113 (#113, ADR 0001): session local_2091861c-cc9b-4ec5-983a-fd32352d64e3, folder lane-113-4cca63; PR #129 merged 2026-11-02 (02d1f2d) on the user picking "Open PR, merge once CI passes".
+- Wave 1 started 2026-11-02 00:38 -0800 on the user's "開始第一波"; lanes 120, 123 (with #126) and 113 started on the user's yes. Close-out 2026-11-02: 7 lane sessions archived, scratchpads copied to snapshot/, coordinator local_41066841-894c-4b9c-8f9e-2ce0ab11a088 wrote itself out.
