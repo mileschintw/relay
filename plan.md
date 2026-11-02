@@ -16,6 +16,7 @@ none (ruling 1, merging on local checks while the repo had no CI, ended when #16
 
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
+| 113 | #113 | local_2091861c-cc9b-4ec5-983a-fd32352d64e3 (lane-113-4cca63) | started | — |
 
 Wave 1 started 2026-11-02 00:38 -0800 on the user's "開始第一波". Coordinator id: local_41066841-894c-4b9c-8f9e-2ce0ab11a088.
 
@@ -29,7 +30,7 @@ Every open issue, once. "Order" is the wave (1 = can start now). "Kind" is `free
 |---|---|---|---|---|---|
 | #110 Inventory every skill rule with its trigger, incident source and decision | 1 | none | none | local `relay-notes/inventory-2026-11/inventory.md` only (Files section is unparsable: needs a fix on the user's yes) | limited: user reviews the table |
 | #112 Slim the skills by the reviewed inventory | 2 | #110 (#107, #108, #109 closed) | none | all skill files; relay.py (ready hints); tests; GLOSSARY.md; README.md (Layout) | limited: the user's review of #110's table |
-| #113 ADR 0001: resume after compact through a hook and Handover | 1 | #111 (closed) | none | New docs/adr/0001-resume-after-compact.md | free |
+| #113 ADR 0001: resume after compact through a hook and Handover | running | #111 (closed) | none | New docs/adr/0001-resume-after-compact.md | free |
 | #114 Merge right scoped to a round | — | none | none | coordinate/SKILL.md (Consent, Finishing a lane); setup/templates/plan.md (Handover) | needs-triage |
 | #115 Spare-worker pool for lanes started while the user is away | — | none | none | coordinate/SKILL.md (Starting a lane); unattended.md; work/SKILL.md; relay.py (ready); tests | needs-triage |
 | #116 Run, audit and spare lane kinds; who holds the main checkout | — | none | none | relay.py (ready); tests; setup/templates/plan.md (Now); coordinate/SKILL.md; GLOSSARY.md (Kind) | needs-triage |
@@ -49,7 +50,6 @@ none
 
 ## Waiting for the user's decision
 
-- Since 2026-11-02 01:27 -0800: start lane 113 (#113 ADR, now unblocked)?
 - Since 2026-11-02 00:37 -0800: add a parsable `## Files` line to #110 and give it a lane?
 - Since 2026-11-02 00:37 -0800: triage #114–#119 (labelled needs-triage, "not scheduled until triaged").
 
