@@ -17,7 +17,7 @@ none (ruling 1, merging on local checks while the repo had no CI, ended when #16
 
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
-| 110 | #110 | local_180d6972-abd7-4597-9faa-3ba80176a3fd (landed in archived lane 113's folder D:\Repos\relay\.claude\worktrees\lane-113-4cca63, on its own branch `claude/lane-110-decec1`; keep lane 113's session archived) | review | — |
+| 110 | #110 | local_180d6972-abd7-4597-9faa-3ba80176a3fd (landed in archived lane 113's folder D:\Repos\relay\.claude\worktrees\lane-113-4cca63, on its own branch `claude/lane-110-decec1`; keep lane 113's session archived) | done: no PR by design (`ready`'s "branch not pushed" Inconsistent line is expected); waits for the user's review of the one-page summary in `D:\Repos\relay-notes\inventory-2026-11\inventory.md` | — |
 
 Lanes 109 (PR #121), 107 (PR #122), 108 (PR #124), 120 (PR #125), 111 (PR #127), 123 (PR #128) and 113 (PR #129) merged → `plan-history.md`, "Lanes 107–111". All lanes through 103 merged; 0.3.2 released → `plan-history.md` (waves 1–2, lanes 33, 42, 45–51, 60–64, 71–75, 0.3.1 and 0.3.2 rounds, close-outs).
 
@@ -48,6 +48,7 @@ none
 
 ## Waiting for the user's decision
 
+- Since 2026-11-02 13:21 -0800: review lane 110's one-page summary (`D:\Repos\relay-notes\inventory-2026-11\inventory.md`, top) and its three questions (C10/C25/C27/F15 deletions that change behaviour; the 9 rows moving to other projects; the new CORE and SCAN classes); then close #110 and start #112's batches H and W in parallel, then C1 → C2.
 - Since 2026-11-02 00:37 -0800: triage #114–#119 (labelled needs-triage, "not scheduled until triaged").
 
 ## Deadlines
