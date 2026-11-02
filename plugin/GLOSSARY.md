@@ -69,7 +69,7 @@ The plan table of every open issue, once: its Order, blocked-by, same-section wa
 A Roadmap column, judged by the lane's outcome: `free` when the outcome needs no user decision, account, special machine or release (a single limited follow-up step, such as replacing a release asset, is logged for the user and leaves it `free`); `limited: <what>` when the outcome itself needs one; `parent` for an issue with sub-issues.
 
 **Ruling**
-A decision the user made that the repo does not record yet, kept in the plan as one line with its date until a doc or ADR carries it.
+A decision the user made that the repo does not record yet, kept in the plan as one line with its date; it moves to `plan-history.md` once its lanes merge or a doc or ADR carries it.
 
 **Status file**
 `status/<key>.md`, one per lane, written by `relay.py status`.
