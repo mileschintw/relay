@@ -4,6 +4,7 @@ Current state only. Done work moves to `plan-history.md` with a one-line pointer
 
 ## Handover
 
+<!-- No transient environment facts here (which device the user is on, memory pressure): check them live each turn, or ask. -->
 - **Coordinator:** title <session title>, worktree <path>, id <once a tool result shows it, else "unknown">, mode <normal | unattended | paused>.
 - **Next:** <the next step; who it waits on (the user, lane <key>, a check, nobody); the user's authorization for it (the yes, standing instruction or unattended scope that covers it, or "needs a yes")>. Also anything in flight: a background command, a question asked, a message with no answer yet.
 - **Standing instructions:** <"none", or each with the user's words and time; once one is withdrawn, move it to plan-history.md>.
