@@ -1,6 +1,6 @@
 # Plan
 
-Current state only. An entry moves to `plan-history.md` the moment it is DONE or CONFIRMED, with a one-line pointer here; a ruling moves once its lanes merge; nothing is deleted. These always stay in this file: the sessions in **Now**, both **Waiting for the user** sections, **Deadlines**, and the user's standing instructions under **Handover**.
+Current state only. An entry moves to `plan-history.md` the moment it is DONE or CONFIRMED, with a one-line pointer here; a ruling moves once its lanes merge or a repo doc carries it; nothing is deleted. These always stay in this file: the sessions in **Now**, both **Waiting for the user** sections, **Deadlines**, and the user's standing instructions under **Handover**.
 
 ## Handover
 

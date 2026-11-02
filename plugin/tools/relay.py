@@ -27,8 +27,9 @@ status  writes <records>/status/<key>.md, a worker's status file, then reads it 
 
 ready   read-only. Prints what the coordinator can do next, the Plan warning first, then one line
         per lane. When plan.md has a `## Now` table, a done lane whose key is not in its first
-        column counts as merged and moved to plan-history.md: it gets no line and no lookup, and
-        one line gives their count. The sections:
+        column and whose only line would be under Merged counts as moved to plan-history.md: it
+        gets no line, and one line gives their count. Any other line it has (a PR still open, an
+        Inconsistent) lists it as usual. The sections:
           - Ready for GO: parked lanes whose every dependency is closed as completed. The
             dependencies are the GitHub blocked-by lists of every issue on the brief's `Closes:`
             line (issue <key> when it has none; numeric keys only), minus those issues, plus
@@ -521,7 +522,7 @@ def check_encoding(path, name, endings=False):
 
 
 # cmd_ready's output sections, in print order. One per line, so lanes adding a section don't conflict.
-# Plan prints first, before the lanes: a long output gets cut, and the warning must survive that.
+# cmd_ready prints Plan before the lane list (a long output gets cut; the warning must survive).
 READY_SECTIONS = (
     "Plan",
     "Ready for GO",
@@ -621,31 +622,39 @@ def cmd_ready(a):
         if missing or st.get("state") not in STATES:
             out["Could not parse"].append(f"{key}: missing or bad {missing or ['state']}")
             continue
-        if st["state"] == "done" and now is not None and key not in now:
-            left_out += 1  # merged and moved to plan-history.md
-            continue
-        print(f"  {key}: {st['state']}, {st['branch']} @ {st['head']}, {st['time']}")
+        line = f"  {key}: {st['state']}, {st['branch']} @ {st['head']}, {st['time']}"
+        # a done lane outside Now is left out when its only line is Merged (moved to plan-history.md)
+        moved = st["state"] == "done" and now is not None and key not in now
+        lane = {k: [] for k in READY_SECTIONS} if moved else out
+        if not moved:
+            print(line)
         if parents is None and st["state"] == "parked":
-            out["Waiting"].append(f"{key}: parked; no GO while the Parents lookup fails")
-            continue
-        if key.isdigit() and int(key) in (parents or ()):
-            out["Inconsistent"].append(f"{key}: issue #{key} is a parent, never a lane")
-            continue
-        try:
-            if repo is None and (st["state"] in ("parked", "done")):
-                repo = gh("repo", "view", "--json", "nameWithOwner")["nameWithOwner"]
-            if st["state"] == "parked":
-                ready_parked(records, key, repo, out)
-            elif st["state"] == "done":
-                ready_done(records, key, st, repo, a.checkout, out, deny, lookups, fetched)
-            elif st["state"] == "blocked":
-                out["Waiting"].append(f"{key}: blocked: {st.get('doing', '')}")
-        except LOOKUP_ERRORS as e:
-            out["Waiting"].append(f"{key}: lookup failed: {e}")
+            lane["Waiting"].append(f"{key}: parked; no GO while the Parents lookup fails")
+        elif key.isdigit() and int(key) in (parents or ()):
+            lane["Inconsistent"].append(f"{key}: issue #{key} is a parent, never a lane")
+        else:
+            try:
+                if repo is None and (st["state"] in ("parked", "done")):
+                    repo = gh("repo", "view", "--json", "nameWithOwner")["nameWithOwner"]
+                if st["state"] == "parked":
+                    ready_parked(records, key, repo, lane)
+                elif st["state"] == "done":
+                    ready_done(records, key, st, repo, a.checkout, lane, deny, lookups, fetched)
+                elif st["state"] == "blocked":
+                    lane["Waiting"].append(f"{key}: blocked: {st.get('doing', '')}")
+            except LOOKUP_ERRORS as e:
+                lane["Waiting"].append(f"{key}: lookup failed: {e}")
+        if moved:
+            if [s for s, items in lane.items() if items] == ["Merged"]:
+                left_out += 1
+            else:
+                print(line)
+                for s, items in lane.items():
+                    out[s] += items
     if not have:
         print("  (none)")
     if left_out:
-        print(f"  ({left_out} done lane{'s' if left_out > 1 else ''} not in plan.md's Now table left out)")
+        print(f"  ({left_out} merged lane{'s' if left_out > 1 else ''} not in plan.md's Now table left out)")
     for section, items in out.items():
         if section != "Plan":
             print_section(section, items)

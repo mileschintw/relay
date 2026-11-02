@@ -570,9 +570,28 @@ class ReadyTests(Base):
         self.assertNotIn("Merged:", out)
         self.assertIn("  13: working", out)
         self.assertIn("  14: blocked", out)  # only done lanes outside Now are left out
-        self.assertIn("  (1 done lane not in plan.md's Now table left out)", out)
+        self.assertIn("  (1 merged lane not in plan.md's Now table left out)", out)
         (self.records / "plan.md").write_text("# Plan\n")  # no Now table: every lane listed
         self.assertIn("Merged:\n  12: PR #5", self.ready())
+
+    def test_unmerged_done_lane_outside_now_is_still_listed(self):
+        (self.records / "plan.md").write_text("# Plan\n\n## Now\n\n| Key | Issues |\n|---|---|\n")
+        head = self.branch("lane-12")
+        self.done("12", "lane-12", head)
+        out = self.ready()
+        self.assertIn("  12: done", out)
+        self.assertIn("Ready for PR:\n  12: lane-12", out)
+        self.assertNotIn("left out", out)
+        self.gh({"prs": {"lane-12": [{"number": 5, "state": "CLOSED", "headRefOid": head}]}})
+        self.assertIn("  12: done", self.ready())
+
+    def test_now_keys_reads_the_first_column(self):
+        plan = self.records / "plan.md"
+        plan.write_text("# Plan\n\n## Now\n\n| Key | Issues |\n|---|---|\n| `12` | #12 |\n"
+                        "| **#13** | #13 |\n\n## Roadmap\n\n| Issue |\n|---|\n| 14 |\n")
+        self.assertEqual(relay.now_keys(plan), {"12", "13"})
+        plan.write_text("# Plan\n")
+        self.assertIsNone(relay.now_keys(plan))
 
     def test_bare_cr_and_mixed_line_endings_flagged(self):
         (self.records / "plan.md").write_bytes(b"# Plan\r\n\r\nNow\n")
