@@ -34,6 +34,7 @@ Every open issue, once. "Order" is the wave (1 = can start now). "Kind" is `free
 | #110 Inventory every skill rule with its trigger, incident source and decision | 1 | none | none | local `relay-notes/inventory-2026-11/inventory.md` only (Files section is unparsable: needs a fix on the user's yes) | limited: user reviews the table |
 | #111 Spike: resume after compact with a plugin SessionStart(compact) hook | running | none | none (#107 merged) | New plugin/hooks/hooks.json; New plugin/tools/resume.py; tests/test_relay.py; compact.md; setup/templates/README.md; README.md (Layout) | limited: proving the hook fires in a Code tab session needs the plugin loaded in the app |
 | #120 coordinate Following progress: rulings no longer quote the user; GO steps honour Pause (found by lane 107) | running | #107 (closed) | none (#109 merged) | coordinate/SKILL.md (Following progress, Finishing a lane step 6) | free |
+| #123 GLOSSARY Ruling: add "or once its lanes merge" to when a ruling leaves the plan (found by lane 108) | 2 | #108 | none | GLOSSARY.md (Ruling) | free |
 | #112 Slim the skills by the reviewed inventory | 3 | #110, #107, #108, #109 | none | all skill files; relay.py (ready hints); tests; GLOSSARY.md; README.md (Layout) | limited: the user's review of #110's table |
 | #113 ADR 0001: resume after compact through a hook and Handover | 3 | #111 | none | New docs/adr/0001-resume-after-compact.md | free |
 | #114 Merge right scoped to a round | — | none | none | coordinate/SKILL.md (Consent, Finishing a lane); setup/templates/plan.md (Handover) | needs-triage |
@@ -54,6 +55,7 @@ none
 
 ## Waiting for the user's decision
 
+- Since 2026-11-02 01:01 -0800: the Release line in project.md gets a review-rounds sentence (relayed from the grilling session local_eeab451f; confirm with the user here).
 - Since 2026-11-02 00:37 -0800: add a parsable `## Files` line to #110 and give it a lane?
 - Since 2026-11-02 00:37 -0800: triage #114–#119 (labelled needs-triage, "not scheduled until triaged").
 
