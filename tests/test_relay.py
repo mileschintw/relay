@@ -453,7 +453,7 @@ class ReadyTests(Base):
         (self.records / "plan.md").write_bytes(b"# Plan\n\nbad \xff byte\n" + b"x" * 16384)
         out = self.ready()
         self.assertIn("Records:\n  plan.md line 3: invalid UTF-8", out)
-        self.assertIn("plan.md is 16404 bytes", out)
+        self.assertIn("plan.md is 16403 bytes", out)
 
     def test_control_characters_named_by_file_and_line(self):
         (self.records / "plan.md").write_bytes(b"# Plan\r\nrelease\r-0.3.0\n\tok\r\n")
