@@ -4,6 +4,7 @@ Current state only. An entry moves to `plan-history.md` the moment it is DONE or
 
 ## Handover
 
+<!-- No transient environment facts here (which device the user is on, memory pressure): check them live each turn, or ask. -->
 - **Coordinator:** title <session title>, worktree <path>, id <once a tool result shows it, else "unknown">, mode <normal | unattended>.
 - **Standing instructions:** <"none", or each with the user's words and time>.
 - **Unattended log:** <"none"; while unattended: the user's words, scope, merge right; then each session started, PR merged, question answered (and why), lane stopped, with times>
