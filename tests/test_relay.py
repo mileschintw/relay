@@ -400,8 +400,8 @@ class ReadyTests(Base):
         self.assertIn("12: done with no report file", self.ready())
 
     def test_plan_limit(self):
-        (self.records / "plan.md").write_text("x\n" * 201)
-        self.assertIn("plan.md has 201 lines", self.ready())
+        (self.records / "plan.md").write_bytes(b"x" * 16385)
+        self.assertIn("plan.md is 16385 bytes (limit 16384)", self.ready())
 
     def relay_py_line(self, value):
         (self.records / "project.md").write_text(f"# Project\n\n- **relay.py:** {value}\n")
@@ -450,17 +450,17 @@ class ReadyTests(Base):
         self.assertNotIn("relay.py:", self.ready())
 
     def test_invalid_utf8_in_plan_warns(self):
-        (self.records / "plan.md").write_bytes(b"# Plan\n\nbad \xff byte\n" + b"x\n" * 201)
+        (self.records / "plan.md").write_bytes(b"# Plan\n\nbad \xff byte\n" + b"x" * 16384)
         out = self.ready()
         self.assertIn("Records:\n  plan.md line 3: invalid UTF-8", out)
-        self.assertIn("plan.md has 204 lines", out)
+        self.assertIn("plan.md is 16404 bytes", out)
 
     def test_control_characters_named_by_file_and_line(self):
         (self.records / "plan.md").write_bytes(b"# Plan\r\nrelease\r-0.3.0\n\tok\r\n")
         (self.records / "briefs" / "4.md").write_text("Depends on: none\nbell\x07\n")
         (self.records / "pr-bodies" / "4.md").write_text("Closes #4\n\nesc\x1b[0m\n")
         out = self.ready()
-        self.assertIn("plan.md line 2: control character U+000D", out)
+        self.assertIn("plan.md line 2: bare CR", out)
         self.assertIn("briefs/4.md line 2: control character U+0007", out)
         self.assertIn("pr-bodies/4.md line 3: control character U+001B", out)
         self.assertNotIn("plan.md line 1", out)
@@ -536,6 +536,54 @@ class ReadyTests(Base):
         out = self.failed_check(head, 79, annotations={"79": [{"message": "Process exited with 1"}]})
         self.assertIn("PR #5 check failed: ci", out)
         self.assertNotIn("billing", out)
+
+    def test_plan_limit_counts_bytes(self):
+        # 150 lines, each long: under any line limit, over 16 KB
+        (self.records / "plan.md").write_bytes(b"# Plan\n" + (b"x" * 119 + b"\n") * 150)
+        self.assertIn("plan.md is 18007 bytes (limit 16384)", self.ready())
+        (self.records / "plan.md").write_bytes(b"x\n" * 300)
+        self.assertNotIn("Plan:", self.ready())
+        code, out, err = self.call("ready", str(self.records), "--checkout", str(self.clone),
+                                   "--plan-limit", "100")
+        self.assertIn("plan.md is 600 bytes (limit 100)", out)
+
+    def test_plan_warning_prints_first(self):
+        (self.records / "plan.md").write_bytes(b"x" * 20000)
+        self.call("status", str(self.records), "12", "--state", "blocked", "--doing", "a question")
+        out = self.ready()
+        self.assertTrue(out.startswith("Plan:\n  plan.md is 20000 bytes"), out)
+        self.assertEqual(out.count("Plan:"), 1)
+        self.assertLess(out.index("Plan:"), out.index("Lanes:"))
+
+    def test_lanes_moved_to_plan_history_are_left_out(self):
+        (self.records / "plan.md").write_text(
+            "# Plan\n\n## Now\n\n| Key | Issues | Session | State | Parked until |\n"
+            "|---|---|---|---|---|\n| 13 | #13 | s | started | - |\n\n## Roadmap\n\n"
+            "| Issue | Order |\n|---|---|\n| #12 | 1 |\n")
+        head = self.branch("lane-12")
+        self.done("12", "lane-12", head)
+        self.gh({"prs": {"lane-12": [{"number": 5, "state": "MERGED", "headRefOid": head}]}})
+        self.call("status", str(self.records), "13", "--state", "working", "--doing", "x")
+        self.call("status", str(self.records), "14", "--state", "blocked", "--doing", "why")
+        out = self.ready()
+        self.assertNotIn("  12: ", out)
+        self.assertNotIn("Merged:", out)
+        self.assertIn("  13: working", out)
+        self.assertIn("  14: blocked", out)  # only done lanes outside Now are left out
+        self.assertIn("  (1 done lane not in plan.md's Now table left out)", out)
+        (self.records / "plan.md").write_text("# Plan\n")  # no Now table: every lane listed
+        self.assertIn("Merged:\n  12: PR #5", self.ready())
+
+    def test_bare_cr_and_mixed_line_endings_flagged(self):
+        (self.records / "plan.md").write_bytes(b"# Plan\r\n\r\nNow\n")
+        (self.records / "plan-history.md").write_bytes(b"# History\nold\rentry\n")
+        (self.records / "briefs" / "4.md").write_bytes(b"Depends on: none\r\nx\n")
+        (self.records / "briefs" / "5.md").write_bytes(b"Depends on: none\r\nx\r\n")
+        out = self.ready()
+        self.assertIn("plan.md: mixed line endings (2 CRLF, 1 LF)", out)
+        self.assertIn("plan-history.md line 2: bare CR", out)
+        self.assertIn("briefs/4.md: mixed line endings (1 CRLF, 1 LF)", out)
+        self.assertNotIn("briefs/5.md", out)
 
 
 class ReadyLookupTests(Base):
