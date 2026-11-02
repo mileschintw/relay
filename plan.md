@@ -16,8 +16,8 @@ none (ruling 1, merging on local checks while the repo had no CI, ended when #16
 
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
-| 107 | #107 | local_0d4b8ee2-14de-446f-bd55-df14161cb549 (landed in folder lane-99-9d1a59, branch claude/lane-107-346a37) | review | — |
-| 108 | #108 | local_a0f1a0ee-96dd-48c7-9fd3-8fe803ea07e1 (lane-108-1f422e) | working | — |
+| 107 | #107 | local_0d4b8ee2-14de-446f-bd55-df14161cb549 (landed in folder lane-99-9d1a59, branch claude/lane-107-346a37) | done; asked the user the PR-and-merge question | — |
+| 108 | #108 | local_a0f1a0ee-96dd-48c7-9fd3-8fe803ea07e1 (lane-108-1f422e) | review | — |
 | 109 | #109 | local_799508d4-c8c0-4485-b553-a85efcff9477 (lane-109-c55aa9) | PR #121 open; merge once CI passes (user: 「開 PR，CI 過就合併」 2026-11-02) | — |
 | 111 | #111 | local_3679c022-425d-48f7-a400-765c7c5000c9 (lane-111-ef42aa) | parked | GO #111 after #107 merges |
 
