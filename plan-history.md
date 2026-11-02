@@ -171,3 +171,8 @@ Finished work moved out of `plan.md`, newest first, for checking only; the plan 
   #91 filed 2026-10-31 by lane 83 from its review (merge after a failed fetch; Windows override written first): joins round 2 once #83 merges. Lane 83's full suite takes ~18 min on this box (1093 s), not 2.
   
   Round 1 (2026-10-31): #83–#86 filed from the WFA scan (8 findings) and code-review (6 findings), all verified by the coordinator against `3703e1f`. Mechanical overlap only: templates/project.md 82 (Alarm) / 83 (checks lines) / 84 (relay.py line); coordinate SKILL.md 82 (Alarm) / 84 (preamble) / 86 (Scheduling, Finishing); work SKILL.md 84 (preamble) / 85 (rest). Lanes 83–86 started on the user's "Start them" (2026-10-31).
+
+## Lanes 107–111 (2026-11-02)
+
+- Lane 109 (#109, audit fixes): session local_799508d4-c8c0-4485-b553-a85efcff9477, folder lane-109-c55aa9; PR #121 merged 2026-11-02 08:51 UTC (merge commit 8748a8f) on the user's 「開 PR，CI 過就合併」.
+| #109 Audit fixes: release lane waits, one-line quiet wakes, workers wait on jobs, no transient Handover facts | 1 | none | none (adds one comment line to #107's plan-template Handover: mechanical) | coordinate/SKILL.md (Scheduling, Following progress); work/SKILL.md (waiting on a background job); setup/templates/plan.md (Handover comment) | free |
