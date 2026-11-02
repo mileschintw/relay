@@ -12,7 +12,7 @@ Current state only. An entry moves to `plan-history.md` the moment it is DONE or
 
 ## Rulings
 
-<"none", or numbered, one line each: the decision and its date; once a repo doc or ADR carries one, move it to plan-history.md and leave "→ <file>">
+<"none", or numbered, one line each: the decision and its date; once its lanes merge or a repo doc or ADR carries one, move it to plan-history.md and leave "→ <file or PR>">
 
 ## Now
 
