@@ -17,7 +17,7 @@ none (ruling 1, merging on local checks while the repo had no CI, ended when #16
 
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
-| 110 | #110 | local_180d6972-abd7-4597-9faa-3ba80176a3fd (landed in archived lane 113's folder D:\Repos\relay\.claude\worktrees\lane-113-4cca63, on its own branch `claude/lane-110-decec1`; keep lane 113's session archived) | review: a whole-table Fable review the user asked for in the lane's session; no PR by design (`ready`'s "branch not pushed" Inconsistent line is expected) | — |
+| 110 | #110 | local_180d6972-abd7-4597-9faa-3ba80176a3fd (landed in archived lane 113's folder D:\Repos\relay\.claude\worktrees\lane-113-4cca63, on its own branch `claude/lane-110-decec1`; keep lane 113's session archived) | done (whole-table Fable review's 3 blockers fixed; waits for the user's review of the summary); no PR by design (`ready`'s "branch not pushed" Inconsistent line is expected) | — |
 
 Lanes 109 (PR #121), 107 (PR #122), 108 (PR #124), 120 (PR #125), 111 (PR #127), 123 (PR #128) and 113 (PR #129) merged → `plan-history.md`, "Lanes 107–111". All lanes through 103 merged; 0.3.2 released → `plan-history.md` (waves 1–2, lanes 33, 42, 45–51, 60–64, 71–75, 0.3.1 and 0.3.2 rounds, close-outs).
 
