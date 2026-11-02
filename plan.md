@@ -16,7 +16,7 @@ none (ruling 1, merging on local checks while the repo had no CI, ended when #16
 
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
-| 111 | #111 | local_3679c022-425d-48f7-a400-765c7c5000c9 (lane-111-ef42aa) | working; spike confirmed the hook fires in the Code tab; scope widened to coordinate First turn step 5 sentence and docs/getting-started.md:35 (coordinator, 2026-11-02) | — |
+| 111 | #111 | local_3679c022-425d-48f7-a400-765c7c5000c9 (lane-111-ef42aa) | working; spike confirmed the hook fires in the Code tab; scope widened to coordinate First turn step 5 sentence and docs/getting-started.md:35 (coordinator, 2026-11-02); remove the user-scope `relay-spike` test plugin when the lane ends | — |
 | 123 | #123 | local_c6324e85-4f6b-46a4-8fce-688fed1e67e6 (lane-123-e04fcc) | started | — |
 
 Wave 1 started 2026-11-02 00:38 -0800 on the user's "開始第一波". Coordinator id: local_41066841-894c-4b9c-8f9e-2ce0ab11a088.
