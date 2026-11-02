@@ -16,7 +16,7 @@ none (ruling 1, merging on local checks while the repo had no CI, ended when #16
 
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
-| 111 | #111 | local_3679c022-425d-48f7-a400-765c7c5000c9 (lane-111-ef42aa) | GO sent 2026-11-02 after #107 merged; waiting for the user in its session | — |
+| 111 | #111 | local_3679c022-425d-48f7-a400-765c7c5000c9 (lane-111-ef42aa) | working; spike confirmed the hook fires in the Code tab; scope widened to coordinate First turn step 5 sentence and docs/getting-started.md:35 (coordinator, 2026-11-02) | — |
 | 123 | #123 | local_c6324e85-4f6b-46a4-8fce-688fed1e67e6 (lane-123-e04fcc) | started | — |
 
 Wave 1 started 2026-11-02 00:38 -0800 on the user's "開始第一波". Coordinator id: local_41066841-894c-4b9c-8f9e-2ce0ab11a088.
@@ -48,7 +48,8 @@ Filled 2026-11-02 from `relay.py roadmap`. #112, #115, #116, #117 list several p
 
 ## Waiting for the user to be present
 
-- Since 2026-11-02 01:07 -0800: lane 111 needs the user to run `/compact` in a new Code tab session to check the `relay-spike` test plugin's hook (installed with user scope from lane 111's session); the user answers in lane 111's session. Remove the test plugin when the lane ends.
+none
+
 
 ## Waiting for the user's decision
 
