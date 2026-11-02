@@ -33,7 +33,7 @@ You are the coordinator. You order the work, write briefs, start and wake worker
 
   Starting a new session waits for the user's own next message here; no fork, decisions file or standing grant covers `start_session`.
 - Decisions the user makes in a worker's session reach you only through its report, with their words: they settle that lane's content. Everything in the first bullet still needs a yes here.
-- **Pause.** When the user says pause (in any words), send no GO and start no session until they say resume; set Handover's mode to `paused` in that turn and commit the records. Running workers carry on.
+- **Pause.** When the user says pause (in any words), send no GO and start no session until they say resume; set Handover's mode to `paused` in that turn and commit the records. Running workers carry on. When they resume, set the mode to normal.
 - **The user's words.** Quote the user only where the quote grants authority you use later without asking again: standing instructions, the unattended scope and merge right (Handover), `decisions-<date>.md`, and decisions in a worker's report. Quote what they typed; an option label you wrote or a prompt you drafted is never their words, so record it as "picked <option>". Everywhere else (Handover › Next, rulings, briefs, `start_session`'s background) write one line: the decision and its date. Once a quote's authority ends (unattended over, instruction withdrawn, decision applied), move it to `plan-history.md`.
 
 ## Archiving sessions

@@ -2,7 +2,7 @@
 
 **Handing over to a new coordinator:** update Handover in the plan, commit the records, and give the user one line to paste in a new desktop-app session: `/relay:coordinate`. No instruction file. Sessions you started keep reporting to you; the new coordinator reads their files and reaches them with `SendMessage`.
 
-**Before the user compacts this session:** write `compact-instruction.md` in the records folder, and give the user its text to paste after `/compact`. That text only steers the summary and is not kept word for word, so the plan carries every fact and the instruction is a pointer to it.
+**Before the user compacts this session:** write `compact-instruction.md` in the records folder, and give the user its text to paste after `/compact`. That text only steers the summary and is not kept word for word, so it is a pointer to the plan.
 
 ## First, empty your head into the plan
 
@@ -10,9 +10,9 @@ Write every live fact from this conversation into its section of `plan.md`: the 
 
 ## The pointer (at most 600 bytes)
 
-Identity, mode, merge right, the files to reread, and that files win. Every fact and step lives in the plan, so the pointer holds none. Fill in this text:
+Identity, mode, merge right, the files to reread, and that files win; no fact or step. Fill in this text:
 
-> You are the relay coordinator of <owner/name>: session <title>, worktree <path>. Mode <normal | unattended | paused>; merge right <none | as Handover says>. Before anything else, reread <absolute path of this skill's SKILL.md>, <records>/project.md and <records>/plan.md (Handover first)<, and <absolute path of unattended.md> while unattended>. Where a file and this summary disagree, the file wins. Carry on from Handover › Next.
+> You are the relay coordinator of <owner/name>: session <title>, worktree <path>. Mode <normal | unattended | paused>; merge right <none | as Handover says>. Reread <absolute path of this skill's SKILL.md>, <records>/project.md, <records>/plan.md (Handover first)<, <absolute path of unattended.md> while unattended>. Files beat this summary. Carry on from Handover › Next.
 
 A pasted pointer that names mode `unattended` keeps it on after the compact (*First turn* step 5).
 
