@@ -17,7 +17,7 @@ none (ruling 1, merging on local checks while the repo had no CI, ended when #16
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
 | 111 | #111 | local_3679c022-425d-48f7-a400-765c7c5000c9 (lane-111-ef42aa) | working; spike confirmed the hook fires in the Code tab; scope widened to coordinate First turn step 5 sentence and docs/getting-started.md:35 (coordinator, 2026-11-02); remove the user-scope `relay-spike` test plugin when the lane ends | — |
-| 123 | #123 | local_c6324e85-4f6b-46a4-8fce-688fed1e67e6 (lane-123-e04fcc) | started | — |
+| 123 | #123 #126 | local_c6324e85-4f6b-46a4-8fce-688fed1e67e6 (lane-123-e04fcc) | started | — |
 
 Wave 1 started 2026-11-02 00:38 -0800 on the user's "開始第一波". Coordinator id: local_41066841-894c-4b9c-8f9e-2ce0ab11a088.
 
@@ -32,6 +32,7 @@ Every open issue, once. "Order" is the wave (1 = can start now). "Kind" is `free
 | #110 Inventory every skill rule with its trigger, incident source and decision | 1 | none | none | local `relay-notes/inventory-2026-11/inventory.md` only (Files section is unparsable: needs a fix on the user's yes) | limited: user reviews the table |
 | #111 Spike: resume after compact with a plugin SessionStart(compact) hook | running | none | none (#107 merged) | New plugin/hooks/hooks.json; New plugin/tools/resume.py; tests/test_relay.py; compact.md; setup/templates/README.md; README.md (Layout) | limited: proving the hook fires in a Code tab session needs the plugin loaded in the app |
 | #123 GLOSSARY Ruling: add "or once its lanes merge" to when a ruling leaves the plan (found by lane 108) | running | #108 (closed) | none | GLOSSARY.md (Ruling) | free |
+| #126 Plan template Rulings placeholder: add "once its lanes merge" (found by lane 123) | running (in lane 123) | none | none | setup/templates/plan.md (Rulings placeholder) | free |
 | #112 Slim the skills by the reviewed inventory | 3 | #110, #107, #108, #109 | none | all skill files; relay.py (ready hints); tests; GLOSSARY.md; README.md (Layout) | limited: the user's review of #110's table |
 | #113 ADR 0001: resume after compact through a hook and Handover | 3 | #111 | none | New docs/adr/0001-resume-after-compact.md | free |
 | #114 Merge right scoped to a round | — | none | none | coordinate/SKILL.md (Consent, Finishing a lane); setup/templates/plan.md (Handover) | needs-triage |
