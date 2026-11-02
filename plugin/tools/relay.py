@@ -3,7 +3,7 @@
 
   python3 -I relay.py status <records> <key> --state <state> --doing <text>
                              [--branch <b>] [--head <sha>] [--pr-body <path>]
-  python3 -I relay.py ready <records> [--repo <owner/name>] [--checkout <dir>] [--plan-limit <n>]
+  python3 -I relay.py ready <records> [--repo <owner/name>] [--checkout <dir>] [--plan-limit <bytes>]
   python3 -I relay.py roadmap [--repo <owner/name>]
   python3 -I relay.py localcheck <records> <key> [--checkout <dir>] [--repo <owner/name>]
                                  [--comment <N>]
@@ -25,7 +25,11 @@ status  writes <records>/status/<key>.md, a worker's status file, then reads it 
         Fails (1), writing nothing, on a line break in a value, a head that is not a sha, or a
         detached HEAD with no --branch.
 
-ready   read-only. Prints what the coordinator can do next:
+ready   read-only. Prints what the coordinator can do next, the Plan warning first, then one line
+        per lane. When plan.md has a `## Now` table, a done lane whose key is not in its first
+        column and whose only line would be under Merged counts as moved to plan-history.md: it
+        gets no line, and one line gives their count. Any other line it has (a PR still open, an
+        Inconsistent) lists it as usual. The sections:
           - Ready for GO: parked lanes whose every dependency is closed as completed. The
             dependencies are the GitHub blocked-by lists of every issue on the brief's `Closes:`
             line (issue <key> when it has none; numeric keys only), minus those issues, plus
@@ -63,15 +67,17 @@ ready   read-only. Prints what the coordinator can do next:
             match that is a word character must not touch another; leading inline flags such as
             `(?i)` work, `(?x)` with its `#` comments too; printed by line number only).
           - Records: invalid UTF-8, or a control character other than tab, LF and a CR right
-            before LF, in project.md, plan.md, briefs/*.md or pr-bodies/*.md, by file and line
-            (for invalid UTF-8, the first bad byte only). Checked first, so a bad byte is a
+            before LF (a bare CR is named so), in project.md, plan.md, plan-history.md,
+            briefs/*.md or pr-bodies/*.md, by file and line (for invalid UTF-8, the first bad byte
+            only); and mixed line endings (both CRLF and LF) in plan.md, plan-history.md or a
+            brief, by file with the count of each. Checked first, so a bad byte is a
             warning, never a crash; a lane whose brief or PR body draft has one also shows as
             lookup failed.
             Also a warning when the records folder has no .gitattributes, naming the fix, and
             one when the deny list is missing, is not valid UTF-8 (a BOM is fine), or has a line
             that is not a usable pattern, such as one with a zero-length match (`\\b`) (by line
             number, never its text); done lanes then wait, with no deny-list check.
-          - Plan: a warning when plan.md has more lines than --plan-limit (default 200).
+          - Plan: a warning when plan.md is larger than --plan-limit bytes (default 16384, 16 KB).
           - relay.py: a warning when the git checkout holding project.md's `relay.py:` path
             (relative to --checkout, else the current folder) is behind its origin/<default>,
             with the count and the `git -C <checkout> merge --ff-only` fix. A checkout on another
@@ -494,8 +500,9 @@ def checks_state(rollup, repo=None):
     return f"checks could not run (billing): {', '.join(billing)}" if billing else "passed"
 
 
-def check_encoding(path, name):
-    """Warnings for invalid UTF-8 or a stray control character in a hand-written record."""
+def check_encoding(path, name, endings=False):
+    """Warnings for invalid UTF-8 or a stray control character in a hand-written record; with
+    endings, also for a file whose lines end in both CRLF and LF."""
     data = path.read_bytes()
     try:
         text = data.decode("utf-8")
@@ -505,12 +512,19 @@ def check_encoding(path, name):
     out = []
     for m in CONTROL.finditer(text):
         line = text.count("\n", 0, m.start()) + 1
-        out.append(f"{name} line {line}: control character U+{ord(m.group()):04X}")
+        what = "bare CR" if m.group() == "\r" else f"control character U+{ord(m.group()):04X}"
+        out.append(f"{name} line {line}: {what}")
+    crlf = text.count("\r\n")
+    lf = text.count("\n") - crlf
+    if endings and crlf and lf:
+        out.append(f"{name}: mixed line endings ({crlf} CRLF, {lf} LF)")
     return out
 
 
 # cmd_ready's output sections, in print order. One per line, so lanes adding a section don't conflict.
+# cmd_ready prints Plan before the lane list (a long output gets cut; the warning must survive).
 READY_SECTIONS = (
+    "Plan",
     "Ready for GO",
     "Ready for PR",
     "Ready to merge",
@@ -522,9 +536,34 @@ READY_SECTIONS = (
     "Inconsistent",
     "Could not parse",
     "Records",
-    "Plan",
     "relay.py",
 )
+
+
+def now_keys(plan):
+    """The keys in the first column of plan.md's `## Now` table, or None when plan.md is missing
+    or has no `## Now` section."""
+    if not plan.is_file():
+        return None
+    keys = None
+    inside = False
+    for line in plan.read_text(encoding="utf-8", errors="replace").splitlines():
+        if re.match(r"#{1,2}\s", line):
+            inside = re.fullmatch(r"##\s+Now\s*", line.rstrip()) is not None
+            if inside:
+                keys = set()
+        elif inside and line.lstrip().startswith("|"):
+            cell = line.strip().strip("|").split("|")[0].strip().strip("`*").lstrip("#")
+            if cell and cell.lower() != "key" and not set(cell) <= set("-: "):
+                keys.add(cell)
+    return keys
+
+
+def print_section(section, items):
+    if items:
+        print(f"{section}:")
+        for item in items:
+            print(f"  {item}")
 
 
 def cmd_ready(a):
@@ -535,10 +574,12 @@ def cmd_ready(a):
         return 2
     out = {k: [] for k in READY_SECTIONS}
     plan = records / "plan.md"
-    for path in [records / "project.md", plan, *sorted((records / "briefs").glob("*.md")),
+    with_endings = [plan, records / "plan-history.md", *sorted((records / "briefs").glob("*.md"))]
+    for path in [records / "project.md", *with_endings,
                  *sorted((records / "pr-bodies").glob("*.md"))]:
         if path.is_file():
-            out["Records"] += check_encoding(path, path.relative_to(records).as_posix())
+            out["Records"] += check_encoding(path, path.relative_to(records).as_posix(),
+                                             endings=path in with_endings)
     if not (records / ".gitattributes").is_file():
         out["Records"].append(
             ".gitattributes missing, so records stay CRLF on Windows: copy setup's "
@@ -550,10 +591,12 @@ def cmd_ready(a):
         if not b.stem.startswith("_") and b.stem not in have:
             out["No status yet"].append(f"{b.stem}: a brief but no status file (not started, or not yet run)")
     if plan.exists():
-        n = len(plan.read_text(encoding="utf-8", errors="replace").splitlines())
+        n = plan.stat().st_size
         if n > a.plan_limit:
-            out["Plan"].append(f"plan.md has {n} lines (limit {a.plan_limit}): prune it "
+            out["Plan"].append(f"plan.md is {n} bytes (limit {a.plan_limit}): prune it "
                                "(move, never delete; the kinds the top of plan.md names stay)")
+    now = now_keys(plan)
+    left_out = 0
     repo = a.repo
     fetched = False
     if a.checkout:
@@ -566,6 +609,7 @@ def cmd_ready(a):
         out["Records"].append(str(e))
         deny = None
     lookups = ReadyLookups(a.checkout, fetched, len(have))
+    print_section("Plan", out["Plan"])
     print("Lanes:")
     for path in sorted(status_dir.glob("*.md")):
         key = path.stem
@@ -578,31 +622,42 @@ def cmd_ready(a):
         if missing or st.get("state") not in STATES:
             out["Could not parse"].append(f"{key}: missing or bad {missing or ['state']}")
             continue
-        print(f"  {key}: {st['state']}, {st['branch']} @ {st['head']}, {st['time']}")
+        line = f"  {key}: {st['state']}, {st['branch']} @ {st['head']}, {st['time']}"
+        # a done lane outside Now is left out when its only line is Merged (moved to plan-history.md)
+        moved = st["state"] == "done" and now is not None and key not in now
+        lane = {k: [] for k in READY_SECTIONS} if moved else out
+        if not moved:
+            print(line)
         if parents is None and st["state"] == "parked":
-            out["Waiting"].append(f"{key}: parked; no GO while the Parents lookup fails")
-            continue
-        if key.isdigit() and int(key) in (parents or ()):
-            out["Inconsistent"].append(f"{key}: issue #{key} is a parent, never a lane")
-            continue
-        try:
-            if repo is None and (st["state"] in ("parked", "done")):
-                repo = gh("repo", "view", "--json", "nameWithOwner")["nameWithOwner"]
-            if st["state"] == "parked":
-                ready_parked(records, key, repo, out)
-            elif st["state"] == "done":
-                ready_done(records, key, st, repo, a.checkout, out, deny, lookups, fetched)
-            elif st["state"] == "blocked":
-                out["Waiting"].append(f"{key}: blocked: {st.get('doing', '')}")
-        except LOOKUP_ERRORS as e:
-            out["Waiting"].append(f"{key}: lookup failed: {e}")
+            lane["Waiting"].append(f"{key}: parked; no GO while the Parents lookup fails")
+        elif key.isdigit() and int(key) in (parents or ()):
+            lane["Inconsistent"].append(f"{key}: issue #{key} is a parent, never a lane")
+        else:
+            try:
+                if repo is None and (st["state"] in ("parked", "done")):
+                    repo = gh("repo", "view", "--json", "nameWithOwner")["nameWithOwner"]
+                if st["state"] == "parked":
+                    ready_parked(records, key, repo, lane)
+                elif st["state"] == "done":
+                    ready_done(records, key, st, repo, a.checkout, lane, deny, lookups, fetched)
+                elif st["state"] == "blocked":
+                    lane["Waiting"].append(f"{key}: blocked: {st.get('doing', '')}")
+            except LOOKUP_ERRORS as e:
+                lane["Waiting"].append(f"{key}: lookup failed: {e}")
+        if moved:
+            if [s for s, items in lane.items() if items] == ["Merged"]:
+                left_out += 1
+            else:
+                print(line)
+                for s, items in lane.items():
+                    out[s] += items
     if not have:
         print("  (none)")
+    if left_out:
+        print(f"  ({left_out} merged lane{'s' if left_out > 1 else ''} not in plan.md's Now table left out)")
     for section, items in out.items():
-        if items:
-            print(f"{section}:")
-            for item in items:
-                print(f"  {item}")
+        if section != "Plan":
+            print_section(section, items)
     if not any(out.values()):
         print("Nothing to do.")
     return 0
@@ -1267,7 +1322,7 @@ def main(argv=None):
     r.add_argument("records")
     r.add_argument("--repo")
     r.add_argument("--checkout")
-    r.add_argument("--plan-limit", type=int, default=200)
+    r.add_argument("--plan-limit", type=int, default=16384, metavar="BYTES")
     c = sub.add_parser("localcheck", help="run the project's checks on a lane merged with the default branch")
     c.add_argument("records")
     c.add_argument("key")
