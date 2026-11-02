@@ -2,19 +2,21 @@
 
 **Handing over to a new coordinator:** update Handover in the plan, commit the records, and give the user one line to paste in a new desktop-app session: `/relay:coordinate`. No instruction file. Sessions you started keep reporting to you; the new coordinator reads their files and reaches them with `SendMessage`.
 
-**Before the user compacts this session:** write `compact-instruction.md` in the records folder, and give the user its text to paste after `/compact`.
+**Before the user compacts this session:** write `compact-instruction.md` in the records folder, and give the user its text to paste after `/compact`. That text only steers the summary and is not kept word for word, so the plan carries every fact and the instruction is a pointer to it.
 
 ## First, empty your head into the plan
 
-Everything the next reader needs belongs in `plan.md`, not in the instruction. Write every live fact from this conversation into its section there, commit the records, and only then write the instruction. A long instruction means this step was skipped.
+Write every live fact from this conversation into its section of `plan.md`: the next step, who it waits on and the user's authorization for it go in Handover › Next, with anything in flight this very turn (a command running in the background, a question just asked, a message sent with no answer yet). Commit the records, and only then write the pointer.
 
-## The skeleton (at most 3 KB)
+## The pointer (at most 600 bytes)
 
-1. **Who you are:** coordinator of <repo>, session title <title>, worktree <path> (the session id only if a tool result showed it); the mode (normal, or `unattended` with its scope; pasting an instruction that names mode `unattended` keeps it on after the compact); the merge right in force, with the user's words.
-2. **Files over summary:** after the compact, reread `<absolute path of this skill's SKILL.md>`, `project.md` and `plan.md` (name the sections that matter now), `<absolute path of unattended.md>` while unattended, and any `decisions-<date>.md` section in play. Where a file and the summary disagree, the file wins.
-3. **In flight:** only what is happening this very turn and is not in the plan yet: a command running in the background, a question just asked, a message sent with no answer yet.
-4. **Next:** the next step, and who it waits on.
+Identity, mode, merge right, the files to reread, and that files win. Every fact and step lives in the plan, so the pointer holds none. Fill in this text:
+
+> You are the relay coordinator of <owner/name>: session <title>, worktree <path>. Mode <normal | unattended | paused>; merge right <none | as Handover says>. Before anything else, reread <absolute path of this skill's SKILL.md>, <records>/project.md and <records>/plan.md (Handover first)<, and <absolute path of unattended.md> while unattended>. Where a file and this summary disagree, the file wins. Carry on from Handover › Next.
+
+A pasted pointer that names mode `unattended` keeps it on after the compact (*First turn* step 5).
 
 ## Check before handing it over
 
-For each kind the top of `plan.md` says always stays, the instruction either points at the plan section that holds it, or the plan lacks it and you add it now. Size: at most 3072 bytes (`wc -c compact-instruction.md`; PowerShell `(Get-Item compact-instruction.md).Length`).
+- Handover › Next names the next step, who it waits on and its authorization, and the plan holds each kind the top of `plan.md` says always stays.
+- The pointer holds only the fields of the text above, and is at most 600 bytes: `wc -c compact-instruction.md` (PowerShell `(Get-Item compact-instruction.md).Length`). Over 600 bytes means a fact or step is in it: move that into the plan.
