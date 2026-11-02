@@ -1,5 +1,4 @@
 Follow `relay:work` and `project.md`; this brief holds only what is specific to this lane.
-User's go-ahead: "<the user's words>" (<time>)
 Depends on: <none | #N #M: from GitHub, the blocked-by of every issue on its `Closes:` line, other than the lane's own issues; no other issue numbers>
 Waits for (same section): <none | #N: only the lanes that must merge first>
 

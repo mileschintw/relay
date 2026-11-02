@@ -58,7 +58,7 @@ Run `relay.py status` from your lane's worktree (it reads the branch and head th
 - issues opened;
 - problems outside the lane that the tracker or the Roadmap already holds, each with its issue number (already tracked; no action);
 - anything created, installed or removed outside the repo and your scratchpad, and whether you undid it;
-- **every decision the user made in this session, with their words** (the coordinator cannot see your `AskUserQuestion` answers);
+- **every decision the user made in this session, with their words** (the coordinator cannot see your `AskUserQuestion` answers): quote only what they typed; for an option you wrote, give the question and "picked <option>";
 - when the brief says the user is away, a *Decided while unattended* section;
 - open questions for the coordinator.
 
