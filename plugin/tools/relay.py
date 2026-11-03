@@ -39,7 +39,8 @@ ready   read-only. Prints what the coordinator can do next, the Plan warning fir
           - Ready to merge: done lanes whose open PR head is the status head, checks all passed
             (at least one, none pending), no conflict and a body equal to the draft.
           - Waiting: parked lanes with an open dependency; a parked spare with no brief
-            (`spare, available: waits for a brief`); blocked lanes, with their `doing` line;
+            (`spare, available: waits for a brief`); blocked lanes, with their `doing` line
+            (`(doing withheld: a deny-list name)` when it matches the deny list);
             done lanes with a conflict, pending or failed checks, a failed lookup, an open PR whose
             body differs from the PR body draft (ends trimmed; the line gives the `gh pr edit`
             command), or a deny list Records reports (`deny-list check not run`). A failed
@@ -153,7 +154,8 @@ waitchecks  waits for PR <N>'s first check, then watches its checks. Polls `gh p
         decides) or no workflow under the default branch's .github/workflows/ runs on
         `pull_request` or `pull_request_target` (each file's top-level `on:`): *CI cannot run*;
         one does, there is no workflow file (CI outside Actions), or the lookup failed: *Checks
-        not started*. A failed poll is retried at the next one. No overall timeout once watching.
+        not started*. A failed poll is retried at the next one. A watch still running after 20
+        times the CI start wait (2 hours by default) is stopped and the table printed.
 
 merge   merges lanes one at a time, in the order given. First, every key must be listed under
         `ready`'s Ready to merge and nowhere else (--checkout as for `ready`, default the current
@@ -172,7 +174,7 @@ Exit: status 0 when written, 1 when a check fails; ready 0 after printing; roadm
 printing, 1 when a lookup fails; localcheck 0 when every command passed, else 1 (a command, the
 merge, a lookup or the comment failed); waitchecks 0 when the checks passed, 1 when one failed,
 3 when no check appeared, 4 when a lookup failed (the last poll's, or a watch that failed with
-no failed check behind it, a gh error say); merge 0 when every key merged, 1 when it stopped
+no failed check behind it, a gh error say), 5 when the watch timed out; merge 0 when every key merged, 1 when it stopped
 (a key not ready, or a fetch, lookup, merge state or `gh pr merge` that failed);
 2 on a usage error (argparse's too, after which waitchecks and merge still print their hint;
 waitchecks: a CI start wait that is not a number of minutes, or a project.md that is not UTF-8;
@@ -213,23 +215,27 @@ deadline = None  # the time.monotonic() ready's lookups must end by; None outsid
 timed_out = []  # the commands run killed or skipped past `deadline`, in order
 
 
-def run(cmd, cwd=None):
+def run(cmd, cwd=None, timeout=None):
     """(exit code, stdout, stderr). Past `deadline`, a running command is killed and a new one
-    never starts: both return TIMED_OUT and are added to `timed_out`."""
+    never starts: both return TIMED_OUT and are added to `timed_out`. Past <timeout> seconds, a
+    command is killed and returns TIMED_OUT, not added."""
     left = None if deadline is None else deadline - time.monotonic()
     if left is not None and left <= 0:
         timed_out.append(cmd)
         return TIMED_OUT, "", "skipped: ready's time budget is spent"
+    by_deadline = timeout is None or (left is not None and left <= timeout)
     p = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
                          encoding="utf-8")
     try:
-        out, err = p.communicate(timeout=left)
+        out, err = p.communicate(timeout=left if by_deadline else timeout)
     except subprocess.TimeoutExpired:
         p.kill()
         try:  # a grandchild holding the pipes open must not hold ready past its budget
             p.communicate(timeout=2)
         except subprocess.TimeoutExpired:
             pass
+        if not by_deadline:
+            return TIMED_OUT, "", f"timed out after {timeout:g} s"
         timed_out.append(cmd)
         return TIMED_OUT, "", "timed out: ready's time budget is spent"
     except BaseException:  # as subprocess.run: an interrupt leaves no child running
@@ -845,6 +851,8 @@ EXIT_HINTS = {
         3: "no checks appeared: take the `ci-fallbacks.md` case the line above names",
         4: "a lookup failed or an unexpected error: rerun it once; if it exits 4 again, give the "
            "user its line",
+        5: "the checks watch timed out (a hung watch, or CI slower than 20 CI start waits): "
+           "rerun it once; if it exits 5 again, give the user its line and the table above it",
     },
     "merge": {
         0: "read the default branch's run for the last merge commit instead of rerunning checks "
@@ -1011,7 +1019,10 @@ def ready_report(a, budget):
                     ready_done(records, key, st, repo, a.checkout, lane, deny, lookups, fetched,
                                moved)
                 elif st["state"] == "blocked":
-                    lane["Waiting"].append(f"{key}: blocked: {st.get('doing', '')}")
+                    doing = st.get("doing", "")
+                    if any(deny_regex(pat).search(doing) for pat in deny or []):
+                        doing = "(doing withheld: a deny-list name)"  # Records names the file
+                    lane["Waiting"].append(f"{key}: blocked: {doing}")
             except LOOKUP_ERRORS as e:
                 lane["Waiting"].append(f"{key}: lookup failed: {e}")
         sections = [s for s, items in lane.items() if items]
@@ -1514,7 +1525,8 @@ def cmd_localcheck(a):
 
 # waitchecks -----------------------------------------------------------------------------------
 
-NO_CHECKS, LOOKUP_FAILED = 3, 4
+NO_CHECKS, LOOKUP_FAILED, WATCH_TIMED_OUT = 3, 4, 5
+WATCH_FACTOR = 20  # the checks watch may run this many CI start waits (6 min: 2 hours)
 CI_START_WAIT = 6  # minutes, when project.md has no `CI start wait:` line
 
 
@@ -1544,7 +1556,9 @@ def wait_checks(pr, repo, schedule):
     """Poll PR <pr>'s checks at each time in schedule (seconds from now) until one exists, queued
     or pending included, then `gh pr checks --watch` it. Returns 0 when the checks passed, 1 when
     one failed, NO_CHECKS when none appeared by the last poll, LOOKUP_FAILED when the last poll's
-    lookup failed with none seen, or the watch failed with no failed check behind it."""
+    lookup failed with none seen, or the watch failed with no failed check behind it,
+    WATCH_TIMED_OUT when the watch ran past WATCH_FACTOR times the last poll's time (it is
+    killed)."""
     start, error = time.monotonic(), None
     for i, at in enumerate(schedule, 1):
         time.sleep(max(0, at - (time.monotonic() - start)))
@@ -1558,12 +1572,17 @@ def wait_checks(pr, repo, schedule):
             # with no terminal, the watch reprints the whole table every 10 s: keep only its
             # errors, then print the final table once
             checks = gh_base() + ["pr", "checks", str(pr), "--repo", repo]
-            code, _, err = run(checks + ["--watch"])
+            limit = schedule[-1] * WATCH_FACTOR
+            code, _, err = run(checks + ["--watch"], timeout=limit)
             _, out, table_err = run(checks)
             print(out.rstrip())
             errors = "\n".join(e.rstrip() for e in (err, table_err) if e.strip())
             if errors:
                 print(errors, file=sys.stderr)
+            if code == TIMED_OUT:
+                print(f"the checks watch on PR #{pr} ran past {limit / 60:g} minutes with no "
+                      "result; it was stopped")
+                return WATCH_TIMED_OUT
             if code == 0:
                 return 0
             # gh exits 1 on a failed check and on its own errors alike: ask the rollup which

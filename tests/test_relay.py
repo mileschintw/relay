@@ -532,6 +532,16 @@ class ReadyTests(Base):
                   "--doing", "needs a decision on X")
         self.assertIn("Waiting:\n  12: blocked: needs a decision on X", self.ready())
 
+    def test_blocked_lane_withholds_a_deny_list_name(self):
+        (self.records / "deny.txt").write_text("Acme(?:Corp)?\n")
+        (self.records / "project.md").write_text("- **Deny list:** `deny.txt`\n")
+        self.call("status", str(self.records), "12", "--state", "blocked",
+                  "--doing", "may AcmeCorp data go in the test?")
+        out = self.ready()
+        self.assertIn("Waiting:\n  12: blocked: (doing withheld: a deny-list name)", out)
+        self.assertIn("status/12.md lines", out)
+        self.assertNotIn("AcmeCorp", out)
+
     def test_merged(self):
         head = self.branch("lane-12")
         self.done("12", "lane-12", head)
@@ -991,6 +1001,17 @@ class WaitchecksTests(Base):
         self.assertIn("lookup failed", err)
         code, out, err = self.waitchecks(repo=(), broken=["nameWithOwner"])
         self.assertEqual((code, self.polls), (4, []), err)
+
+    def test_a_watch_past_its_timeout_is_its_own_exit(self):
+        # a CI start wait of 0.002 minutes: the watch may run 20 times that, 2.4 s, then is killed
+        start = time.monotonic()
+        code, out, err = self.waitchecks(project="- **CI start wait:** 0.002\n",
+                                         slow={"--watch": 30}, checks={"5": "test\tpending"})
+        self.assertLess(time.monotonic() - start, 20)
+        self.assertEqual(code, 5, err)
+        self.assertIn("test\tpending", out)
+        self.assertIn("the checks watch on PR #5 ran past 0.04 minutes", out)
+        self.assertIn("hint (exit 5): the checks watch timed out", out)
 
     def test_wait_checks_takes_a_schedule(self):
         self.gh({"pr_checks": {"5": {"after": 3, "rollup": self.QUEUED}}})
