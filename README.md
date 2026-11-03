@@ -1,3 +1,5 @@
+![relay: one Claude Code session coordinates many worker sessions](docs/social-preview/banner.svg)
+
 # relay
 
 Run several Claude Code sessions on one repo at the same time, with your consent gated in one place.

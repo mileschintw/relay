@@ -20,4 +20,5 @@ Only `plugin/` is installed; everything else is for developing relay.
 | `docs/layout.md` | this table |
 | `docs/releasing.md` | how a merge to `main` reaches users |
 | `docs/adr/` | decisions and why (ADRs) |
+| `docs/social-preview/` | the README banner (`banner.svg`) and the repo's social preview (`social-preview.svg`, its 1280×640 `social-preview.png` upload) |
 | `docs/agents/` | the issue tracker, triage labels and domain docs the mattpocock-skills read |
