@@ -78,9 +78,9 @@ ready   read-only. Prints what the coordinator can do next, the Plan warning fir
             number; when the records folder has no .gitattributes, naming the fix; and
             one when the deny list is missing, is not valid UTF-8 (a BOM is fine), or has a line
             that is not a usable pattern, such as one with a zero-length match (`\\b`) (by line
-            number, never its text); done lanes then wait, with no deny-list check. With a
-            usable deny list, a line matching it in plan.md, plan-history.md, briefs/*.md,
-            reports/*.md or status/*.md, by file and line numbers, never the name.
+            number, never its text); done lanes then wait, with no deny-list check. And one
+            per records file (plan.md, plan-history.md, briefs/*.md, reports/*.md,
+            status/*.md) with a line matching the deny list, by line numbers, never the name.
           - Plan: a warning when plan.md is larger than --plan-limit bytes (default 16384, 16 KB).
           - relay.py: a warning when the git checkout holding project.md's `relay.py:` path
             (relative to --checkout, else the current folder) is behind its origin/<default>,
@@ -673,7 +673,8 @@ EXIT_HINTS = {
         0: "read the default branch's run for the last merge commit instead of rerunning checks "
            "locally; tell the user which lanes merged",
         1: "it stopped at one lane, on the line saying why, and merged no lane after it. A key "
-           "not under Ready to merge (nothing merged): fix what `ready` says. Any other stop (a "
+           "not under Ready to merge (nothing merged): fix what `ready` says, as for a deny-list "
+           "name in a records file. Any other stop (a "
            "moved head, a merge state other than CLEAN, a failed lookup or `gh pr merge`): give "
            "the user that line. Tell the user which lanes merged and where it stopped",
         2: "a usage error, nothing merged: fix what its error line names and rerun",
@@ -745,10 +746,13 @@ def cmd_ready(a):
     repo, parents = ready_parents(repo, out)
     try:
         deny = deny_patterns(records)
-        out["Records"] += records_deny_hits(records, deny)
     except LOOKUP_ERRORS as e:
         out["Records"].append(str(e))
         deny = None
+    try:
+        out["Records"] += records_deny_hits(records, deny)
+    except LOOKUP_ERRORS as e:
+        out["Records"].append(f"records deny-list check failed: {e}")
     lookups = ReadyLookups(a.checkout, fetched, len(have))
     print_section("Plan", out["Plan"])
     print("Lanes:")
@@ -1453,7 +1457,7 @@ def cmd_merge(a):
         return fail(f"{e}; nothing merged")
     hits = records_deny_hits(records, deny)
     for hit in hits:
-        fail(f"{hit}; nothing merged")
+        print(f"{hit}; nothing merged", file=sys.stderr)
     if hits:
         return 1
     lanes = []

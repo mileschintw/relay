@@ -1858,6 +1858,14 @@ class RecordsDenyTests(Base):
         (self.records / "project.md").write_text("- **Deny list:** none\n")
         self.assertNotIn("deny-list", self.ready())
 
+    def test_a_failed_records_scan_keeps_the_pr_body_check(self):
+        head = self.branch("lane-12")
+        self.done("12", "lane-12", head, body="Closes #12\n\nFor Acme.\n")
+        with mock.patch.object(relay, "records_deny_hits", side_effect=OSError("disk")):
+            out = self.ready()
+        self.assertIn("records deny-list check failed: disk", out)
+        self.assertIn("PR body lines [3]: a deny-list name", out)
+
     def test_hints_say_who_fixes_a_hit(self):
         for name in ("reports/12.md", "status/12.md"):
             self.assertIn("message its worker", relay.section_hints(
@@ -1878,6 +1886,7 @@ class RecordsDenyTests(Base):
             "plan-history.md lines [2]: a deny-list name (lines only, never the name); "
             "nothing merged"])
         self.assertNotRegex((out + err).lower(), "acme")
+        self.assertIn("fix what `ready` says, as for a deny-list name in a records file", out)
         (self.records / "plan-history.md").write_text("x\n")
         code, out, err = self.merge("12", "13")
         self.assertEqual(code, 0, err)
