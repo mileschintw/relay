@@ -18,8 +18,6 @@ none (ruling 2, no new features during the slimming, ended when #112 closed 2026
 
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
-| #146 Point the coordinator's round steps at the round merge right (from lane 114's review) | — | none | none | coordinate/SKILL.md (Scheduling, First turn step 5, Finishing step 6, Consent: The user's words, term list) | needs-triage |
-| #151 waitchecks: overall timeout on the checks watch (from lane 140's review) | — | none | none | relay.py (wait_checks, cmd_waitchecks); tests | needs-triage |
 | 139 | #139 | local_910e2d1e-d6e1-4dcb-9637-b3d4fc1f2c69 (folder lane-132-1ec78c, an archived lane's, on its own branch claude/lane-139-e5e149) | review | — |
 | 118 | #118 | local_7d884ee0-a5da-43f1-afe3-c9263d614127 | working (review and checks by 22:30) | — |
 | 116 | #116 | local_1298b089-e1cd-43bc-a2a2-b6afa0824412 | review | — |
@@ -40,6 +38,8 @@ Every open issue, once. "Order" is the wave (1 = can start now). "Kind" is `free
 | #118 Faster ready, and partial output when a lookup times out | 1 | #112 (closed) | none | relay.py (cmd_ready); tests | free |
 | #119 README as a one-page product page | 2 | #112 (closed) | after #145, README.md Install | README.md; New docs/layout.md; New docs/releasing.md; docs/getting-started.md | free |
 | #130 relay.py hints that need new behaviour (C104 draft changed after PR; F16 workflow on: lines) | 1 | #112 (closed) | none | relay.py (cmd_ready, cmd_waitchecks, merge arg parsing); tests; coordinate/SKILL.md (Finishing a lane); ci-fallbacks.md (Checks not started) | free |
+| #146 Point the coordinator's round steps at the round merge right (from lane 114's review) | — | none | none | coordinate/SKILL.md (Scheduling, First turn step 5, Finishing step 6, Consent: The user's words, term list) | needs-triage |
+| #151 waitchecks: overall timeout on the checks watch (from lane 140's review) | — | none | none | relay.py (wait_checks, cmd_waitchecks); tests | needs-triage |
 | #139 ready: check every committed records file against the deny list (found in the #112 retro) | 1 | none | none | relay.py (cmd_ready, deny-list checks); tests; coordinate/SKILL.md (Plan: A `Records:` warning) | free |
 
 Filled 2026-11-02 from `relay.py roadmap`. #112, #115, #116, #117 list several paths on one bullet, which `parse_files` reads as one path; the paths above are from the issue text.
