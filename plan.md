@@ -11,7 +11,9 @@ Current state only. Done work moves to `plan-history.md` with a one-line pointer
 
 ## Rulings
 
-none (ruling 1, merging on local checks while the repo had no CI, ended when #16 added CI → `plan-history.md`)
+- **Ruling 2 — no new features during the slimming** (user, 2026-11-02 16:39 -0800: 「我們目前階段盤點以及實作時，如果遇到要做新功能，應該移動到跟其他後續issue一起」). While #110 (inventory) and #112 (slimming) run, any new behaviour (new code in `relay.py`, a new check, a rule with no existing text behind it) is not done in those lanes: it becomes its own issue, scheduled with the backlog (#114–#119) after #112. Ends when #112 closes. Not yet carried into #112's body, lane 110's table (C104, F16) or the tracker: waits on the user's yes.
+
+(Ruling 1, merging on local checks while the repo had no CI, ended when #16 added CI → `plan-history.md`.)
 
 ## Now
 
