@@ -19,7 +19,7 @@ Current state only. Done work moves to `plan-history.md` with a one-line pointer
 
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
-| 133 | #133 | local_0cb902a2-31ed-4213-a264-b224b4eac02d (lane-133-1fd07d, `claude/lane-133-1fd07d`) | review | — |
+| 133 | #133 | local_0cb902a2-31ed-4213-a264-b224b4eac02d (lane-133-1fd07d, `claude/lane-133-1fd07d`) | done @ eafa6e9 (SKILL.md 22,864 → 15,934 bytes); waits for the user's PR-and-merge answer | — |
 | 134 | #134 | local_199699b7-06a0-4986-b24b-d069ebe14bb8 (lane-134-eb4fc2, `claude/lane-134-eb4fc2`) | parked | GO #134 after #133 merges |
 
 Lanes 132 (#132, PR #135) and 131 (#131, PR #136) merged → `plan-history.md`. Lane 110 (#110, inventory, no PR) finished and #110 closed on the user's "Reviewed, go ahead" → `plan-history.md`. Lanes 109 (PR #121), 107 (PR #122), 108 (PR #124), 120 (PR #125), 111 (PR #127), 123 (PR #128) and 113 (PR #129) merged → `plan-history.md`, "Lanes 107–111". All lanes through 103 merged; 0.3.2 released → `plan-history.md` (waves 1–2, lanes 33, 42, 45–51, 60–64, 71–75, 0.3.1 and 0.3.2 rounds, close-outs).
@@ -53,6 +53,7 @@ none
 
 ## Waiting for the user's decision
 
+- Owner note (#112, from lane 133, C126): for the user's own CLAUDE.md: "On Windows, write a commit message with a double quote in it to a file and use `git commit -F`." (`reports/133.md`)
 - Owner note (#112, from lane 132, W33): add to the one project that uses it, in its `project.md` checks or brief template: "A test that needs a pull request (a CI trigger, say): open none; write in the report how to confirm it after the merge." (`reports/132.md`)
 - Since 2026-11-02 00:37 -0800: triage #114–#119 and #130 (labelled needs-triage, "not scheduled until triaged"; all blocked by #112 since ruling 2).
 
