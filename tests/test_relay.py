@@ -115,6 +115,33 @@ class StatusTests(Base):
         self.assertEqual(code, 1)
         self.assertIn("records branch", err)
 
+    def cp950(self, *argv):
+        """Run relay.py under -I with a cp950 stdout and stderr, as a piped Windows console."""
+        driver = ("import io, sys\n"
+                  "for name in ('stdout', 'stderr'):\n"
+                  "    setattr(sys, name, io.TextIOWrapper(getattr(sys, name).buffer,"
+                  " encoding='cp950'))\n"
+                  "sys.path.insert(0, sys.argv[1])\n"
+                  "import relay\n"
+                  "sys.exit(relay.main(sys.argv[2:]))\n")
+        r = subprocess.run([sys.executable, "-I", "-c", driver,
+                            str(HERE.parent / "plugin" / "tools"), *argv],
+                           cwd=self.clone, capture_output=True)
+        self.assertNotIn(b"Traceback", r.stderr)
+        return r.returncode, r.stdout.decode("utf-8"), r.stderr.decode("utf-8")
+
+    def test_non_ascii_on_a_cp950_console(self):
+        doing = "Consent › Merge right，完成"
+        code, out, err = self.cp950("status", str(self.records), "12", "--state", "done",
+                                    "--doing", doing)
+        self.assertEqual(code, 0, err)
+        self.assertIn(doing, out)
+        self.assertIn(doing, (self.records / "status" / "12.md").read_text(encoding="utf-8"))
+        code, _, err = self.cp950("status", str(self.records), "12", "--state", "完成",
+                                  "--doing", "x")
+        self.assertEqual(code, 2)
+        self.assertIn("'完成'", err)
+
     def test_missing_records_folder_exits_2_and_writes_nothing(self):
         gone = self.tmp / "no-such-records"
         code, _, err = self.call("status", str(gone), "12", "--state", "working", "--doing", "x")
