@@ -14,7 +14,7 @@ Only `plugin/` is installed; everything else is for developing relay.
 | `plugin/.claude-plugin/plugin.json` | the plugin manifest; its `version` decides when users get a new copy ([Releasing](releasing.md)) |
 | `.claude-plugin/marketplace.json` | the catalog; its entry installs `plugin/` from the `release` branch |
 | `tests/` | `python3 -I tests/test_relay.py`; `fake_gh.py` stands in for `gh` |
-| `.github/workflows/test.yml` | CI: the tests (Ubuntu, Windows) and `claude plugin validate .`, each run only when a PR changes the paths it covers (a `changes` job decides) |
+| `.github/workflows/test.yml` | CI: the tests (Ubuntu on a PR; Ubuntu and Windows on a push to `main`) and `claude plugin validate .`, each run only when a PR changes the paths it covers (a `changes` job decides) |
 | `README.md` | the product page: what relay is for, how it works, install |
 | `docs/getting-started.md` | the longer walkthrough and how relay splits work with mattpocock-skills |
 | `docs/layout.md` | this table |
