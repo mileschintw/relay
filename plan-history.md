@@ -208,3 +208,9 @@ Finished work moved out of `plan.md`, newest first, for checking only; the plan 
 | #142 setup's plan template: Coordinator line `none` form; placeholder trips ready's check (found by lane 141) | running (in lane 141) | none | none | setup/templates/plan.md; GLOSSARY.md (maybe) | free |
 - Lane 141 (#141 strict Coordinator parser, #142 folded in by the coordinator): session local_38fa00ab-eb72-46ba-8d5e-080913870688, folder lane-141-e7f5cd; approach switched from a tolerant reader on the user's "Switch to strict"; PR #143 merged 2026-11-03 04:25 UTC (1477016) on the user's "Merge on CI".
 - 0.3.3 release review (2026-11-02): one pass over relay--v0.3.2..main; one blocker (#141), no lost inventory rule; 49 unfixed review notes in reports since 0.3.2 sorted, none worth an issue.
+
+## Round #110–#112 and 0.3.3 (2026-11-02)
+
+- Coordinator local_cac5e599-046a-4d94-801f-10187aae7a59 (worktree new-session-208f95) took over 13:01 -0800; lanes 110, 131–134, 141 above. Retro and alarm grilling: #139 (deny-list scan of records files), #140 (alarm only while a worker can move), cache-timer#13 (keep warm, moved out of relay).
+- 0.3.3 released 2026-11-02 on the user's 「release 0.3.3 patch，然後安裝到這個relay自己的repo裡，接著收尾」: version PR #144 merged (8abd5c8), `main:release` pushed, tag `relay--v0.3.3`. Local-scope install in D:\Reposelay updated 0.3.2 → 0.3.3 (the plugin clone needed a one-off HTTPS override: #145).
+- Close-out 2026-11-02 20:31 -0800: lane sessions 110, 131, 132, 133, 134, 141 archived; scratchpads of 110, 133, 134, 141 copied to snapshot/ (131, 132 had none); no temporary rulings left; coordinator wrote itself out.

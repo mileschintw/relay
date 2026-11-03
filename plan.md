@@ -4,8 +4,8 @@ Current state only. Done work moves to `plan-history.md` with a one-line pointer
 
 ## Handover
 
-- **Coordinator:** title unknown, worktree D:\Repos\relay\.claude\worktrees\new-session-208f95, id local_cac5e599-046a-4d94-801f-10187aae7a59, mode normal. Since 2026-11-02 13:01 -0800, branch `claude/relay-coordinate-f026f5`. The previous coordinator (local_41066841-894c-4b9c-8f9e-2ce0ab11a088, folder lane-102-f7b67c) wrote itself out on 2026-11-02 after the round of lanes 107–123 (→ `plan-history.md`, "Lanes 107–111"; its 7 lane sessions archived, scratchpads in `snapshot/`). The next coordinator starts with `/relay:coordinate` in a new desktop-app session. `relay.py` is `project.md`'s line (main checkout, at `1477016`): fast-forward it after each merge.
-- **Next:** release 0.3.3 (user: 「release 0.3.3 patch，然後安裝到這個relay自己的repo裡，接著收尾」). #141 merged (PR #143, 1477016) after the coordinator's re-review. Version bump PR #144 (branch `release-0.3.3`) waiting on CI; then merge it, `git push origin main:release`, tag `relay--v0.3.3`, update the local-scope install in D:\Repos\relay, then close out. #114–#119, #130, #139, #140 wait for the user's triage.
+- **Coordinator:** none. The last coordinator (local_cac5e599-046a-4d94-801f-10187aae7a59, folder new-session-208f95) wrote itself out 2026-11-02 20:31 -0800 after the #112 slimming round and release 0.3.3 (→ `plan-history.md`, "Round #110–#112 and 0.3.3"; its 6 lane sessions archived, scratchpads in `snapshot/`). The next coordinator starts with `/relay:coordinate` in a new desktop-app session. `relay.py` is `project.md`'s line (main checkout, at `8abd5c8`): fast-forward it after each merge.
+- **Next:** waits on the user: triage #114–#119, #130, #139, #140, #145. 0.3.3 is released (tag `relay--v0.3.3`, release at 8abd5c8) and installed at local scope in D:\Repos\relay; sessions there pick it up on restart. #145 (marketplace clones over SSH) needs the user's yes before `marketplace.json` changes. `ready` keeps one Inconsistent line for lane 110 (no PR by design; its status file stays as the record).
 - **Alarm:** `project.md`'s `Alarm: 10` (the user's 10 minutes, 2026-10-31 01:51 「可以就這樣改」, moved there when #82 merged); waiting on CI relies on the background `waitchecks` ending, not the alarm.
 - **Unattended log:** none.
 
@@ -36,6 +36,7 @@ Every open issue, once. "Order" is the wave (1 = can start now). "Kind" is `free
 | #130 relay.py hints that need new behaviour (C104 draft changed after PR; F16 workflow on: lines) | — | #112 (closed) | none | relay.py (cmd_ready, cmd_waitchecks); tests; coordinate/SKILL.md (Finishing a lane); ci-fallbacks.md (Checks not started) | needs-triage |
 | #139 ready: check every committed records file against the deny list (found in the #112 retro) | — | none | none | relay.py (cmd_ready, deny-list checks); tests; coordinate/SKILL.md (Plan: A `Records:` warning) | needs-triage |
 | #140 Alarm only while a worker can move without the user (from the alarm grilling; completes #48) | — | none | none | coordinate/SKILL.md (Following progress: Alarm); GLOSSARY.md (Alarm); unattended.md (The round ends) | needs-triage |
+| #145 marketplace.json: clone the plugin over HTTPS, not SSH (found installing 0.3.3) | — | none | none | .claude-plugin/marketplace.json; README.md (Install) | limited: changing marketplace.json needs the user's yes |
 
 Filled 2026-11-02 from `relay.py roadmap`. #112, #115, #116, #117 list several paths on one bullet, which `parse_files` reads as one path; the paths above are from the issue text.
 
@@ -51,7 +52,7 @@ none
 
 - Owner note (#112, from lane 133, C126): for the user's own CLAUDE.md: "On Windows, write a commit message with a double quote in it to a file and use `git commit -F`." (`reports/133.md`)
 - Owner note (#112, from lane 132, W33): add to the one project that uses it, in its `project.md` checks or brief template: "A test that needs a pull request (a CI trigger, say): open none; write in the report how to confirm it after the merge." (`reports/132.md`)
-- Since 2026-11-02 00:37 -0800: triage #114–#119, #130, #139 and #140 (labelled needs-triage, "not scheduled until triaged"; #112 closed, so none is blocked any more).
+- Since 2026-11-02 00:37 -0800: triage #114–#119, #130, #139, #140 and #145 (labelled needs-triage, "not scheduled until triaged"; #112 closed, so none is blocked any more).
 
 ## Deadlines
 
