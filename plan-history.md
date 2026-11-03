@@ -331,3 +331,15 @@ Setup's project.md template says CI start wait also caps the checks watch at 20�
 | #168 Doc drift: ready's exit 2, README's coordinate word count | 1 | none | none | relay.py (module docstring, Exit section); README.md (coordinate size line) | free |
 
 relay.py docstring's Exit section names ready's exit 2; README's coordinate line recounted after 166 merged (96 lines, 3,000 words). Report: `reports/168.md`.
+
+## Lane 174 (#174, PR #179), merged 2026-11-03 23:09 UTC
+
+| 174 | #174 | local_26577313-8008-4c8a-9a1e-27654eb46084 | started | — |
+| #174 ready: report a failed push run on the default branch | 1 | none | none | relay.py (`cmd_ready`, READY_SECTIONS/HINTS, push-run lookup); tests/test_relay.py; tests' fake_gh.py; coordinate/SKILL.md (handling the Default branch section); coordinate/unattended.md (log a failed push run); GLOSSARY.md (**Push run**) | free |
+
+`ready` prints a Default branch section for a failed latest completed push run (report only); coordinate SKILL.md, unattended.md and GLOSSARY (**Push run**) carry the handling. README recounted last (97 lines, 3,045 words). First CI run failed on ubuntu (git 2.48+ re-creates origin/HEAD on fetch); worker fixed the test (8d86608). Report: `reports/174.md`.
+
+## Round 2026-11-03 14:19 -0800 merge right
+
+- **Merge right:** 2026-11-03 14:19 -0800, lanes 166, 167, 168, 173, 174: question "這一輪五條 lane（#166、#167、#168、#173、#174）全部平行啟動，並且每條都「開 PR，CI 通過後合併」？", picked "啟動五條並授權合併 (Recommended)". (The 2026-11-03 00:28 round's moved to `plan-history.md`.)
+Ended: all five lanes merged 2026-11-03.
