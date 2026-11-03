@@ -14,6 +14,8 @@
  "jobs": {"<job id>": {"steps": [...]}},          # a missing job ran one step
  "annotations": {"<job id>": [{"message": "..."}]},
  "workflows": 0,                                  # the repo's Actions workflow count, default 1
+ "workflow_files": {"ci.yml": "on: push"},        # .github/workflows/ on the default branch;
+                                                  # absent: the folder is missing (HTTP 404)
  "head_statuses": 1, "head_check_runs": 1,      # counts on the default branch head, default 0
  "pr_checks": {"5": {"after": 3, "rollup": [...]}},  # `pr view 5`'s statusCheckRollup: empty
                                                   # before its 3rd call (default 1st), then rollup
@@ -103,6 +105,13 @@ elif a[0] == "api" and "/actions/jobs/" in a[1]:
 elif a[0] == "api" and a[1].endswith("/actions/workflows"):
     n = data.get("workflows", 1)
     print(json.dumps({"total_count": n, "workflows": [{"name": f"ci{i}"} for i in range(n)]}))
+elif a[0] == "api" and a[-1].endswith("/contents/.github/workflows"):
+    if "workflow_files" not in data:
+        sys.exit("gh: Not Found (HTTP 404)")
+    print(json.dumps([{"name": n, "path": f".github/workflows/{n}", "type": "file"}
+                      for n in data["workflow_files"]]))
+elif a[0] == "api" and "/contents/.github/workflows/" in a[-1]:
+    print(data["workflow_files"][a[-1].rsplit("/", 1)[1]])
 elif a[0] == "api" and a[1].endswith("/commits/HEAD/status"):
     print(json.dumps({"total_count": data.get("head_statuses", 0)}))
 elif a[0] == "api" and a[1].endswith("/commits/HEAD/check-runs"):
