@@ -10,7 +10,7 @@ relay coordinates several Claude Code desktop-app sessions on one repo: a **coor
    /plugin marketplace add mileschintw/relay
    /plugin install relay@relay
    ```
-   The repo is private, so the machine's git must be signed in to GitHub.
+   The plugin is cloned over HTTPS, so installs and updates need no GitHub SSH key.
    Check: `/relay:setup` and `/relay:coordinate` appear when you type `/relay`.
 
    For the lightest footprint, install at project scope in the repos that use relay, not user scope: `relay:work` is model-invoked, so its one-line description is loaded in every session where relay is installed.
@@ -28,9 +28,9 @@ On another machine: `git fetch origin coord`, then, in the main checkout, `git w
 
 1. **Design.** Grill the idea: `/grill-with-docs`, or ask for a grill using `mattpocock-skills:grilling` + `mattpocock-skills:domain-modeling`. No code yet.
 2. **Tickets.** `/to-tickets` turns the result into issues with native blocking links (`/wayfinder` first if the work is too foggy to slice).
-3. **Coordinate.** In a new desktop-app session, `/relay:coordinate`. It checks the plan against GitHub, then proposes every lane that can start now and the chains behind them. Say yes; it starts them in that same turn, the waiting ones parked.
+3. **Coordinate.** In a new desktop-app session, `/relay:coordinate`. It checks the plan against GitHub, then proposes every lane that can start now and the chains behind them, and asks in the same turn whether it may open each lane's PR and merge it once CI passes (the round's merge right). Say yes; it starts them in that same turn, the waiting ones parked. When a lane will have to start later (you away, an issue not yet ready), it also offers spares: parked workers with no lane yet, given one later or closed with `CLOSE`.
 4. **Workers** follow `relay:work`: branch, `mattpocock-skills:tdd`, `mattpocock-skills:code-review` until no blocker, a PR body draft, a report, `done`. They talk to you directly when they need a decision; answer there.
-5. **PR and merge.** For each finished lane the coordinator asks one question: open the PR and merge when CI passes, or only open it. After a merge it sends `GO` to the parked lanes that were waiting.
+5. **PR and merge.** For each finished lane the coordinator shows the result and the PR body draft. With the round's merge right it opens the PR and merges once CI passes, unless the report names a check that was not run; otherwise it asks one question: open the PR and merge when CI passes, or only open it. After a merge it sends `GO` to the parked lanes that were waiting.
 6. **Away?** Tell the coordinator "unattended" with the scope and whether it may merge; it starts everything in that turn and logs what it did in the plan.
 7. **Long session?** Ask the coordinator to update the plan before `/compact`; after it, relay's hook points the coordinator back at its records.
 
@@ -52,7 +52,7 @@ Both start every ticket on the frontier at once, with no cap, and both build eac
 |---|---|---|
 | Unit of work | a subagent, gone when it finishes | a desktop-app session per lane, with its own worktree and branch, that you can open and talk to |
 | Output | one integration branch, at most one PR at the end | one PR per lane |
-| Your yes | once, to start the run | before each session, PR and merge |
+| Your yes | once, to start the run | before each round of sessions, and for its PRs and merges (once for the round, or per lane) |
 | Review | once, over the whole integration branch | per lane, scoped to its issues and brief |
 | State | none; an interrupted run starts over | the plan, `status/` and `reports/` on the `coord` branch, so another day, machine or coordinator can take over |
 
@@ -62,6 +62,13 @@ Both start every ticket on the frontier at once, with no cap, and both build eac
 ## Rules worth knowing
 
 - A yes covers only what it names; a yes passed on by another session does not count until you confirm it to the coordinator.
-- Sessions can be started only in a turn you typed in the desktop app; messages (`GO`) reach existing sessions any time. That is why waiting lanes are started parked.
+- Sessions can be started only in a turn you typed in the desktop app; messages (`GO`) reach existing sessions any time. That is why waiting lanes are started parked, and why spares exist.
+- Only one lane at a time may use the main checkout (untracked data, a local database); the plan's **Main checkout** field names it.
 - Hard dependencies live in GitHub's blocked-by; "same section, not at the same time" lives in the brief and the plan, and its order can be swapped.
 - The plan holds current state only and moves, never deletes, what is done.
+
+## See also
+
+- [README](../README.md): what relay is for, in one page
+- [Layout](layout.md): what each file in this repo does
+- [Releasing](releasing.md): how a merge to `main` reaches users

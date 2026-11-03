@@ -6,6 +6,7 @@ import pathlib
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from contextlib import redirect_stdout, redirect_stderr
 from unittest import mock
@@ -734,9 +735,9 @@ class ReadyLookupTests(Base):
         with mock.patch.object(relay, "PR_LIST_MIN", 2), mock.patch.object(relay, "PR_LIST_PER_LANE", 0):
             out, _, prs = self.counted_ready("--checkout", str(self.clone))
         self.assertEqual(prs[1:], ["pr list --repo o/r --head lane-13 --state all --json "
-                                   "number,state,headRefOid,mergeable,statusCheckRollup",
+                                   "number,state,headRefOid,mergeable,statusCheckRollup,body",
                                    "pr list --repo o/r --head lane-14 --state all --json "
-                                   "number,state,headRefOid,mergeable,statusCheckRollup"])
+                                   "number,state,headRefOid,mergeable,statusCheckRollup,body"])
         self.assertIn("Merged:\n  12: PR #5", out)
         self.assertIn("Ready to merge:\n  13: PR #6", out)
         self.assertIn("Ready for PR:\n  14: lane-14", out)
@@ -1606,7 +1607,7 @@ class HintTests(Base):
         self.assertIn("hint (exit 2): a usage error: fix what its error line names and rerun", out)
         code, out, _ = self.waitchecks(after=99, project="")
         self.assertEqual(code, 3)
-        self.assertIn("hint (exit 3): no checks appeared: a CI fallback", out)
+        self.assertIn("hint (exit 3): no checks appeared: take the `ci-fallbacks.md` case", out)
         code, out, _ = self.waitchecks(after=99, broken=["statusCheckRollup"])
         self.assertEqual(code, 4)
         self.assertIn("hint (exit 4): a lookup failed or an unexpected error: rerun it once; if it "
@@ -1816,6 +1817,284 @@ class ResumeTests(unittest.TestCase):
         self.assertEqual(self.resume(self.coord), "")
 
 
+class RecordsDenyTests(Base):
+    """ready and merge check every committed records file against the deny list (#139)."""
+
+    OK = MergeTests.OK
+    merge, merges = MergeTests.merge, MergeTests.merges
+
+    def setUp(self):
+        super().setUp()
+        (self.records / "deny.txt").write_text("Acme(?:Corp)?\n")
+        (self.records / "project.md").write_text("- **Deny list:** `deny.txt`\n")
+
+    def test_each_file_kind_is_reported_by_file_and_line_never_the_name(self):
+        cases = {
+            "plan.md": "# Plan\n\nWorked on AcmeCorp.\n",
+            "plan-history.md": "# History\nacme lane merged\n",
+            "briefs/12.md": "Depends on: none\n- **Closes:** #12\n\n\nfor Acme\n",
+            "reports/12.md": "- branch\n- AcmeCorp data\n",
+            "status/12.md": "- state: working\n- doing: porting acme\n- branch: lane-12\n"
+                            "- head: abc1234\n- time: 2026-11-02 21:00 -0800\n",
+        }
+        lines = {"plan.md": 3, "plan-history.md": 2, "briefs/12.md": 5, "reports/12.md": 2,
+                 "status/12.md": 2}
+        for name, text in cases.items():
+            with self.subTest(name):
+                path = self.records / name
+                path.write_text(text)
+                out = self.ready()
+                self.assertIn(f"Records:\n  {name} lines [{lines[name]}]: a deny-list name "
+                              "(lines only, never the name)", out)
+                self.assertNotRegex(out.lower(), "acme")
+                path.unlink()
+        self.assertNotIn("deny-list name", self.ready())
+
+    def test_a_word_inside_another_is_no_hit(self):
+        (self.records / "reports" / "12.md").write_text("acmeish\nAcme.\n")
+        self.assertIn("reports/12.md lines [2]:", self.ready())
+
+    def test_deny_list_none_checks_nothing(self):
+        (self.records / "plan.md").write_text("AcmeCorp\n")
+        (self.records / "project.md").write_text("- **Deny list:** none\n")
+        self.assertNotIn("deny-list", self.ready())
+
+    def test_a_failed_records_scan_keeps_the_pr_body_check(self):
+        head = self.branch("lane-12")
+        self.done("12", "lane-12", head, body="Closes #12\n\nFor Acme.\n")
+        with mock.patch.object(relay, "records_deny_hits", side_effect=OSError("disk")):
+            out = self.ready()
+        self.assertIn("records deny-list check failed: disk", out)
+        self.assertIn("PR body lines [3]: a deny-list name", out)
+
+    def test_hints_say_who_fixes_a_hit(self):
+        for name in ("reports/12.md", "status/12.md"):
+            self.assertIn("message its worker", relay.section_hints(
+                "Records", [f"{name} lines [2]: a deny-list name (lines only, never the name)"])[0])
+        self.assertIn("fix that line with the Edit tool", relay.section_hints(
+            "Records", ["briefs/12.md lines [2]: a deny-list name (lines only, never the name)"])[0])
+
+    def test_merge_stops_on_a_hit_and_never_prints_the_name(self):
+        for key in ("12", "13"):
+            head = self.branch(f"lane-{key}", content=f"{key}\n")
+            self.done(key, f"lane-{key}", head)
+        self.heads = {"12": (5, sh("rev-parse", "origin/lane-12", cwd=self.clone)),
+                      "13": (6, sh("rev-parse", "origin/lane-13", cwd=self.clone))}
+        (self.records / "plan-history.md").write_text("x\nAcmeCorp moved\n")
+        code, out, err = self.merge("12", "13")
+        self.assertEqual((code, self.merges()), (1, []))
+        self.assertEqual(err.strip().splitlines(), [
+            "plan-history.md lines [2]: a deny-list name (lines only, never the name); "
+            "nothing merged"])
+        self.assertNotRegex((out + err).lower(), "acme")
+        self.assertIn("fix what `ready` says, as for a deny-list name in a records file", out)
+        (self.records / "plan-history.md").write_text("x\n")
+        code, out, err = self.merge("12", "13")
+        self.assertEqual(code, 0, err)
+        self.assertEqual(len(self.merges()), 2)
+
+
+class ReadyTimeoutTests(Base):
+    """Past its time budget ($RELAY_READY_SECONDS) ready stops looking things up, prints what it
+    has, and names what it skipped."""
+
+    def setUp(self):
+        super().setUp()
+        self.addCleanup(os.environ.pop, "RELAY_READY_SECONDS", None)
+        self.heads = {k: self.branch(f"lane-{k}", content=f"{k}\n") for k in ("12", "13")}
+        for k, head in self.heads.items():
+            self.done(k, f"lane-{k}", head)
+        (self.records / "briefs" / "20.md").write_text("Closes: #20\n")
+
+    def timed_ready(self, seconds):
+        os.environ["RELAY_READY_SECONDS"] = str(seconds)
+        start = time.monotonic()
+        out = self.ready()
+        return out, time.monotonic() - start
+
+    def test_a_lookup_that_times_out_skips_its_lanes_and_the_rest_still_prints(self):
+        self.gh({"slow": {"pr list": 30}})
+        out, took = self.timed_ready(3)
+        self.assertLess(took, 20)
+        self.assertIn("  12: done, lane-12 @", out)
+        self.assertIn("  13: done, lane-13 @", out)
+        self.assertIn("No status yet:\n  20: a brief but no status file", out)
+        self.assertIn("Skipped:\n  lookups past ready's 3 s budget ($RELAY_READY_SECONDS): "
+                      "lanes 12, 13\n  hint: the machine is likely busy", out)
+        self.assertNotIn("Ready for PR", out)
+        self.assertNotIn("lookup failed", out)
+        self.assertNotIn("Nothing to do", out)
+
+    def test_a_spent_budget_skips_every_lookup(self):
+        calls = pathlib.Path(str(self.fake) + ".calls")
+        calls.unlink(missing_ok=True)
+        out, _ = self.timed_ready(0)
+        self.assertFalse(calls.exists(), "gh was called after the budget ran out")
+        self.assertIn("  12: done, lane-12 @", out)
+        self.assertIn("No status yet:\n  20: a brief but no status file", out)
+        skipped = next(ln for ln in out.splitlines() if ln.startswith("  lookups past"))
+        for what in ("fetch", "Parents", "lanes 12, 13"):
+            self.assertIn(what, skipped)
+
+    def test_skipped_done_lanes_outside_now_are_counted_not_listed(self):
+        (self.records / "plan.md").write_text(
+            "# Plan\n\n## Now\n\n| Key | Issues |\n|---|---|\n| `12` | #12 |\n")
+        out, _ = self.timed_ready(0)
+        self.assertIn("  12: done, lane-12 @", out)
+        self.assertNotIn("  13: done", out)
+        self.assertIn("lane 12, 1 done lane not in plan.md's Now table", out)
+
+    def test_within_budget_nothing_is_skipped(self):
+        out, _ = self.timed_ready(60)
+        self.assertNotIn("Skipped", out)
+        self.assertIn("Ready for PR:\n  12: lane-12", out)
+
+    def test_a_grandchild_holding_the_pipes_does_not_hold_run(self):
+        # as git-remote-https outlives a killed `git fetch`; run waits 2 s for the pipes, no more
+        child = self.tmp / "child.py"
+        child.write_text("import subprocess, sys, time\n"
+                         "subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(40)'])\n"
+                         "time.sleep(40)\n")
+        driver = ("import sys, time; sys.path.insert(0, sys.argv[1]); import relay; "
+                  "relay.deadline = time.monotonic() + 2; "
+                  "print(relay.run([sys.executable, sys.argv[2]])[0])")
+        start = time.monotonic()
+        p = subprocess.run([sys.executable, "-c", driver, str(HERE.parent / "plugin" / "tools"),
+                            str(child)], capture_output=True, text=True, timeout=60)
+        self.assertEqual(p.stdout.strip(), str(relay.TIMED_OUT), p.stderr)
+        self.assertLess(time.monotonic() - start, 20)
+
+    def test_a_budget_that_is_not_seconds_is_a_usage_error(self):
+        for bad in ("soon", "nan", "-1", "inf"):
+            os.environ["RELAY_READY_SECONDS"] = bad
+            code, _, err = self.call("ready", str(self.records))
+            self.assertEqual(code, 2, bad)
+            self.assertIn("RELAY_READY_SECONDS", err)
+
+    def test_a_step_cut_off_midway_returns_its_fallback_and_drops_its_lines(self):
+        out, skipped = {"relay.py": ["kept"], "Records": []}, []
+
+        def step():  # one command in time, then one past the budget
+            out["Records"].append("partial")
+            relay.run(["git", "--version"])
+            relay.deadline = time.monotonic()
+            relay.run(["git", "--version"])
+            return ["a wrong warning"]
+        relay.deadline = time.monotonic() + 60
+        try:
+            got = relay.timed_step("relay.py check", out, skipped, [], step)
+        finally:
+            relay.deadline = None
+        self.assertEqual(got, [])
+        self.assertEqual(out, {"relay.py": ["kept"], "Records": []})
+        self.assertEqual(skipped, ["relay.py check"])
+
+    def test_parked_lanes_wait_while_parents_are_skipped(self):
+        code, _, err = self.call("status", str(self.records), "20", "--state", "parked",
+                                 "--doing", "waits")
+        self.assertEqual(code, 0, err)
+        out, _ = self.timed_ready(0)
+        self.assertIn("20: parked; no GO while the Parents lookup is skipped", out)
+        self.assertNotIn("Ready for GO", out)
+
+    def test_other_commands_have_no_budget(self):
+        os.environ["RELAY_READY_SECONDS"] = "0"
+        self.assertEqual(relay.run(["git", "--version"])[0], 0)
+
+
+class DraftCiCaseUsageHintTests(Base):
+    """#130: ready flags a draft that differs from the open PR's body; waitchecks exit 3 names the
+    ci-fallbacks.md case; an argparse usage error still prints waitchecks' and merge's hint."""
+
+    waitchecks, QUEUED = WaitchecksTests.waitchecks, WaitchecksTests.QUEUED
+    OK = [{"name": "ci", "status": "COMPLETED", "conclusion": "SUCCESS"}]
+    FAILED = WaitchecksTests.FAILED
+
+    def open_pr(self, body, rollup=None):
+        if not (self.records / "status" / "12.md").exists():
+            self.head = self.branch("lane-12")
+            self.done("12", "lane-12", self.head)
+        self.gh({"prs": {"lane-12": [{"number": 5, "state": "OPEN", "headRefOid": self.head,
+                                      "mergeable": "MERGEABLE", "body": body,
+                                      "statusCheckRollup": rollup or self.OK}]}})
+
+    def test_ready_flags_a_draft_that_differs_from_the_open_pr(self):
+        self.open_pr("Closes #12\r\n\r\nBody.")
+        self.assertIn(f"12: PR #5 --match-head-commit {self.head}", self.ready())
+        self.open_pr("Closes #12\n\nOld body.\n")
+        out = self.ready()
+        draft = (self.records / "pr-bodies" / "12.md").as_posix()
+        self.assertIn(f'Waiting:\n  12: PR #5 body differs from its draft: gh pr edit 5 '
+                      f'--body-file "{draft}"', out)
+        self.assertNotIn("Ready to merge", out)
+        self.assertIn("hint: the draft changed after the PR opened", out)
+        self.open_pr("Old body.", rollup=self.FAILED)
+        out = self.ready()
+        self.assertIn("12: PR #5 body differs from its draft", out)
+        self.assertIn("12: PR #5 check failed: test", out)
+
+    def test_runs_on_pull_request(self):
+        yes = ["on: pull_request\n", "on: [push, pull_request]\n", "'on': pull_request\n",
+               "on:\n  push:\n    branches: [main]\n  pull_request:\n    types: [opened]\n",
+               "on:\n  - push\n  - pull_request\n", "name: ci\non:\n- pull_request\njobs: {}\n",
+               "on:  # triggers\n  # a comment\n  pull_request: {}\n",
+               "# header\non:\n# a comment\n  pull_request:\n", "on: [\n  push,\n  pull_request]\n",
+               "﻿on: pull_request\n", "on: pull_request_target\n",
+               "on:\n  pull_request_target:\n    types: [opened]\n"]
+        no = ["on: push\n", "on: pull_request_review\n", "on: [push, workflow_dispatch]\n",
+              "on:\n  push:\n    paths: [pull_request]\n", "on: push  # not pull_request\n",
+              "on:\n  workflow_dispatch:\njobs:\n  pull_request:\n", "jobs: {}\n"]
+        for text in yes:
+            self.assertTrue(relay.runs_on_pull_request(text), text)
+        for text in no:
+            self.assertFalse(relay.runs_on_pull_request(text), text)
+
+    def test_waitchecks_exit_3_names_the_ci_case(self):
+        cases = (
+            ({"workflow_files": {"ci.yml": "on: push\n", "pr.yaml": "on:\n  pull_request:\n"}},
+             "a workflow on the default branch runs on a pull_request event "
+             "(.github/workflows/pr.yaml): take *Checks not started*"),
+            ({"workflow_files": {"ci.yml": "on: push\n", "notes.md": "on: pull_request\n"}},
+             "no workflow on the default branch runs on a pull_request event "
+             "(.github/workflows/ci.yml): take *CI cannot run*"),
+            ({"workflows": 0, "head_statuses": 1},
+             "no workflow file on the default branch (CI outside Actions): take *Checks not "
+             "started*"),
+            ({"workflows": 0}, "no CI configured: no Actions workflow and nothing reported on the "
+             "default branch head: take *CI cannot run*"),
+            ({"workflow_files": {"ci.yml": "on: pull_request"}, "broken": ["ci.yml"]},
+             "workflow lookup failed"),
+        )
+        for data, line in cases:
+            code, out, err = self.waitchecks(after=99, **data)
+            self.assertEqual(code, 3, err)
+            self.assertIn(f"no checks appeared on PR #5 within 6 minutes\n{line}", out)
+            self.assertTrue(out.rstrip().endswith("hint (exit 3): no checks appeared: take the "
+                                                  "`ci-fallbacks.md` case the line above names"))
+        with mock.patch.object(relay, "no_ci", lambda repo: False), \
+                mock.patch.object(relay, "gh", lambda *a: {"type": "file", "name": "workflows"}):
+            self.assertIn("no workflow file", relay.ci_case("o/r"))  # .github/workflows a file
+
+    def usage(self, *argv):
+        out, err = io.StringIO(), io.StringIO()
+        with redirect_stdout(out), redirect_stderr(err), self.assertRaises(SystemExit) as e:
+            relay.main(list(argv))
+        return e.exception.code, out.getvalue(), err.getvalue()
+
+    def test_usage_errors_print_the_exit_2_hint(self):
+        for argv in (("waitchecks", str(self.records), "five"),
+                     ("waitchecks", str(self.records), "5", "--bogus"),
+                     ("merge", str(self.records))):
+            code, out, err = self.usage(*argv)
+            self.assertEqual(code, 2)
+            self.assertIn("usage:", err)
+            self.assertEqual(out, f"hint (exit 2): {relay.EXIT_HINTS[argv[0]][2]}\n")
+        self.assertEqual(self.usage("ready")[:2], (2, ""))
+        code, out, _ = self.usage("waitchecks", "--help")
+        self.assertEqual(code, 0)
+        self.assertNotIn("hint (exit", out)
+
+
 class LaneKindTests(Base):
     """Now-table lane kinds `run`, `audit` and `spare` close no issue and open no PR, so `ready`
     does not flag them for one; plan.md's Main checkout names the lane holding it (#116)."""
@@ -1883,19 +2162,76 @@ class LaneKindTests(Base):
         self.assertIn("Inconsistent:\n  12: done with no report file", out)
         self.assertNotIn("Finished:", out)
 
-    def test_a_parked_spare_waits_for_a_brief(self):
+    def test_a_parked_spare_is_available(self):
         self.plan([("s1", "spare"), ("13", "pr")])
         for key in ("s1", "13"):
             self.call("status", str(self.records), key, "--state", "parked", "--doing", "parked")
         out = self.ready()
-        self.assertIn("Waiting:\n  s1: spare, waits for a brief", out)
+        self.assertIn("Waiting:\n  s1: spare, available: waits for a brief", out)
+        self.assertIn("hint: a spare needs nothing until a lane needs a worker", out)
         self.assertNotIn("s1: parked with no brief", out)
+        self.assertNotIn("s1: a spare", out)
         self.assertNotIn("GO #s1", out)
         self.assertIn("13: parked with no brief", out)  # a normal lane still is flagged
         # given a brief and its lane's kind, the spare is a parked lane like any other
         self.plan([("s1", "pr")])
         (self.records / "briefs" / "s1.md").write_text("Depends on: none\n")
         self.assertIn("s1: send `GO #s1`", self.ready())
+
+    def test_a_spare_with_a_brief_but_kind_spare_is_flagged(self):
+        # the coordinator wrote its brief but left the Kind: as `spare` it would finish with no PR
+        self.plan([("s1", "spare")])
+        (self.records / "briefs" / "s1.md").write_text("Depends on: none\n- **Closes:** #13\n")
+        self.call("status", str(self.records), "s1", "--state", "parked", "--doing", "parked")
+        out = self.ready()
+        self.assertIn("Inconsistent:\n  s1: a spare with a brief: set its Now Kind", out)
+        self.assertNotIn("available", out)
+        self.assertNotIn("GO #s1", out)
+        self.call("status", str(self.records), "s1", "--state", "blocked", "--doing", "which?",
+                  "--branch", "lane-s1", "--head", "02d1f2d")
+        out = self.ready()
+        self.assertIn("s1: a spare with a brief", out)
+        self.assertIn("s1: blocked: which?", out)
+        self.done("s1", "lane-s1", self.branch("lane-s1"), body="Closes #13\n\nBody.\n")
+        out = self.ready()  # done, it is checked as the `pr` lane it took
+        self.assertIn("s1: a spare with a brief", out)
+        self.assertIn("Ready for PR:\n  s1: lane-s1", out)
+        self.assertNotIn("Finished:", out)
+
+    def test_go_turns_a_spare_into_its_lane(self):
+        """GO #s1 after its brief and Kind are written: the spare is lane s1 for issue #13, with
+        its own key, branch and status file, checked like any `pr` lane."""
+        self.gh({"issues": {"13": ["OPEN", None]}})
+        self.plan([("s1", "pr")])
+        (self.records / "briefs" / "s1.md").write_text("Depends on: none\n- **Closes:** #13\n")
+        self.call("status", str(self.records), "s1", "--state", "parked", "--doing", "spare")
+        self.assertIn("Ready for GO:\n  s1: send `GO #s1`", self.ready())
+        head = self.branch("claude/lane-s1-ab12cd")
+        self.done("s1", "claude/lane-s1-ab12cd", head, body="Closes #12\n\nBody.\n")
+        self.assertIn("s1: PR body", self.ready())  # checked against the brief's Closes line
+        self.done("s1", "claude/lane-s1-ab12cd", head, body="Closes #13\n\nBody.\n")
+        out = self.ready()
+        self.assertIn("Ready for PR:\n  s1: claude/lane-s1-ab12cd", out)
+        self.assertNotIn("Inconsistent:", out)
+        self.assertNotIn("Finished:", out)
+
+    def test_a_spare_never_given_a_brief_closes_out(self):
+        """Told `CLOSE #s1`, a spare writes its report and `done` with no branch or head (its
+        worktree may sit on the pushed default branch): Finished in Now, and left out once moved
+        to plan-history.md."""
+        self.plan([("s1", "spare")])
+        (self.records / "reports" / "s1.md").write_text("Spare, never given a lane.\n")
+        code, _, err = self.call("status", str(self.records), "s1", "--state", "done",
+                                 "--branch", "none", "--head", "none",
+                                 "--doing", "spare closed out, no lane")
+        self.assertEqual(code, 0, err)
+        out = self.ready()
+        self.assertIn("Finished:\n  s1: spare done, no PR: read reports/s1.md", out)
+        self.assertNotIn("Inconsistent:", out)
+        self.plan([])
+        out = self.ready()
+        self.assertNotIn("s1", out)
+        self.assertIn("(1 finished, no-PR lane not in plan.md's Now table left out)", out)
 
     def test_an_unknown_kind_is_flagged(self):
         self.plan([("12", "audits")])

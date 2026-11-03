@@ -4,8 +4,8 @@ For a lane on "merge once CI passes" whose CI cannot run or has not started (coo
 
 ## Which case
 
-- `ready` says `checks could not run (billing)` or `no CI configured`, `waitchecks` prints `no CI configured`, or the account is out of minutes or quota: *CI cannot run*.
-- `waitchecks` exits 3 with `no checks appeared` and no `no CI configured` line: *Checks not started*.
+- `ready` says `checks could not run (billing)` or `no CI configured`, or the account is out of minutes or quota: *CI cannot run*.
+- `waitchecks` exits 3: the case its line after `no checks appeared` names.
 
 **Asking the user.** At each step below that asks the user, first read the plan's rulings. A ruling that covers the step is the answer: tell the user which ruling settled it (unattended: write it in the Unattended log). Unattended, the lane is Stuck (`unattended.md`) when no ruling covers the step, a ruling says not to merge, or a second `waitchecks` run still finds no checks.
 
@@ -19,7 +19,4 @@ A failed local check is a failed check: it goes to the user with its output, as 
 
 ## Checks not started
 
-The repo has CI, but none reported on this PR within the CI start wait. List the workflows on the default branch (`git ls-tree --name-only origin/<default> .github/workflows/`) and read their `on:` lines:
-
-- **Workflow files listed, none on `pull_request`:** take *CI cannot run*.
-- **Otherwise:** tell the user no check has reported on PR #<N> after the minutes `waitchecks` printed, and ask whether to keep waiting (run `waitchecks` again) or take *CI cannot run*.
+The repo has CI (or the workflow lookup failed), but none reported on this PR within the CI start wait. Tell the user no check has reported on PR #<N> after the minutes `waitchecks` printed, and ask whether to keep waiting (run `waitchecks` again) or take *CI cannot run*.
