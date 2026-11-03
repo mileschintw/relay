@@ -1231,7 +1231,7 @@ class SafeExitTests(Base):
             self.heads[key] = (pr, head)
 
     def call_cp1252(self, *argv):
-        """Base.call with stdout and stderr encoding as a piped Windows console does."""
+        """Base.call with stdout and stderr starting as a piped Windows console's cp1252."""
         out, err = (io.TextIOWrapper(io.BytesIO(), encoding="cp1252") for _ in range(2))
         cwd = os.getcwd()
         os.chdir(self.clone)
@@ -1243,7 +1243,7 @@ class SafeExitTests(Base):
         texts = []
         for s in (out, err):
             s.flush()
-            texts.append(s.buffer.getvalue().decode("cp1252"))
+            texts.append(s.buffer.getvalue().decode("utf-8"))  # main() switches to UTF-8 (#161)
         return code, *texts
 
     def test_non_ascii_check_name_on_a_cp1252_stdout_exits_by_the_checks(self):
@@ -1251,8 +1251,8 @@ class SafeExitTests(Base):
         with mock.patch.object(self, "call", self.call_cp1252):
             code, out, err = self.waitchecks(watch=(0, table, "\u8b66\u544a"), checks={"5": table})
             self.assertEqual(code, 0, err)
-            self.assertIn("?? ?\tpass", out)
-            self.assertIn("??", err)
+            self.assertIn(table, out)
+            self.assertIn("警告", err)
             code, out, err = self.waitchecks(watch=(1, table), rollup=self.FAILED, checks={"5": table})
             self.assertEqual(code, 1, err)
 
