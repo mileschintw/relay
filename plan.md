@@ -4,8 +4,8 @@ Current state only. Done work moves to `plan-history.md` with a one-line pointer
 
 ## Handover
 
-- **Coordinator:** none. The last coordinator (local_f0eb7091-3f4b-4994-afb1-091422a00e8b, title Relay coordination, worktree D:/Repos/relay/.claude/worktrees/lane-114-30073e) wrote itself out 2026-11-03 15:46 -0800 after the 2026-11-03 round and release 0.3.5 (→ `plan-history.md`, "Round 2026-11-03 and 0.3.5"). `relay.py` is `project.md`'s line (main checkout, at `b2bee65`). Next time: `/relay:coordinate`.
-- **Next:** nothing running, no open issues. Owner steps: upload `docs/social-preview/social-preview.png` in Settings › General › Social preview. Archive this coordinator's session (Relay coordination) from the sidebar; its worktree lane-114-30073e is on branch release-0.3.5 (merged, nothing uncommitted).
+- **Coordinator:** title Relay coordination, worktree D:/Repos/relay/.claude/worktrees/lane-114-30073e, id local_f0eb7091-3f4b-4994-afb1-091422a00e8b, mode normal. Back in 2026-11-03 15:57 -0800 after writing itself out at 15:46 -0800 (release 0.3.5 and close-out → `plan-history.md`, "Round 2026-11-03 and 0.3.5"). Its worktree is on branch release-0.3.5 (merged into main, clean). `relay.py` is `project.md`'s line (main checkout, at `b2bee65`).
+- **Next:** after the user compacts this session, propose the round of #181–#187 (all Order 1 except #181, which waits for #183) and ask its merge question. The user's words, 2026-11-03 15:57 -0800: 「全部開啟並triage分類 3使用以後只用約略數字，反正實際上不會有人真的在乎精確數字 開完之後做compact預備，compact完就可以開始開發這些issue」. That message covers starting lanes for #181–#187 after the compact. It grants no merge right, so the round's merge question still has to be asked. Background: a retrospective on the 2026-11-03 round found six improvements, opened as seven issues on the user's 「全部開啟並triage分類」, all labelled ready-for-agent; #184 carries the user's decision to use rounded figures. #182 reverses #174's rule that a cancelled or skipped run settles a workflow; that reversal is the user's retrospective decision, 2026-11-03. Nothing is in flight: no background commands, sessions or open PRs. Owner steps: upload `docs/social-preview/social-preview.png` in Settings › General › Social preview.
 elay; close-out including archiving the five worker sessions. Review clean (16 notes not worth an issue; no contradictions, bugs or lost invariants). Version PR #180 (branch release-0.3.5) open, waiting on CI. Owner steps: upload `docs/social-preview/social-preview.png` in Settings › General › Social preview.
 - **Alarm:** `project.md`'s `Alarm: 10` (the user's 10 minutes, 2026-10-31 01:51 「可以就這樣改」, moved there when #82 merged); waiting on CI relies on the background `waitchecks` ending, not the alarm.
 - **Merge right:** none (the 2026-11-03 14:19 -0800 round's moved to `plan-history.md` once 166, 167, 168, 173, 174 merged).
@@ -29,8 +29,15 @@ Every open issue, once. "Order" is the wave (1 = can start now). "Kind" is `free
 
 | Issue | Order | Blocked by (GitHub) | Same-section wait | Files it owns | Kind |
 |---|---|---|---|---|---|
+| #181 merge: wait for the default branch's push run and fail on red | 2 | none | after #183: relay.py › docstring merge description | relay.py (`report_push_run`, `cmd_merge` or `cmd_waitchecks`, docstring); tests/test_relay.py; tests/fake_gh.py; coordinate/SKILL.md (Finishing a lane › Merge); coordinate/unattended.md; docs/releasing.md (step 2) | free |
+| #182 ready: a cancelled or skipped push run must not hide an older failure | 1 | none | none | relay.py (`ready_push_runs`, failed-conclusions comment, ready's docstring); tests/test_relay.py (PushRunTests) | free |
+| #183 merge: retry a transient gh pr merge failure | 1 | none | none | relay.py (`merge_lane`, docstring); tests/test_relay.py; tests/fake_gh.py | free |
+| #184 README: give the coordinate skill's size in rounded figures | 1 | none | none | README.md ("A small main skill" line) | free |
+| #185 Checks before done: skip a check when no path it covers changed | 1 | none | none | relay.py (`check_commands`, `cmd_localcheck`); tests/test_relay.py; work/SKILL.md (Checks before done); setup/templates/project.md (checks lines) | free |
+| #186 tests: isolate git config in the test harness | 1 | none | none | tests/test_relay.py (`Base`, `git` helper, PushRunTests) | free |
+| #187 coordinate: Handover field shape on First turn; roadmap's call shape | 1 | none | none | coordinate/SKILL.md (First turn step 3); relay.py (roadmap argparse, if chosen); tests/test_relay.py (if relay.py changes) | free |
 
-Refilled 2026-11-03 from `relay.py roadmap`; #173 and #174 triaged ready-for-agent. Mechanical overlaps (different sections, parallel): relay.py docstring (#168 Exit section, #174 ready's section list), coordinate/SKILL.md (#166 Consent › The user's words, #174 its own section), unattended.md (#166 first paragraph, #174 log rule), GLOSSARY.md (#167 CI start wait if any, #174 Push run). #112, #115, #116, #117 list several paths on one bullet, which `parse_files` reads as one path; the paths above are from the issue text.
+Filled 2026-11-03 from `relay.py roadmap` (retrospective issues). Mechanical overlaps (different sections, parallel): relay.py (181 report_push_run/cmd_merge, 182 ready_push_runs, 183 merge_lane, 185 check_commands/localcheck, 187 roadmap argparse); tests/test_relay.py (each lane its own tests; 186 owns `Base` and the `git` helper, 182 and 186 different PushRunTests methods); tests/fake_gh.py (181, 183); coordinate/SKILL.md (181 Finishing a lane › Merge, 187 First turn).
 
 
 
