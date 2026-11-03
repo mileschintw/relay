@@ -4,7 +4,7 @@ Only when the user turns it on in words. Record in the plan's Handover, in that 
 
 ## The turn the user turns it on is the only one that can start sessions
 
-In that same turn (the user typed it in the desktop app): check the plan as in *First turn*, **Check the plan against the world**, write a brief for every in-scope lane with no session yet, adding the worker paragraph below, and start them all: lanes free to begin now, the rest parked. Add the same paragraph to the brief of every in-scope lane already in Now, and `SendMessage` each unparked worker (`done` ones included) to reread it; a parked one rereads it on GO. Check where each one landed (`app-limits.md`, *Session folders*), write the list into the plan's Unattended log, commit the records, then set the alarm (*Following progress*). A lane missed now can only be proposed as a card later.
+In that same turn (the user typed it in the desktop app), offer spares (SKILL.md, *Starting a lane*, **Spares**). Then check the plan as in *First turn*, **Check the plan against the world**, write a brief for every in-scope lane with no session yet, adding the worker paragraph below, and start them all: lanes free to begin now, the rest parked, and the spares. Add the same paragraph to the brief of every in-scope lane already in Now, and `SendMessage` each unparked worker (`done` ones included) to reread it; a parked one rereads it on GO. Check where each one landed (`app-limits.md`, *Session folders*), write the list into the plan's Unattended log, commit the records, then set the alarm (*Following progress*). A lane missed now, or an in-scope issue that becomes ready later, can only take a spare or be proposed as a card.
 
 ## What is in scope
 
@@ -14,10 +14,11 @@ A lane is in scope when the user's scope names its issue and the roadmap's Kind 
 
 - **PRs and merges** only when the user granted it: a lane finished with no blocker gets its PR; a lane under `ready`'s Ready to merge gets `relay.py merge` (*Finishing a lane*, **Merge**). A CI fallback goes on only as `ci-fallbacks.md`, **Asking the user**, allows.
 - **Answering a worker's question:** in scope and reversible, answer from the plan and the rulings, and log the question, your answer and why. Unsure: that lane is Stuck.
+- **Spares:** give a spare an in-scope lane with no session as *Starting a lane*, **Spares**, says, adding the worker paragraph to its brief, and log it.
 - A fix to tests or CI only, changing no behaviour, that a lane in scope needs in order to merge counts as in scope: have a running worker make it, then log it.
 - **Stuck** (a check a worker cannot fix, an unexplained moved head, a conflict, a worker blocked on a decision only the user can make, a step from the list below): that lane stops, and so do the parked lanes behind it; log it; move each out of Now (*Finishing a lane*, **A lane that stops without merging**); carry on with the rest.
 - At every state change, update the Unattended log and push the records, so the user reads what happened when they return.
-- **The round ends** when no in-scope lane is running or parked (each merged or stopped): write a closing summary in the Unattended log, push the records, and end the turn with no alarm. Until then, set the alarm before ending each turn as *Following progress*, **Alarm**, says.
+- **The round ends** when no in-scope lane is running or parked (each merged or stopped): close out each spare still parked, write a closing summary in the Unattended log, push the records, and end the turn with no alarm. Until then, set the alarm before ending each turn as *Following progress*, **Alarm**, says.
 
 ## Never, unattended (plus `project.md`'s additions)
 
