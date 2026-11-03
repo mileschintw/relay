@@ -4,8 +4,8 @@ Current state only. Done work moves to `plan-history.md` with a one-line pointer
 
 ## Handover
 
-- **Coordinator:** none. The last coordinator (local_41f71e49-d203-4671-9234-61ad31a7903f, worktree D:/Repos/relay/.claude/worktrees/lane-141-e7f5cd) wrote itself out 2026-11-03 03:49 -0800 after the 2026-11-02/03 rounds and release 0.3.4 (→ `plan-history.md`, "Rounds 2026-11-02/03 and 0.3.4"). `relay.py` is `project.md`'s line (main checkout, at `5b7c556`). Next time: `/relay:coordinate`.
-- **Next:** nothing running. Open: #166, #167, #168 (needs-triage, small doc fixes from the 0.3.4 review); #173 (needs-info, Windows CI only on push to main: talk it over with the user first). Owner steps: upload `docs/social-preview/social-preview.png` in Settings › General › Social preview. The "btw" fork that opened #173 is archived; archive this coordinator's session from the sidebar.
+- **Coordinator:** local session in worktree D:/Repos/relay/.claude/worktrees/lane-114-30073e (branch claude/relay-coordinate-d12771), took over 2026-11-03 14:17 -0800. Mode: normal. Previous coordinator (local_41f71e49-…, lane-141-e7f5cd) wrote itself out 2026-11-03 03:49 -0800 after release 0.3.4 (→ `plan-history.md`, "Rounds 2026-11-02/03 and 0.3.4"). `relay.py` is `project.md`'s line (main checkout, at `5b7c556`).
+- **Next:** nothing running. Open: #166, #167, #168, #173, #174, all triaged ready-for-agent (#173's triage settled the CI question: windows tests on push to main only; #174 is its follow-up, report a failed push run in `ready`). Proposing one round of all five, 2026-11-03. Owner steps: upload `docs/social-preview/social-preview.png` in Settings › General › Social preview.
 - **Alarm:** `project.md`'s `Alarm: 10` (the user's 10 minutes, 2026-10-31 01:51 「可以就這樣改」, moved there when #82 merged); waiting on CI relies on the background `waitchecks` ending, not the alarm.
 - **Merge right:** none (the 2026-11-03 00:28 round's moved to `plan-history.md` once 159 and 161 merged).
 - **Unattended log:** none.
@@ -28,12 +28,13 @@ Every open issue, once. "Order" is the wave (1 = can start now). "Kind" is `free
 
 | Issue | Order | Blocked by (GitHub) | Same-section wait | Files it owns | Kind |
 |---|---|---|---|---|---|
-| #166 coordinate: name the Unattended log for the unattended merge right (needs-triage) | 1 | none | none | coordinate/SKILL.md (Consent › The user's words); unattended.md | free |
-| #167 setup: CI start wait also caps the checks watch (needs-triage) | 1 | none | none | setup/templates/project.md; GLOSSARY.md | free |
-| #168 Doc drift: ready's exit 2, README word count (needs-triage) | 1 | none | none | relay.py docstring; README.md | free |
-| #173 CI: run windows tests only on push to main, not on PRs? (needs-info: discuss with the user before any lane) | — | none | none | .github/workflows/test.yml | limited: user decision |
+| #166 coordinate: name the Unattended log for the unattended merge right | 1 | none | none | coordinate/SKILL.md (Consent › The user's words); coordinate/unattended.md (first paragraph) | free |
+| #167 setup: say CI start wait also caps the checks watch | 1 | none | none | setup/templates/project.md (CI start wait line); GLOSSARY.md (if it defines CI start wait) | free |
+| #168 Doc drift: ready's exit 2, README's coordinate word count | 1 | none | none | relay.py (module docstring, Exit section); README.md (coordinate size line) | free |
+| #173 CI: run windows tests only on push to main, not on PRs | 1 | none | none | .github/workflows/test.yml (test job matrix); setup/SKILL.md (CI step, one clause); docs/releasing.md (step 2) | free |
+| #174 ready: report a failed push run on the default branch | 1 | none | none | relay.py (`cmd_ready`, READY_SECTIONS/HINTS, push-run lookup); tests/test_relay.py; tests' fake_gh.py; coordinate/SKILL.md (handling the Default branch section); coordinate/unattended.md (log a failed push run); GLOSSARY.md (**Push run**) | free |
 
-Filled 2026-11-02 from `relay.py roadmap`. #112, #115, #116, #117 list several paths on one bullet, which `parse_files` reads as one path; the paths above are from the issue text.
+Refilled 2026-11-03 from `relay.py roadmap`; #173 and #174 triaged ready-for-agent. Mechanical overlaps (different sections, parallel): relay.py docstring (#168 Exit section, #174 ready's section list), coordinate/SKILL.md (#166 Consent › The user's words, #174 its own section), unattended.md (#166 first paragraph, #174 log rule), GLOSSARY.md (#167 CI start wait if any, #174 Push run). #112, #115, #116, #117 list several paths on one bullet, which `parse_files` reads as one path; the paths above are from the issue text.
 
 
 
