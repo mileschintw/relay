@@ -2085,19 +2085,76 @@ class LaneKindTests(Base):
         self.assertIn("Inconsistent:\n  12: done with no report file", out)
         self.assertNotIn("Finished:", out)
 
-    def test_a_parked_spare_waits_for_a_brief(self):
+    def test_a_parked_spare_is_available(self):
         self.plan([("s1", "spare"), ("13", "pr")])
         for key in ("s1", "13"):
             self.call("status", str(self.records), key, "--state", "parked", "--doing", "parked")
         out = self.ready()
-        self.assertIn("Waiting:\n  s1: spare, waits for a brief", out)
+        self.assertIn("Waiting:\n  s1: spare, available: waits for a brief", out)
+        self.assertIn("hint: a spare needs nothing until a lane needs a worker", out)
         self.assertNotIn("s1: parked with no brief", out)
+        self.assertNotIn("s1: a spare", out)
         self.assertNotIn("GO #s1", out)
         self.assertIn("13: parked with no brief", out)  # a normal lane still is flagged
         # given a brief and its lane's kind, the spare is a parked lane like any other
         self.plan([("s1", "pr")])
         (self.records / "briefs" / "s1.md").write_text("Depends on: none\n")
         self.assertIn("s1: send `GO #s1`", self.ready())
+
+    def test_a_spare_with_a_brief_but_kind_spare_is_flagged(self):
+        # the coordinator wrote its brief but left the Kind: as `spare` it would finish with no PR
+        self.plan([("s1", "spare")])
+        (self.records / "briefs" / "s1.md").write_text("Depends on: none\n- **Closes:** #13\n")
+        self.call("status", str(self.records), "s1", "--state", "parked", "--doing", "parked")
+        out = self.ready()
+        self.assertIn("Inconsistent:\n  s1: a spare with a brief: set its Now Kind", out)
+        self.assertNotIn("available", out)
+        self.assertNotIn("GO #s1", out)
+        self.call("status", str(self.records), "s1", "--state", "blocked", "--doing", "which?",
+                  "--branch", "lane-s1", "--head", "02d1f2d")
+        out = self.ready()
+        self.assertIn("s1: a spare with a brief", out)
+        self.assertIn("s1: blocked: which?", out)
+        self.done("s1", "lane-s1", self.branch("lane-s1"), body="Closes #13\n\nBody.\n")
+        out = self.ready()  # done, it is checked as the `pr` lane it took
+        self.assertIn("s1: a spare with a brief", out)
+        self.assertIn("Ready for PR:\n  s1: lane-s1", out)
+        self.assertNotIn("Finished:", out)
+
+    def test_go_turns_a_spare_into_its_lane(self):
+        """GO #s1 after its brief and Kind are written: the spare is lane s1 for issue #13, with
+        its own key, branch and status file, checked like any `pr` lane."""
+        self.gh({"issues": {"13": ["OPEN", None]}})
+        self.plan([("s1", "pr")])
+        (self.records / "briefs" / "s1.md").write_text("Depends on: none\n- **Closes:** #13\n")
+        self.call("status", str(self.records), "s1", "--state", "parked", "--doing", "spare")
+        self.assertIn("Ready for GO:\n  s1: send `GO #s1`", self.ready())
+        head = self.branch("claude/lane-s1-ab12cd")
+        self.done("s1", "claude/lane-s1-ab12cd", head, body="Closes #12\n\nBody.\n")
+        self.assertIn("s1: PR body", self.ready())  # checked against the brief's Closes line
+        self.done("s1", "claude/lane-s1-ab12cd", head, body="Closes #13\n\nBody.\n")
+        out = self.ready()
+        self.assertIn("Ready for PR:\n  s1: claude/lane-s1-ab12cd", out)
+        self.assertNotIn("Inconsistent:", out)
+        self.assertNotIn("Finished:", out)
+
+    def test_a_spare_never_given_a_brief_closes_out(self):
+        """Told `CLOSE #s1`, a spare writes its report and `done` with no branch or head (its
+        worktree may sit on the pushed default branch): Finished in Now, and left out once moved
+        to plan-history.md."""
+        self.plan([("s1", "spare")])
+        (self.records / "reports" / "s1.md").write_text("Spare, never given a lane.\n")
+        code, _, err = self.call("status", str(self.records), "s1", "--state", "done",
+                                 "--branch", "none", "--head", "none",
+                                 "--doing", "spare closed out, no lane")
+        self.assertEqual(code, 0, err)
+        out = self.ready()
+        self.assertIn("Finished:\n  s1: spare done, no PR: read reports/s1.md", out)
+        self.assertNotIn("Inconsistent:", out)
+        self.plan([])
+        out = self.ready()
+        self.assertNotIn("s1", out)
+        self.assertIn("(1 finished, no-PR lane not in plan.md's Now table left out)", out)
 
     def test_an_unknown_kind_is_flagged(self):
         self.plan([("12", "audits")])

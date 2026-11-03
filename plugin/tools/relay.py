@@ -38,8 +38,8 @@ ready   read-only. Prints what the coordinator can do next, the Plan warning fir
           - Ready for PR: done lanes with no pull request, status head equal to the pushed head.
           - Ready to merge: done lanes whose open PR head is the status head, checks all passed
             (at least one, none pending), no conflict and a body equal to the draft.
-          - Waiting: parked lanes with an open dependency; a parked spare (`spare, waits for a
-            brief`); blocked lanes, with their `doing` line;
+          - Waiting: parked lanes with an open dependency; a parked spare with no brief
+            (`spare, available: waits for a brief`); blocked lanes, with their `doing` line;
             done lanes with a conflict, pending or failed checks, a failed lookup, an open PR whose
             body differs from the PR body draft (ends trimmed; the line gives the `gh pr edit`
             command), or a deny list Records reports (`deny-list check not run`). A failed
@@ -68,8 +68,9 @@ ready   read-only. Prints what the coordinator can do next, the Plan warning fir
             marker (GLOSSARY.md), with its link and the block from the marker to the end of that
             body or comment. A failed lookup is listed here and holds nothing.
           - Inconsistent: a done lane's status head that is not the pushed one; done with no report
-            file; a PR head that is not the status head; a PR closed without merging; a dependency
-            closed as not planned (it also holds GO); a PR body
+            file; a lane whose Now Kind is `spare` that has a brief (it took a lane, so its Kind is
+            that lane's; done, it is checked as `pr`); a PR head that is not the status head; a PR
+            closed without merging; a dependency closed as not planned (it also holds GO); a PR body
             draft with a title line, a closing keyword outside a `Closes #N` line, or `Closes`
             lines that are not exactly one per issue on the brief's `Closes:` line; a line matching
             project.md's deny list (`- **Deny list:** <path>`, one regex per line; an end of the
@@ -754,7 +755,7 @@ READY_HINTS = (
     ("Waiting", r"^\S+: PR #\d+ body differs from its draft", "the draft changed after the PR "
      "opened: run the line's `gh pr edit`, after fixing the draft first when `ready` flags its PR "
      "body under Inconsistent"),
-    ("Waiting", r"^\S+: spare, waits for a brief", "a spare needs nothing until a lane needs a "
+    ("Waiting", r"^\S+: spare, available: ", "a spare needs nothing until a lane needs a "
      "worker: write that lane's brief as `briefs/<the spare's key>.md`, set the spare's Now "
      "Kind to that lane's (`pr` unless it is a run or audit), and send `GO #<the spare's key>`"),
     ("Waiting", r"^\S+: deny-list check not run", "deny-list check not run: follow the deny-list "
@@ -952,6 +953,11 @@ def ready_report(a, budget):
         lane, before = {k: [] for k in READY_SECTIONS}, len(timed_out)
         if not moved:
             print(line)
+        # a spare given a brief has taken a lane: as `spare` it would finish with no PR
+        spare_brief = kind == "spare" and (records / "briefs" / f"{key}.md").exists()
+        if spare_brief:
+            lane["Inconsistent"].append(f"{key}: a spare with a brief: set its Now Kind to its "
+                                        "lane's (`pr` unless it is a run or audit)")
         if parents is None and st["state"] == "parked":
             why = "is skipped" if "Parents" in skipped else "fails"
             lane["Waiting"].append(f"{key}: parked; no GO while the Parents lookup {why}")
@@ -962,10 +968,11 @@ def ready_report(a, budget):
                 if repo is None and (st["state"] in ("parked", "done")):
                     repo = gh("repo", "view", "--json", "nameWithOwner")["nameWithOwner"]
                 if st["state"] == "parked" and kind == "spare":
-                    lane["Waiting"].append(f"{key}: spare, waits for a brief")
+                    if not spare_brief:
+                        lane["Waiting"].append(f"{key}: spare, available: waits for a brief")
                 elif st["state"] == "parked":
                     ready_parked(records, key, repo, lane)
-                elif st["state"] == "done" and kind in NO_PR_KINDS:
+                elif st["state"] == "done" and kind in NO_PR_KINDS and not spare_brief:
                     ready_finished(records, key, kind, lane)
                 elif st["state"] == "done":
                     ready_done(records, key, st, repo, a.checkout, lane, deny, lookups, fetched,

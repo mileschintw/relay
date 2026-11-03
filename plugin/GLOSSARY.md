@@ -26,6 +26,9 @@ A worker started before its lane may begin; it waits for GO.
 **GO**
 The coordinator's message `GO #<key>`, which lets a parked worker start.
 
+**CLOSE**
+The coordinator's message `CLOSE #<key>` to a spare no lane needs: it finishes with a one-line report and `done`.
+
 **Hard dependency**
 Lane A needs lane B's result. Recorded as the tracker's blocking link on A's issue (GitHub's blocked-by).
 
