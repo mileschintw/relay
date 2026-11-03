@@ -20,7 +20,7 @@ Current state only. Done work moves to `plan-history.md` with a one-line pointer
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
 | 131 | #131 | local_f2033247-ca09-4bc2-a8a0-52a56f9764e0 (landed in archived lane 123's folder D:\Repos\relay\.claude\worktrees\lane-123-e04fcc, on its own branch `claude/lane-131-614a65`; keep lane 123's session archived) | review | — |
-| 132 | #132 | local_6cf7be21-97d0-42c0-875f-37bf25e51cfe (lane-132-1ec78c, `claude/lane-132-1ec78c`) | done @ 07ff751; waits for the user's PR-and-merge answer | — |
+| 132 | #132 | local_6cf7be21-97d0-42c0-875f-37bf25e51cfe (lane-132-1ec78c, `claude/lane-132-1ec78c`) | PR #135 opened; waiting on CI, merge on pass (user: "Open and merge on CI") | — |
 | 133 | #133 | local_0cb902a2-31ed-4213-a264-b224b4eac02d (lane-133-1fd07d, `claude/lane-133-1fd07d`) | parked | GO #133 after #131 merges |
 | 134 | #134 | local_199699b7-06a0-4986-b24b-d069ebe14bb8 (lane-134-eb4fc2, `claude/lane-134-eb4fc2`) | parked | GO #134 after #133 merges |
 
