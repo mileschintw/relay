@@ -240,3 +240,9 @@ Merged 2026-11-03 05:36 UTC (PR #152) on the user's "open the PR and merge once 
 Merged 2026-11-03 05:48 UTC (PR #153) on the user's "open the PR and merge once CI passes" (picked).
 
 | 130 | #130 | local_e3f15009-bb01-44bc-90b3-a31319d90666 | done, PR #153, waitchecks running | — |
+
+## Lane 118 (round 2026-11-02)
+
+Merged 2026-11-03 06:00 UTC (PR #154, body updated from the draft after catching up) on the user's "open the PR and merge once CI passes" (picked).
+
+| 118 | #118 | local_7d884ee0-a5da-43f1-afe3-c9263d614127 | done, PR #154 CI passed; asked to merge main (conflict in tests after 130) | — |
