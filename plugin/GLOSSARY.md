@@ -60,13 +60,14 @@ The checkout of branch `coord`: an orphan branch of this repo, checked out besid
 The plan section naming the current coordinator (title, worktree, id, mode; `none` when no coordinator holds it), the next step and who it waits on, the user's standing instructions, the round's merge right and the unattended log. What a coordinator rereads to resume after a compact or a handover.
 
 **Now table**
-The plan table of lanes with a session: key, issues, session, state, and what a parked lane waits for.
+The plan table of lanes with a session: key, kind, issues, session, state, and what a parked lane waits for. Under it, **Main checkout** names the one lane allowed to use the main checkout, or `none`.
 
 **Roadmap**
 The plan table of every open issue, once: its Order, blocked-by, same-section wait, the files it owns and its Kind.
 
 **Kind**
 A Roadmap column, judged by the lane's outcome: `free` when the outcome needs no user decision, account, special machine or release (a single limited follow-up step, such as replacing a release asset, is logged for the user and leaves it `free`); `limited: <what>` when the outcome itself needs one; `parent` for an issue with sub-issues.
+Also a Now-table column, by what the lane ends in: `pr` (an empty cell too) closes issues through its own PR; `run` (a long run), `audit` (a report) and `spare` (a parked worker with no lane yet) close no issue and open no PR, so `ready` lists them under Finished once done, with their report, instead of flagging a missing PR or issue. A parked spare waits for a brief, and takes a lane on GO: its brief is written as `briefs/<the spare's key>.md` and its Now Kind set to that lane's (`pr` unless it is a run or audit).
 
 **Ruling**
 A decision the user made that the repo does not record yet, kept in the plan as one line with its date; it moves to `plan-history.md` once its lanes merge or a doc or ADR carries it.
