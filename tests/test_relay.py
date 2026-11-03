@@ -1500,12 +1500,17 @@ class HintTests(Base):
         self.assertTrue(out.rstrip().endswith(
             "hint: an empty Roadmap: fill Issue, Blocked by and Files it owns from these rows, "
             "then Order and Kind, and replace every placeholder"), out)
+        self.gh({})
+        code, out, err = self.call("roadmap", "--repo", "o/r")
+        self.assertNotIn("hint:", out)  # no rows to fill from
 
     def test_c22_owner_notes_say_where_they_go(self):
         self.parent(body=f"{OwnerNoteTests.MARK} book the GPU")
         self.assertIn("    **Owner action after this set:** book the GPU\n  hint: copy each one "
                       "plan.md's *Waiting for the user's decision* lacks into it, with its link; "
-                      "owner-only work gets no lane and no Roadmap row\n", self.ready())
+                      "owner-only work stays an owner note on its parent: it gets no lane and no "
+                      "Roadmap row\n", self.ready())
+        self.assertEqual(self.hints("Owner notes", "#1: comments lookup failed: HTTP 502"), "")
 
     def test_c61_parents_get_one_row_and_closing_asks_the_user(self):
         self.gh({"issues": {"1": ["OPEN", None], "2": ["CLOSED", "COMPLETED"]},
@@ -1517,6 +1522,7 @@ class HintTests(Base):
                       "parent (*Consent*)\n", out)
         self.assertNotIn("ask the user before closing",
                          self.hints("Parents", "#1 t: 1 open, 0 closed children"))
+        self.assertEqual(self.hints("Parents", "lookup failed: HTTP 502"), "")
 
     def test_c90_each_ready_section_has_its_handler(self):
         cases = {
@@ -1538,6 +1544,9 @@ class HintTests(Base):
             self.assertIn(words, self.hints(section, item), (section, item))
         # only the kinds present get a hint
         self.assertEqual(self.hints("Waiting", "12: blocked: which name?").count("|"), 0)
+        # a blocked lane's own words never pick another kind's hint
+        self.assertEqual(self.hints("Waiting", "12: blocked: conflict, lookup failed, check failed, "
+                                               "checks pending or parked on #3?").count("|"), 0)
         self.call("status", str(self.records), "12", "--state", "blocked", "--doing", "pick one")
         self.assertIn("Waiting:\n  12: blocked: pick one\n  hint: a blocked lane's question",
                       self.ready())
@@ -1600,8 +1609,9 @@ class HintTests(Base):
         with mock.patch.object(relay, "ready_to_merge", boom):
             code, out, _ = self.call("merge", str(self.records), "12", "--repo", "o/r")
         self.assertEqual(code, 4)
-        self.assertIn("hint (exit 4): exit 4: do not rerun; give the user its line, and run "
-                      "`ready` to see which lanes merged", out)
+        self.assertIn("hint (exit 4): an unexpected error, which may come after some merges; "
+                      "exit 4: do not rerun; give the user its line, and run `ready` to see which "
+                      "lanes merged", out)
 
     def test_c121_plan_warning_asks_for_one_pruning_pass(self):
         (self.records / "plan.md").write_bytes(b"x" * 20000)
@@ -1621,7 +1631,8 @@ class HintTests(Base):
     def test_c127_records_warnings_get_the_handler_for_their_file(self):
         self.assertIn("fix that line with the Edit tool",
                       self.hints("Records", "briefs/4.md line 2: control character U+0007"))
-        self.assertIn("open no PR for that lane until `ready` no longer flags it",
+        self.assertIn("since `ready` checks the draft before a PR opens; open no PR for that lane "
+                      "until `ready` no longer flags it",
                       self.hints("Records", "pr-bodies/4.md line 3: control character U+001B"))
         project = self.hints("Records", "project.md line 2: invalid UTF-8 (byte 0xff)")
         self.assertIn("in project.md, the user's settings: give the user the line", project)

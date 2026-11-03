@@ -105,8 +105,8 @@ roadmap read-only. Prints a table, one row per open issue: `| #N title | blocked
         trailing `(...)` scopes the change; other lines in the section, nested bullets and fenced
         blocks are skipped, and it ends at the next `#`/`##` heading. A parent (an issue with
         sub-issues) shows `parent`. An issue with no section, or one with no bullet, shows as
-        missing, listed again under the table; paths are never inferred. A last `hint:` line
-        says how an empty Roadmap is filled from the rows.
+        missing, listed again under the table; paths are never inferred. When there are rows, a
+        last `hint:` line says how an empty Roadmap is filled from them.
 
 localcheck  the checks CI would run, for when it cannot (billing, quota). In --checkout (default
         the current folder): `git fetch`, a detached worktree at the lane's pushed head (from its
@@ -565,6 +565,8 @@ def now_keys(plan):
 
 # The coordinator's next step for each kind of `ready` line, printed as `  hint:` lines after the
 # section's items: (section, a regex one of its items must match, hint). Each hint prints once.
+# The regexes are anchored to the line's own shape, so text a line quotes (a blocked lane's
+# `doing`) or a lookup failure in the section never picks another kind's hint.
 READY_HINTS = (
     ("Plan", "", "do one pruning pass of everything else: move each entry that is DONE or "
      "CONFIRMED (a merged lane, a done wave, a process log) to the end of plan-history.md, "
@@ -575,28 +577,30 @@ READY_HINTS = (
      "under Inconsistent or Waiting"),
     ("Ready to merge", "", "coordinate's *Finishing a lane* step 4, **Merge**: run `relay.py "
      "merge` in the background, keys in merge order"),
-    ("Waiting", r": blocked: ", "a blocked lane's question goes to the user as options with your "
-     "recommendation (unattended: `unattended.md`)"),
-    ("Waiting", r"conflict", "a conflict: message its worker to catch up, push, and write `done` "
-     "again"),
-    ("Waiting", r"lookup failed", "a lookup failure: rerun `ready`"),
-    ("Waiting", r"check failed", "a failed check goes to the user with the watch output"),
-    ("Waiting", r"checks could not run|no CI configured|no checks reported", "a CI fallback: "
-     "follow `ci-fallbacks.md`; its *Which case* says which applies"),
-    ("Waiting", r"checks pending|parked on", "`checks pending` and a parked lane's open "
-     "dependency need nothing"),
-    ("Waiting", r"deny-list check not run", "deny-list check not run: follow the deny-list line "
-     "under Records, and rerun `ready` only after the user says the deny list is fixed"),
+    ("Waiting", r"^\S+: blocked: ", "a blocked lane's question goes to the user as options with "
+     "your recommendation (unattended: `unattended.md`)"),
+    ("Waiting", r"^\S+: (conflicts with the default branch|PR #\d+ has a merge conflict)",
+     "a conflict: message its worker to catch up, push, and write `done` again"),
+    ("Waiting", r"^\S+: lookup failed: ", "a lookup failure: rerun `ready`"),
+    ("Waiting", r"^\S+: PR #\d+ check failed", "a failed check goes to the user with the watch "
+     "output"),
+    ("Waiting", r"^\S+: PR #\d+ (checks could not run|no CI configured|no checks reported)",
+     "a CI fallback: follow `ci-fallbacks.md`; its *Which case* says which applies"),
+    ("Waiting", r"^\S+: (PR #\d+ checks pending|parked on )", "`checks pending` and a parked "
+     "lane's open dependency need nothing"),
+    ("Waiting", r"^\S+: deny-list check not run", "deny-list check not run: follow the deny-list "
+     "line under Records, and rerun `ready` only after the user says the deny list is fixed"),
     ("No status yet", "", "a lane in Now stays `started` until its worker writes one; a brief "
      "with no session is a lane not started (*Starting a lane*, on the user's yes) or one "
      "stopped (move it to plan-history.md)"),
     ("Merged", "", "coordinate's *Finishing a lane* step 6, for a lane still in Now"),
-    ("Parents", "", "a parent gets one Roadmap row with Kind `parent` and no brief or worker; "
-     "its children are the lanes"),
+    ("Parents", r"^#\d+ ", "a parent gets one Roadmap row with Kind `parent` and no brief or "
+     "worker; its children are the lanes"),
     ("Parents", r"every child closed as completed", "every child closed as completed: ask the "
      "user before closing the parent (*Consent*)"),
-    ("Owner notes", "", "copy each one plan.md's *Waiting for the user's decision* lacks into "
-     "it, with its link; owner-only work gets no lane and no Roadmap row"),
+    ("Owner notes", r"^#\d+ http", "copy each one plan.md's *Waiting for the user's decision* "
+     "lacks into it, with its link; owner-only work stays an owner note on its parent: it gets "
+     "no lane and no Roadmap row"),
     ("Inconsistent", "", "fix the plan line it contradicts, or message the lane's worker when "
      "its own files are wrong"),
     ("Inconsistent", r"PR body", "a PR body problem: message its worker to fix the draft, push, "
@@ -607,15 +611,15 @@ READY_HINTS = (
      "brief: fix that line with the Edit tool (mixed line endings: rewrite the whole file as "
      "UTF-8 with LF endings), rerun `ready`, and commit the records"),
     ("Records", r"^pr-bodies/", "in a PR body draft: message its worker to fix that line in the "
-     "draft and write `done` again; open no PR for that lane until `ready` no longer flags it"),
+     "draft and write `done` again, since `ready` checks the draft before a PR opens; open no PR "
+     "for that lane until `ready` no longer flags it"),
     ("Records", r"^project\.md(?!'s deny list)", "in project.md, the user's settings: give the "
      "user the line"),
     ("Records", r"deny list", "a deny-list line: give the user the line and wait for them to fix "
      "it; never open, read or print the deny file, since its lines are the names it keeps out"),
     ("Records", r"^(plan\.md|plan-history\.md|briefs/).*(invalid UTF-8|control character|bare "
-     r"CR|mixed line endings)", "whatever edits "
-     "plan.md, plan-history.md or a brief keeps its encoding (UTF-8) and its line endings (LF, "
-     "as .gitattributes sets)"),
+     r"CR|mixed line endings)", "whatever edits plan.md, plan-history.md or a brief keeps its "
+     "encoding (UTF-8) and its line endings (LF, as .gitattributes sets)"),
     ("relay.py", r"merge --ff-only", "tell the user; run that `git -C ... merge --ff-only` "
      "command only on the user's yes, since it moves their checkout; a standing instruction to "
      "keep it current (on project.md's relay.py line, or under Handover) is that yes"),
@@ -641,8 +645,9 @@ EXIT_HINTS = {
            "moved head, a merge state other than CLEAN, a failed lookup or `gh pr merge`): give "
            "the user that line. Tell the user which lanes merged and where it stopped",
         2: "a usage error, nothing merged: fix what its error line names and rerun",
-        4: "exit 4: do not rerun; give the user its line, and run `ready` to see which lanes "
-           "merged. Tell the user which lanes merged and where it stopped",
+        4: "an unexpected error, which may come after some merges; exit 4: do not rerun; give "
+           "the user its line, and run `ready` to see which lanes merged. Tell the user which "
+           "lanes merged and where it stopped",
     },
 }
 ROADMAP_HINT = ("hint: an empty Roadmap: fill Issue, Blocked by and Files it owns from these rows, "
@@ -1036,7 +1041,8 @@ def cmd_roadmap(a):
         print(row)
     if missing:
         print(f"\nMissing `## Files`: {', '.join(missing)}")
-    print(ROADMAP_HINT)
+    if rows:
+        print(ROADMAP_HINT)
     return 0
 
 
