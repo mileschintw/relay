@@ -5,7 +5,7 @@ Current state only. Done work moves to `plan-history.md` with a one-line pointer
 ## Handover
 
 - **Coordinator:** this session (folder `D:/Repos/relay/.claude/worktrees/lane-141-e7f5cd`, branch `claude/relay-coordinate-821ea1`), took over 2026-11-02 20:34 -0800; mode normal. The previous coordinator (local_cac5e599-046a-4d94-801f-10187aae7a59, folder new-session-208f95) wrote itself out 2026-11-02 20:31 -0800 after the #112 slimming round and release 0.3.3 (→ `plan-history.md`, "Round #110–#112 and 0.3.3"). `relay.py` is `project.md`'s line (main checkout, at `8abd5c8`): fast-forward it after each merge.
-- **Next:** waits on the user: the wave proposal. 0.3.3 is released (tag `relay--v0.3.3`, release at 8abd5c8) and installed at local scope in D:\Repos\relay; sessions there pick it up on restart. #145 (marketplace clones over SSH) needs the user's yes before `marketplace.json` changes. `ready` keeps one Inconsistent line for lane 110 (no PR by design; its status file stays as the record).
+- **Next:** waits on the user: the wave proposal. 0.3.3 is released (tag `relay--v0.3.3`, release at 8abd5c8) and installed at local scope in D:\Repos\relay; sessions there pick it up on restart. #145: the user approved the marketplace.json change (url to HTTPS only) at triage, 2026-11-02. `ready` keeps one Inconsistent line for lane 110 (no PR by design; its status file stays as the record).
 - **Alarm:** `project.md`'s `Alarm: 10` (the user's 10 minutes, 2026-10-31 01:51 「可以就這樣改」, moved there when #82 merged); waiting on CI relies on the background `waitchecks` ending, not the alarm.
 - **Unattended log:** none.
 
@@ -51,7 +51,7 @@ none
 
 - Owner note (#112, from lane 133, C126): for the user's own CLAUDE.md: "On Windows, write a commit message with a double quote in it to a file and use `git commit -F`." (`reports/133.md`)
 - Owner note (#112, from lane 132, W33): add to the one project that uses it, in its `project.md` checks or brief template: "A test that needs a pull request (a CI trigger, say): open none; write in the report how to confirm it after the merge." (`reports/132.md`)
-- Triage done 2026-11-02 20: #114, #115, #116, #118, #119, #130 (all three items), #139, #140, #145 ready-for-agent; #117 closed as wontfix (picked the recommended option). → move to plan-history once the wave starts.
+- Triage done 2026-11-02 20:39 -0800: #114, #115, #116, #118, #119, #130 (all three items), #139, #140, #145 ready-for-agent; #117 closed as wontfix (picked the recommended option). → move to plan-history once the wave starts.
 - Since 2026-11-02 20:39 -0800: yes to start the proposed wave (#145, #140, #139, #118, #114, #116, #130 now; #119 parked behind #145, #115 behind #116).
 
 ## Deadlines
