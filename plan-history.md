@@ -262,3 +262,7 @@ Merged 2026-11-03 06:13 UTC (PR #155, body updated after two catch-ups) on the u
 ## Lane 119 merged (2026-11-03 00:05 -0800)
 
 - #119 README as a one-page product page, with the design session's banner (branch claude/nice-galileo-556006 @ 6ace6e5): PR #157 merged at 6676c3e after CI (user picked "open the PR and merge once CI passes" 2026-11-02 23:59 -0800). project.md's Test bar and Release line now point at `docs/layout.md` and `docs/releasing.md`, per the lane's report. Design session: About and 20 topics applied on the user's yes there; the social preview PNG is a manual upload for the user.
+
+## Design follow-up merged (2026-11-03)
+
+- PR #158 (social preview and banner on a GitHub Dark background; three images only, no issue) merged at ff88acc after CI, on the user's "CI 過就合併" here (asked first in the design session). The user re-uploads `docs/social-preview/social-preview.png` as the repo social preview. Its 5-minute CI on an images-only PR led to #159.
