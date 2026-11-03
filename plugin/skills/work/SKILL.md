@@ -28,7 +28,7 @@ When your start message says you are parked: read the brief, `project.md` and th
    - no title line (the coordinator passes the issue title separately);
    - a *Review* section: each finding and how it was handled.
 6. **Finish.** `git fetch`. If `origin/<default>` moved in a way that touches your files or the brief's *Before and after* line: *Catching up*, then rerun steps 3 and 4 for what changed. Write the report (*Report*). Check every clause of **Done when**; once all hold, run `relay.py status <records> <key> --state done --doing "<one line>"`. The coordinator opens the PR from that head. After `done`, the branch changes only when the coordinator asks for a fix: *Catching up*, rerun steps 3 and 4 for what changed, then `relay.py status <records> <key> --state done --doing "<one line>"` again.
-7. End your turn on a two-line summary naming the report file, with no background command still running (*Status*, **Background runs**).
+7. End your turn on a two-line summary naming the report file (background commands: *Status*, **Background runs**).
 
 **Done when:** everything each issue on the *Closes* line wants is built, or listed in the report as no longer holding; `project.md`'s checks and the lane tests pass on the pushed head, except "main checkout only" ones named in the report; the last review found no blocker; the PR body draft and the report are written. The status file then says `done` with that head.
 
