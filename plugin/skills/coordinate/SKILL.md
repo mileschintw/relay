@@ -50,6 +50,10 @@ Sessions start only in a turn the user typed in the desktop app (no fork, decisi
    `You are the relay worker for lane <key>. Use the relay:work skill. Records folder: <path>. Brief: <path>/briefs/<key>.md.` and, for a parked lane, `You are parked until GO #<key>.`
 4. Run `list_sessions` and check its `cwd` is the folder you asked for (`app-limits.md`, *Session folders*). Record key, kind, session id and state in the plan's Now table: `started` until its first status file, then the status file's state. A lane that needs the main checkout (untracked data, a local database) gets it through the plan's **Main checkout** field: one lane at a time, named there before you tell its worker, set back to `none` when it is done or stops.
 
+**Spares.** A lane that must start after this turn (the user away, or an issue not yet ready for a brief) can start only on a worker already running. When you propose sessions and such a lane is likely, offer spares in the same question: two unless the user names a number. Start each as in step 3 with key `s<n>` (the next number the plan has not used), `branch_name: lane-s<n>`, no brief, and the prompt `You are the relay worker for spare s<n>. Use the relay:work skill. Records folder: <path>. You are a spare with no brief yet, parked until GO #s<n>.`; record it in Now with Kind `spare`, and `ready` lists it as available.
+- **Give it a lane:** step 1 for that lane, then write the lane's brief as `briefs/s<n>.md`, set the spare's Now Kind (`pr` unless it is a run or audit) and Issues to the lane's, and send `GO #s<n>`. The lane keeps the key `s<n>`, its branch and status file.
+- **Close it out** once no lane is left to start (before `close-out.md`, or at the end of an unattended round): send `CLOSE #s<n>`; it writes its report and `done`, `ready` lists it under Finished, and *Finishing a lane* step 6 moves it out of Now.
+
 ## Following progress
 
 - **Files, not notifications.** A turn-end note shows only its first 400 characters, and a turn ending is not the work ending. Read `status/<key>.md`, `reports/<key>.md` and `ready`.
