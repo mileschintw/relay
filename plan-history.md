@@ -324,3 +324,10 @@ The unattended merge right is named as living in Handover › Unattended log (SK
 
 Setup's project.md template says CI start wait also caps the checks watch at 20× (2 hours at 6). Report: `reports/167.md`.
 - Lane 173 post-merge check: main push run 41732106151 for 3c0a4f7 succeeded, with test (ubuntu-latest) and test (windows-latest) both passing.
+
+## Lane 168 (#168, PR #178), merged 2026-11-03 22:44 UTC
+
+| 168 | #168 | local_2bbc926b-c6b6-4b26-b6ee-d05955e70d8c | started | — |
+| #168 Doc drift: ready's exit 2, README's coordinate word count | 1 | none | none | relay.py (module docstring, Exit section); README.md (coordinate size line) | free |
+
+relay.py docstring's Exit section names ready's exit 2; README's coordinate line recounted after 166 merged (96 lines, 3,000 words). Report: `reports/168.md`.
