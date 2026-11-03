@@ -1,22 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1280" height="200" viewBox="0 0 1280 200">
-<rect width="1280" height="200" fill="#0d1117"/>
-<rect x="24" y="16" width="1232" height="168" rx="14" fill="#161b22" stroke="#30363d" stroke-width="2"/>
-<defs><marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#bc8cff"/></marker></defs>
-<text x="62" y="98" font-family="Helvetica, Arial, sans-serif" font-size="56" font-weight="700" fill="#f0f6fc">relay</text>
-<text x="64" y="140" font-family="Helvetica, Arial, sans-serif" font-size="20" fill="#8b949e">One Claude Code session coordinates many worker sessions.</text>
+<rect width="1280" height="200" fill="#100f0e"/>
+<rect x="24" y="16" width="1232" height="168" rx="14" fill="#1c1b19" stroke="#34322e" stroke-width="2"/>
+<defs><marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#c97b9b"/></marker></defs>
+<text x="62" y="98" font-family="Helvetica, Arial, sans-serif" font-size="56" font-weight="700" fill="#f5f0e8">relay</text>
+<text x="64" y="140" font-family="Helvetica, Arial, sans-serif" font-size="20" fill="#a39d94">One Claude Code session coordinates many worker sessions.</text>
 <g font-family="Menlo, Consolas, monospace" transform="translate(612.8 -46.1) scale(0.52)">
-<rect x="160" y="268" width="170" height="64" rx="12" fill="#0d1117" stroke="#58a6ff" stroke-width="3"/>
-<text x="245.0" y="308" font-size="23" fill="#58a6ff" text-anchor="middle">coordinator</text>
-<line x1="330" y1="300" x2="1160" y2="300" stroke="#8b949e" stroke-width="6"/>
-<path d="M330 300 C385 300 385 190 440 190 L716 190 C768.2 190 768.2 300 820.5 300" fill="none" stroke="#e3b341" stroke-width="6"/>
-<circle cx="554" cy="190" r="7" fill="#161b22" stroke="#e3b341" stroke-width="3"/><circle cx="598" cy="190" r="7" fill="#161b22" stroke="#e3b341" stroke-width="3"/><circle cx="642" cy="190" r="7" fill="#161b22" stroke="#e3b341" stroke-width="3"/><rect x="662" y="173" width="54" height="34" rx="17" fill="#238636"/><text x="689" y="197" font-size="19" fill="#f0f6fc" text-anchor="middle">PR</text>
-<path d="M330 300 C385 300 385 248 440 248 L996.5 248 C1021.2 248 1021.2 300 1045.9 300" fill="none" stroke="#58a6ff" stroke-width="6"/>
-<circle cx="834.5" cy="248" r="7" fill="#161b22" stroke="#58a6ff" stroke-width="3"/><circle cx="878.5" cy="248" r="7" fill="#161b22" stroke="#58a6ff" stroke-width="3"/><circle cx="922.5" cy="248" r="7" fill="#161b22" stroke="#58a6ff" stroke-width="3"/><rect x="942.5" y="231" width="54" height="34" rx="17" fill="#238636"/><text x="969.5" y="255" font-size="19" fill="#f0f6fc" text-anchor="middle">PR</text>
-<path d="M330 300 C385 300 385 372 440 372 L852.5 372" fill="none" stroke="#30363d" stroke-width="6" stroke-dasharray="12 10"/>
-<circle cx="438" cy="372" r="8" fill="#bc8cff"/>
-<path d="M852.5 372 L1036.5 372 C1070.7 372 1070.7 300 1104.9 300" fill="none" stroke="#bc8cff" stroke-width="6"/>
-<circle cx="874.5" cy="372" r="7" fill="#161b22" stroke="#bc8cff" stroke-width="3"/><circle cx="918.5" cy="372" r="7" fill="#161b22" stroke="#bc8cff" stroke-width="3"/><circle cx="962.5" cy="372" r="7" fill="#161b22" stroke="#bc8cff" stroke-width="3"/><rect x="982.5" y="355" width="54" height="34" rx="17" fill="#238636"/><text x="1009.5" y="379" font-size="19" fill="#f0f6fc" text-anchor="middle">PR</text>
-<path d="M820.5 312 C820.5 342 812.5 372 846.5 372" fill="none" stroke="#bc8cff" stroke-width="2.5" stroke-dasharray="4 5" marker-end="url(#arr)"/>
-<circle cx="820.5" cy="300" r="9" fill="#e3b341"/><circle cx="1045.9" cy="300" r="9" fill="#58a6ff"/><circle cx="1104.9" cy="300" r="9" fill="#bc8cff"/>
+<rect x="160" y="268" width="170" height="64" rx="12" fill="#100f0e" stroke="#d97757" stroke-width="3"/>
+<text x="245.0" y="308" font-size="23" fill="#d97757" text-anchor="middle">coordinator</text>
+<line x1="330" y1="300" x2="1160" y2="300" stroke="#a39d94" stroke-width="6"/>
+<path d="M330 300 C385 300 385 190 440 190 L716 190 C768.2 190 768.2 300 820.5 300" fill="none" stroke="#e3a54a" stroke-width="6"/>
+<circle cx="554" cy="190" r="7" fill="#1c1b19" stroke="#e3a54a" stroke-width="3"/><circle cx="598" cy="190" r="7" fill="#1c1b19" stroke="#e3a54a" stroke-width="3"/><circle cx="642" cy="190" r="7" fill="#1c1b19" stroke="#e3a54a" stroke-width="3"/><rect x="662" y="173" width="54" height="34" rx="17" fill="#6b8f4e"/><text x="689" y="197" font-size="19" fill="#f5f0e8" text-anchor="middle">PR</text>
+<path d="M330 300 C385 300 385 248 440 248 L996.5 248 C1021.2 248 1021.2 300 1045.9 300" fill="none" stroke="#5fa8a0" stroke-width="6"/>
+<circle cx="834.5" cy="248" r="7" fill="#1c1b19" stroke="#5fa8a0" stroke-width="3"/><circle cx="878.5" cy="248" r="7" fill="#1c1b19" stroke="#5fa8a0" stroke-width="3"/><circle cx="922.5" cy="248" r="7" fill="#1c1b19" stroke="#5fa8a0" stroke-width="3"/><rect x="942.5" y="231" width="54" height="34" rx="17" fill="#6b8f4e"/><text x="969.5" y="255" font-size="19" fill="#f5f0e8" text-anchor="middle">PR</text>
+<path d="M330 300 C385 300 385 372 440 372 L852.5 372" fill="none" stroke="#34322e" stroke-width="6" stroke-dasharray="12 10"/>
+<circle cx="438" cy="372" r="8" fill="#c97b9b"/>
+<path d="M852.5 372 L1036.5 372 C1070.7 372 1070.7 300 1104.9 300" fill="none" stroke="#c97b9b" stroke-width="6"/>
+<circle cx="874.5" cy="372" r="7" fill="#1c1b19" stroke="#c97b9b" stroke-width="3"/><circle cx="918.5" cy="372" r="7" fill="#1c1b19" stroke="#c97b9b" stroke-width="3"/><circle cx="962.5" cy="372" r="7" fill="#1c1b19" stroke="#c97b9b" stroke-width="3"/><rect x="982.5" y="355" width="54" height="34" rx="17" fill="#6b8f4e"/><text x="1009.5" y="379" font-size="19" fill="#f5f0e8" text-anchor="middle">PR</text>
+<path d="M820.5 312 C820.5 342 812.5 372 846.5 372" fill="none" stroke="#c97b9b" stroke-width="2.5" stroke-dasharray="4 5" marker-end="url(#arr)"/>
+<circle cx="820.5" cy="300" r="9" fill="#e3a54a"/><circle cx="1045.9" cy="300" r="9" fill="#5fa8a0"/><circle cx="1104.9" cy="300" r="9" fill="#c97b9b"/>
 </g>
 </svg>
