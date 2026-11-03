@@ -10,7 +10,7 @@ relay coordinates several Claude Code desktop-app sessions on one repo: a **coor
    /plugin marketplace add mileschintw/relay
    /plugin install relay@relay
    ```
-   The repo is private, so the machine's git must be signed in to GitHub.
+   The plugin is cloned over HTTPS, so installs and updates need no GitHub SSH key.
    Check: `/relay:setup` and `/relay:coordinate` appear when you type `/relay`.
 
    For the lightest footprint, install at project scope in the repos that use relay, not user scope: `relay:work` is model-invoked, so its one-line description is loaded in every session where relay is installed.
