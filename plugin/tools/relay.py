@@ -38,8 +38,8 @@ ready   read-only. Prints what the coordinator can do next, the Plan warning fir
           - Ready for PR: done lanes with no pull request, status head equal to the pushed head.
           - Ready to merge: done lanes whose open PR head is the status head, checks all passed
             (at least one, none pending) and no conflict.
-          - Waiting: parked lanes with an open dependency; a parked spare (`spare, waits for a
-            brief`); blocked lanes, with their `doing` line;
+          - Waiting: parked lanes with an open dependency; a parked spare with no brief
+            (`spare, available: waits for a brief`); blocked lanes, with their `doing` line;
             done lanes with a conflict, pending or failed checks, a failed lookup, or a deny list
             Records reports (`deny-list check not run`). A failed
             check whose job never started (no steps, or an annotation saying it was not started:
@@ -67,8 +67,9 @@ ready   read-only. Prints what the coordinator can do next, the Plan warning fir
             marker (GLOSSARY.md), with its link and the block from the marker to the end of that
             body or comment. A failed lookup is listed here and holds nothing.
           - Inconsistent: a done lane's status head that is not the pushed one; done with no report
-            file; a PR head that is not the status head; a PR closed without merging; a dependency
-            closed as not planned (it also holds GO); a PR body
+            file; a lane whose Now Kind is `spare` that has a brief (it took a lane, so its Kind is
+            that lane's); a PR head that is not the status head; a PR closed without merging; a
+            dependency closed as not planned (it also holds GO); a PR body
             draft with a title line, a closing keyword outside a `Closes #N` line, or `Closes`
             lines that are not exactly one per issue on the brief's `Closes:` line; a line matching
             project.md's deny list (`- **Deny list:** <path>`, one regex per line; an end of the
@@ -647,7 +648,7 @@ READY_HINTS = (
      "a CI fallback: follow `ci-fallbacks.md`; its *Which case* says which applies"),
     ("Waiting", r"^\S+: (PR #\d+ checks pending|parked on )", "`checks pending` and a parked "
      "lane's open dependency need nothing"),
-    ("Waiting", r"^\S+: spare, waits for a brief", "a spare needs nothing until a lane needs a "
+    ("Waiting", r"^\S+: spare, available: ", "a spare needs nothing until a lane needs a "
      "worker: write that lane's brief as `briefs/<the spare's key>.md`, set the spare's Now "
      "Kind to that lane's (`pr` unless it is a run or audit), and send `GO #<the spare's key>`"),
     ("Waiting", r"^\S+: deny-list check not run", "deny-list check not run: follow the deny-list "
@@ -817,8 +818,12 @@ def cmd_ready(a):
             try:
                 if repo is None and (st["state"] in ("parked", "done")):
                     repo = gh("repo", "view", "--json", "nameWithOwner")["nameWithOwner"]
-                if st["state"] == "parked" and kind == "spare":
-                    lane["Waiting"].append(f"{key}: spare, waits for a brief")
+                if kind == "spare" and (records / "briefs" / f"{key}.md").exists():
+                    lane["Inconsistent"].append(
+                        f"{key}: a spare with a brief: set its Now Kind to its lane's (`pr` "
+                        "unless it is a run or audit)")
+                elif st["state"] == "parked" and kind == "spare":
+                    lane["Waiting"].append(f"{key}: spare, available: waits for a brief")
                 elif st["state"] == "parked":
                     ready_parked(records, key, repo, lane)
                 elif st["state"] == "done" and kind in NO_PR_KINDS:
