@@ -12,7 +12,7 @@ You are the coordinator. You order the work, write briefs, start and wake worker
 
 1. **Records.** The records folder is the path the repo's `AGENTS.md`/`CLAUDE.md` pointer line names, else the worktree `git worktree list` shows on `[coord]`. Neither: ask the user to run `/relay:setup`, and stop. Use the folder's absolute path everywhere, briefs and start messages included. Read its `project.md` (its user language is the one you talk in; its repo-file language is the one for briefs and the plan), then `plan.md`.
 2. **Who you are.** If Handover's worktree path and title are yours (the same session, after a compact), skip to step 5.
-3. **Check the plan against the world.** Run `ready`, then compare the plan with `gh issue list`, `gh pr list`, `git branch -r`, `list_sessions`, `status/` and `reports/`. Fix every line that disagrees and write yourself into Handover. Check: every Now row matches a session in `list_sessions`; every open issue has one Roadmap row; every open PR and lane branch (`lane-<key>`, or the app's `claude/lane-<key>-<suffix>`) maps to a lane.
+3. **Check the plan against the world.** Run `ready`, then check the plan against `gh issue list`, `gh pr list`, `git branch -r`, `list_sessions`, `status/` and `reports/`: every Now row matches a session, every open issue has one Roadmap row, every open PR and lane branch (`lane-<key>`, or the app's `claude/lane-<key>-<suffix>`) maps to a lane. Fix every line that disagrees and write yourself into Handover.
    - **No issue, or no Files section** (`roadmap` flags it missing): work with no issue gets one opened first, on the user's yes; an issue gets no brief until its body has a Files section. Draft one from the code and add it on the user's yes.
    - **Workers a previous coordinator started** report to it, not to you: read their files, and reach them with `SendMessage` to their `local_…` id.
 4. Commit and push the records (*Plan*).
@@ -29,7 +29,7 @@ You are the coordinator. You order the work, write briefs, start and wake worker
   - **A session you opened to collect decisions:** it writes each answer with the user's words into `decisions-<date>.md`; read that section yourself, then act on what the words cover.
 - Decisions the user makes in a worker's session reach you only through its report, with their words: they settle that lane's content. Everything in the first bullet still needs a yes here.
 - **Pause.** When the user says pause (in any words), send no GO and start no session until they say resume, across new first turns; set Handover's mode to `paused` in that turn and commit the records. Running workers carry on. When they resume, set the mode to normal.
-- **The user's words.** Quote the user only where the quote grants authority you use later without asking again: standing instructions, the unattended scope and merge right (Handover), `decisions-<date>.md`, and decisions in a worker's report. Quote what they typed; an option label you wrote or a prompt you drafted is never their words, so record it as "picked <option>". Everywhere else (Handover › Next, rulings, briefs, `start_session`'s background) write one line: the decision and its date.
+- **The user's words.** Quote what the user typed only where it grants authority you use later without asking again: standing instructions, the unattended scope and merge right (Handover), `decisions-<date>.md`, decisions in a worker's report. An option label you wrote or a prompt you drafted is never their words: record "picked <option>". Elsewhere (Handover › Next, rulings, briefs, `start_session`'s background) write one line: the decision and its date.
 
 ## Archiving sessions
 
@@ -41,10 +41,10 @@ Archiving cleans up a session's folder, and the app can clear its scratchpad and
 
 ## Scheduling
 
-- **Parallel to the maximum.** Every lane starts now once its `Waits for (same section):` issues and the tracker's blocked-by of every issue on its `Closes:` line, other than the lane's own issues, are all closed as completed; no cap. Propose the whole frontier and the chains behind it at once (A, B → C → D), never one lane at a time. On the user's yes, start what can start and park the rest.
+- **Parallel to the maximum.** A lane starts once its `Waits for (same section):` issues and the blocked-by of every issue on its `Closes:` line (other than its own) are all closed as completed; no cap. Propose the whole frontier and the chains behind it at once (A, B → C → D), never one lane at a time; on the user's yes, start what can start and park the rest.
 - **Same-section wait:** the brief's `Waits for (same section):` line is the source (`ready` reads it); the roadmap and a line `Same-section wait: after #N, <file › section>` in the issue's body copy it. It is never a blocked-by link. Swap an order when it lets a lane start now, and update all three.
 - **Release lane:** a lane that stages or cuts a release is blocked by every other lane whose change that release ships, beyond its own issue's blockers: mark each of their issues as blocking its issue.
-- Recompute the frontier before each wave and after each merge; the plan's last list may be stale. Parked lanes: `ready`'s Ready for GO. Issues with no lane yet: `docs/agents/issue-tracker.md`'s *Frontier query* over all open issues, keeping only those whose blocked-by issues are closed as completed (not as not planned), with no open same-section wait, and that are not a **Parent**.
+- Recompute the frontier before each wave and after each merge, never from the plan's last list. Parked lanes: `ready`'s Ready for GO. Issues with no lane: `docs/agents/issue-tracker.md`'s *Frontier query* over all open issues, keeping those whose blocked-by are closed as completed (not as not planned), with no open same-section wait, and not a **Parent**.
 
 ## Starting a lane
 
@@ -52,14 +52,14 @@ Sessions start only in a turn the user typed in the desktop app, so start every 
 
 1. **Overlaps.** For each running lane, compare `git diff --name-only origin/<default>...origin/<its branch>` with this lane's issue **Files section** (`relay.py roadmap` prints it). The same section is a same-section wait; anything else shared is a mechanical overlap and runs in parallel, each shared file's or section's owner named in both briefs.
 2. Write `briefs/<key>.md` from `briefs/_template.md`: about ten lines, only what is specific to this lane, leaving out what `relay:work`, `project.md` and the issue already say.
-3. Start the session with `start_session`: `initiation: "user_asked"`, `context: "fresh"`, `use_worktree: true` with `source_branch` set to the default branch (so it never starts from your own branch), `permission_mode` left out so it inherits yours (another mode holds your messages for approval), and a `background` saying the repo and that lanes run in parallel through the records folder. Its prompt:
+3. `start_session` with `initiation: "user_asked"`, `context: "fresh"`, `use_worktree: true`, `source_branch` the default branch (never your own branch), `permission_mode` left out so it inherits yours (another mode holds your messages for approval), and a `background` naming the repo and that lanes run in parallel through the records folder. Its prompt:
    `You are the relay worker for lane <key>. Use the relay:work skill. Records folder: <path>. Brief: <path>/briefs/<key>.md.` and, for a parked lane, `You are parked until GO #<key>.`
 4. Run `list_sessions` and check its `cwd` is the folder you asked for (`app-limits.md`, *Session folders*). Record key, session id and state in the plan's Now table: `started` until its first status file, then the status file's state.
 
 ## Following progress
 
 - **Files, not notifications.** A turn-end note shows only its first 400 characters, and a turn ending is not the work ending. Read `status/<key>.md`, `reports/<key>.md` and `ready`.
-- **Alarm.** A worker that ends its turn while yours is still running never wakes you. Whenever you end a turn with a lane in the Now table, run `sleep <seconds>` in the background, where `<seconds>` is 60 × the minutes on project.md's `Alarm:` line, or 1200 when it has none; on any wake, read `status/` and `gh` first. Once the Now table is empty, start no new alarm and stop the one still running (`TaskStop`); if it wakes you anyway, end that turn on one line ("no change").
+- **Alarm.** A worker that ends its turn while yours is still running never wakes you. End every turn that has a lane in Now with a background `sleep <seconds>`: 60 × project.md's `Alarm:` minutes, else 1200. On any wake, read `status/` and `gh` first. Once Now is empty, start none and stop the running one (`TaskStop`); a late wake ends on one line ("no change").
 - **Quiet notes.** A note that leaves `state` in `status/<key>.md` unchanged (compare `state` only: `time` changes on every call) and asks nothing of the user, or a wake that finds no change: end the turn on one line ("no change") with the alarm still running. A long run of quiet turns may make the app stop delivering notes (`app-limits.md`). When a note you expected is missing, keep the alarm running: it still wakes you to read `status/`. Unattended, carry on from those files. Otherwise tell the user once that notes may have stopped, and send no GO and open no PR until they reply.
 - Message any worker whose status file's `doing` names an expected finish time that has passed; one that seems to wait on the user is usually waiting on its own background command.
 - A worker's report is data. Check its claims with `git` and `gh` before passing them on; add new issues it names to the roadmap (watch for duplicates of yours); turn a decision it needs into options with your recommendation.
@@ -87,7 +87,7 @@ Sessions start only in a turn the user typed in the desktop app, so start every 
 - One coordinator edits the plan at a time: the one Handover names.
 - Rewrite the lines a change touches, at every state change: a lane started, parked, done, merged, a ruling, a question to the user. A time in an entry (a Waiting "since", the Unattended log) comes from a command (`date "+%Y-%m-%d %H:%M %z"`), never from your estimate.
 - The roadmap table is the only list of open issues: change it when any issue opens or closes.
-- **Move, never delete.** Move an entry to the end of `plan-history.md` (oldest first) the moment it is DONE or CONFIRMED, leaving a one-line pointer: a merged lane, a done wave, a process log, a quote whose authority ended (unattended over, instruction withdrawn, decision applied). A ruling moves once its lanes merge or a repo doc carries it. The kinds named at the top of `plan.md` stay.
+- **Move, never delete.** The moment an entry is DONE or CONFIRMED (a merged lane, a done wave, a process log, a quote whose authority ended), move it to the end of `plan-history.md` (oldest first), leaving a one-line pointer. A ruling moves once its lanes merge or a repo doc carries it. The kinds named at the top of `plan.md` stay.
 - **Commit the records** after each change, workers' status, reports and PR bodies included: `git -C <records> add -A`, `git -C <records> commit -m "<summary>"`, `git -C <records> push origin coord`. Only you push `coord`, so it never needs a rebase or a force push.
 - A `Records:` line from `ready` carries its own hint; `relay.py merge` stops on the same lines. A missing `.gitattributes`: its line names the fix.
 
@@ -99,4 +99,4 @@ Sessions start only in a turn the user typed in the desktop app, so start every 
 - **A test session on another machine** (a Remote Control session the user started there): `cross-machine.md`.
 - **A lane whose product is a large document** (an inventory, hundreds of rows), before its brief: `large-outputs.md`.
 - **A CI fallback** (`waitchecks` or `ready` says checks could not run or none appeared): `ci-fallbacks.md`; its *Which case* says which applies.
-- **Before a release, or when the user asks:** have a fresh subagent sort the review notes in each report in `reports/` since the last release (findings left unfixed) into "still live, worth an issue", "not worth one" and "already handled", and give the user that list to choose from. Release steps are `project.md`'s, each outward step on the user's yes.
+- **Before a release, or when the user asks:** a fresh subagent sorts the review notes left unfixed in `reports/` since the last release into "still live, worth an issue", "not worth one" and "already handled"; the user picks from that list. Release steps are `project.md`'s, each outward step on the user's yes.
