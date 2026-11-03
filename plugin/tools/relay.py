@@ -178,8 +178,9 @@ merge   merges lanes one at a time, in the order given. First, every key must be
 Exit: status 0 when written, 1 when a check fails; ready 0 after printing; roadmap 0 after
 printing, 1 when a lookup fails; localcheck 0 when every command passed, else 1 (a command, the
 merge, a lookup or the comment failed); waitchecks 0 when the checks passed (or CI does not
-cover the PR's paths), 1 when one failed, 3 when no check appeared, 4 when a lookup failed (the last poll's, or a watch that failed with
-no failed check behind it, a gh error say), 5 when the watch timed out; merge 0 when every
+cover the PR's paths), 1 when one failed, 3 when no check appeared, 4 when a lookup failed
+(the last poll's, or a watch that failed with no failed check behind it, a gh error say), 5
+when the watch timed out; merge 0 when every
 key merged, 1 when it stopped (a key not ready, or a fetch, lookup, merge state or `gh pr merge`
 that failed);
 2 on a usage error (argparse's too, after which waitchecks and merge still print their hint;
@@ -709,10 +710,10 @@ def path_filter_matches(patterns, path):
     return hit
 
 
-PR_FILES_LIMIT = 300  # GitHub's paths filters see this many changed files, then may run anyway
+PR_FILES_LIMIT = 300  # GitHub's paths filters see only this many changed files
 
 
-def uncovered(pr, repo):
+def uncovered_line(pr, repo):
     """The line saying CI does not cover PR <pr>: every default-branch workflow that runs on
     pull_request has a paths filter that none of its changed paths (renames' old paths too)
     passes. None when one may run: no such workflow, one with no filter, a changed path under
@@ -1702,11 +1703,12 @@ def pr_rollup(pr, repo):
 def wait_checks(pr, repo, schedule):
     """Poll PR <pr>'s checks at each time in schedule (seconds from now) until one exists, queued
     or pending included, then `gh pr checks --watch` it. Returns 0 when the checks passed, or at
-    the first poll with none when CI does not cover the PR's paths (uncovered), 1 when one failed,
-    NO_CHECKS when none appeared by the last poll, LOOKUP_FAILED when the last poll's lookup
-    failed with none seen, or the watch failed with no failed check behind it, WATCH_TIMED_OUT
-    when the watch ran past WATCH_FACTOR times the last poll's time (it is killed)."""
-    start, error, asked = time.monotonic(), None, False
+    the first poll that finds none when CI does not cover the PR's paths (uncovered_line), 1
+    when one failed, NO_CHECKS when none appeared by the last poll, LOOKUP_FAILED when the last
+    poll's lookup failed with none seen, or the watch failed with no failed check behind it,
+    WATCH_TIMED_OUT when the watch ran past WATCH_FACTOR times the last poll's time (it is
+    killed)."""
+    start, error, paths_read = time.monotonic(), None, False
     for i, at in enumerate(schedule, 1):
         time.sleep(max(0, at - (time.monotonic() - start)))
         try:
@@ -1743,10 +1745,10 @@ def wait_checks(pr, repo, schedule):
             return LOOKUP_FAILED
         if error is None:
             print(f"poll {i} at {at / 60:g} min: no checks yet", flush=True)
-            if not asked:
-                asked, line = True, uncovered(pr, repo)
+            if not paths_read:
+                paths_read, line = True, uncovered_line(pr, repo)
                 if line:
-                    print(line)
+                    print(line, flush=True)
                     return 0
     if error is not None:
         return LOOKUP_FAILED

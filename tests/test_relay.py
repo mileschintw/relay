@@ -1055,6 +1055,13 @@ class UncoveredPathsTests(Base):
         self.assertEqual(code, 3, err)
         self.assertIn("no checks appeared on PR #5 within 6 minutes", out)
 
+    def test_jobs_a_tier_skips_count_as_passed(self):
+        # relay's own workflow: the `changes` job passes and the jobs it skips report SKIPPED
+        rollup = [{"name": "changes", "status": "COMPLETED", "conclusion": "SUCCESS"},
+                  {"name": "test", "status": "COMPLETED", "conclusion": "SKIPPED"},
+                  {"name": "validate", "status": "COMPLETED", "conclusion": "SKIPPED"}]
+        self.assertEqual(relay.checks_state(rollup, "o/r"), "passed")
+
     def test_any_doubt_keeps_the_wait(self):
         unfiltered = {**self.FILTERED, "ci.yml": "on: [push, pull_request]\n"}
         for data in ({"workflow_files": unfiltered, "pr_files": {"5": ["docs/a.png"]}},
@@ -1616,7 +1623,7 @@ class HintTests(Base):
     applies to (#131); one test per batch-H row of the #110 inventory."""
 
     QUEUED, FAILED, OK = WaitchecksTests.QUEUED, WaitchecksTests.FAILED, MergeTests.OK
-    waitchecks, QUEUED = WaitchecksTests.waitchecks, WaitchecksTests.QUEUED
+    waitchecks = WaitchecksTests.waitchecks
     merge, merges = MergeTests.merge, MergeTests.merges
     lanes = SafeExitTests.lanes
     parent = OwnerNoteTests.parent
