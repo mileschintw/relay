@@ -5,7 +5,7 @@ Current state only. Done work moves to `plan-history.md` with a one-line pointer
 ## Handover
 
 - **Coordinator:** title Relay coordination, worktree D:/Repos/relay/.claude/worktrees/lane-114-30073e, id local_f0eb7091-3f4b-4994-afb1-091422a00e8b, mode normal. Took over 2026-11-03 14:17 -0800 from local_41f71e49-… (lane-141-e7f5cd), which wrote itself out 2026-11-03 03:49 -0800 after release 0.3.4 (→ `plan-history.md`, "Rounds 2026-11-02/03 and 0.3.4").
-- **Next:** round 2026-11-03 14:19 -0800 fully merged (166 #177, 167 #175, 168 #178, 173 #176, 174 #179); no open issues. Main's push run for 115d45c passed on ubuntu and windows. Close-out proposed to the user 2026-11-03. Owner steps: upload `docs/social-preview/social-preview.png` in Settings › General › Social preview.
+- **Next:** round 2026-11-03 14:19 -0800 fully merged (166 #177, 167 #175, 168 #178, 173 #176, 174 #179); no open issues. Main's push run for 115d45c passed on ubuntu and windows. Close-out proposed 2026-11-03; the user answered 「發布0.3.5」 instead. Release 0.3.5 in progress: review-note sort and one release review pass over relay--v0.3.4..main (115d45c) running as subagents; then the user picks, then version PR, `main:release`, tag, each outward step on the user's yes. Owner steps: upload `docs/social-preview/social-preview.png` in Settings › General › Social preview.
 - **Alarm:** `project.md`'s `Alarm: 10` (the user's 10 minutes, 2026-10-31 01:51 「可以就這樣改」, moved there when #82 merged); waiting on CI relies on the background `waitchecks` ending, not the alarm.
 - **Merge right:** none (the 2026-11-03 14:19 -0800 round's moved to `plan-history.md` once 166, 167, 168, 173, 174 merged).
 - **Unattended log:** none.
