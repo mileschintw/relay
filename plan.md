@@ -18,7 +18,7 @@ none (ruling 2, no new features during the slimming, ended when #112 closed 2026
 
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
-| 141 | #141 | local_38fa00ab-eb72-46ba-8d5e-080913870688 (lane-141-e7f5cd, `claude/lane-141-e7f5cd`) | working | — |
+| 141 | #141 #142 | local_38fa00ab-eb72-46ba-8d5e-080913870688 (lane-141-e7f5cd, `claude/lane-141-e7f5cd`) | working | — |
 
 Lanes 132 (#132, PR #135), 131 (#131, PR #136) 133 (#133, PR #137) and 134 (#134, PR #138) merged → `plan-history.md`. Lane 110 (#110, inventory, no PR) finished and #110 closed on the user's "Reviewed, go ahead" → `plan-history.md`. Lanes 109 (PR #121), 107 (PR #122), 108 (PR #124), 120 (PR #125), 111 (PR #127), 123 (PR #128) and 113 (PR #129) merged → `plan-history.md`, "Lanes 107–111". All lanes through 103 merged; 0.3.2 released → `plan-history.md` (waves 1–2, lanes 33, 42, 45–51, 60–64, 71–75, 0.3.1 and 0.3.2 rounds, close-outs).
 
@@ -38,6 +38,7 @@ Every open issue, once. "Order" is the wave (1 = can start now). "Kind" is `free
 | #139 ready: check every committed records file against the deny list (found in the #112 retro) | — | none | none | relay.py (cmd_ready, deny-list checks); tests; coordinate/SKILL.md (Plan: A `Records:` warning) | needs-triage |
 | #140 Alarm only while a worker can move without the user (from the alarm grilling; completes #48) | — | none | none | coordinate/SKILL.md (Following progress: Alarm); GLOSSARY.md (Alarm); unattended.md (The round ends) | needs-triage |
 | #141 Handover Coordinator line: one strict parser for resume.py, checked by ready (0.3.3 release review blocker; strict per the user's "Switch to strict") | running | none | none | resume.py; relay.py (parser, cmd_ready Records check, READY_HINTS); tests | free |
+| #142 setup's plan template: Coordinator line `none` form; placeholder trips ready's check (found by lane 141) | running (in lane 141) | none | none | setup/templates/plan.md; GLOSSARY.md (maybe) | free |
 
 Filled 2026-11-02 from `relay.py roadmap`. #112, #115, #116, #117 list several paths on one bullet, which `parse_files` reads as one path; the paths above are from the issue text.
 
