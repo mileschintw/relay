@@ -50,6 +50,10 @@ Sessions start only in a turn the user typed in the desktop app (no fork, decisi
    `You are the relay worker for lane <key>. Use the relay:work skill. Records folder: <path>. Brief: <path>/briefs/<key>.md.` and, for a parked lane, `You are parked until GO #<key>.`
 4. Run `list_sessions` and check its `cwd` is the folder you asked for (`app-limits.md`, *Session folders*). Record key, kind, session id and state in the plan's Now table: `started` until its first status file, then the status file's state. A lane that needs the main checkout (untracked data, a local database) gets it through the plan's **Main checkout** field: one lane at a time, named there before you tell its worker, set back to `none` when it is done or stops.
 
+**Spares.** A lane that must start after this turn (the user away, or an issue not yet ready for a brief) can start only on a worker already running. When you propose sessions and such a lane is likely, offer spares in the same question: two unless the user names a number. Start each as in step 3 with key `s<n>` (the next number the plan has not used), `branch_name: lane-s<n>`, no brief, and the prompt `You are the relay worker for spare s<n>. Use the relay:work skill. Records folder: <path>. You are a spare with no brief yet, parked until GO #s<n>.`; record it in Now with Kind `spare`, and `ready` lists it as available.
+- **Give it a lane:** step 1 for that lane, then write the lane's brief as `briefs/s<n>.md`, set the spare's Now Kind (`pr` unless it is a run or audit) and Issues to the lane's, and send `GO #s<n>`. The lane keeps the key `s<n>`, its branch and status file.
+- **Close it out** once no lane is left to start (before `close-out.md`, or at the end of an unattended round): send `CLOSE #s<n>`; it writes its report and `done`, `ready` lists it under Finished, and *Finishing a lane* step 6 moves it out of Now.
+
 ## Following progress
 
 - **Files, not notifications.** A turn-end note shows only its first 400 characters, and a turn ending is not the work ending. Read `status/<key>.md`, `reports/<key>.md` and `ready`.
@@ -68,9 +72,7 @@ A `run`, `audit` or `spare` lane (the Now table's Kind) opens no PR: once `ready
 4. On "merge once CI passes": run `relay.py waitchecks <records> <N>` in the background; its last line is the hint for its exit code.
 
    **Merge:** once `ready` lists the lane under Ready to merge, run `relay.py merge <records> <key>... --checkout <this repo's checkout>` in the background, keys in merge order. It merges them one at a time at the heads `ready` printed, without waiting for checks again, and prints a `merged PR #<N>` line for each, then the default branch's push run for the last merge commit, then the hint for its exit code.
-
-   Exit 2 from either is a bad argument, sometimes with no hint: fix what its error line names and rerun.
-5. **A draft changed after the PR opened** (a rerun's results, say): rerun `ready`, which checks the draft, then `gh pr edit <N> --body-file <records>/pr-bodies/<key>.md`.
+5. **A draft changed after the PR opened** (a rerun's results, say): `ready` lists the lane under Waiting with the `gh pr edit` to run.
 6. After the merge: move the lane from Now to `plan-history.md` (the PR's `Closes` lines close its issues), set **Main checkout** back to `none` if it held it, recompute the frontier, copy new owner notes as in *First turn* step 5, and send `GO #<key>` to every parked worker `ready` lists under Ready for GO, unless Handover's mode is `paused` (*Consent*, **Pause**). Edit a brief before its GO if needed: the worker rereads it on GO.
    - **A lane that stops without merging** (*Stuck* in `unattended.md`, or a lane the user stops): move it from Now to `plan-history.md` with why it stopped, release **Main checkout** if it held it, and skip the rest of this step. Its Roadmap row stays, carrying that reason; propose it again only when the user asks.
 
@@ -81,7 +83,7 @@ A `run`, `audit` or `spare` lane (the Now table's Kind) opens no PR: once `ready
 - The roadmap table is the only list of open issues: change it when any issue opens or closes.
 - **Move, never delete.** The moment an entry is DONE or CONFIRMED (a merged lane, a done wave, a process log, a quote whose authority ended), move it to the end of `plan-history.md` (oldest first), leaving a one-line pointer. A ruling moves once its lanes merge or a repo doc carries it. The kinds named at the top of `plan.md` stay.
 - **Commit the records** after each change, workers' status, reports and PR bodies included: `git -C <records> add -A`, `git -C <records> commit -m "<summary>"`, `git -C <records> push origin coord`. Only you push `coord`, so it never needs a rebase or a force push.
-- A `Records:` line from `ready` carries its own hint; `relay.py merge` stops on the same lines. A missing `.gitattributes`: its line names the fix.
+- A `Records:` line from `ready` carries its own hint; `relay.py merge` stops on the same lines. A missing `.gitattributes`: its line names the fix. A deny-list name in a records file: you fix plan.md, plan-history.md and briefs, the lane's worker its own report or status; commit the records only once `ready` no longer flags it, since a pushed name stays in `coord`'s history.
 
 ## Other branches
 

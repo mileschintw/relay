@@ -37,11 +37,12 @@ ready   read-only. Prints what the coordinator can do next, the Plan warning fir
             `Depends on:` line counts only when every one of those lists is empty.
           - Ready for PR: done lanes with no pull request, status head equal to the pushed head.
           - Ready to merge: done lanes whose open PR head is the status head, checks all passed
-            (at least one, none pending) and no conflict.
-          - Waiting: parked lanes with an open dependency; a parked spare (`spare, waits for a
-            brief`); blocked lanes, with their `doing` line;
-            done lanes with a conflict, pending or failed checks, a failed lookup, or a deny list
-            Records reports (`deny-list check not run`). A failed
+            (at least one, none pending), no conflict and a body equal to the draft.
+          - Waiting: parked lanes with an open dependency; a parked spare with no brief
+            (`spare, available: waits for a brief`); blocked lanes, with their `doing` line;
+            done lanes with a conflict, pending or failed checks, a failed lookup, an open PR whose
+            body differs from the PR body draft (ends trimmed; the line gives the `gh pr edit`
+            command), or a deny list Records reports (`deny-list check not run`). A failed
             check whose job never started (no steps, or an annotation saying it was not started:
             billing, a spending limit) shows as `checks could not run (billing)`, not `check failed`.
             A PR with no checks shows as `no CI configured` when the repo has no Actions workflow
@@ -67,8 +68,9 @@ ready   read-only. Prints what the coordinator can do next, the Plan warning fir
             marker (GLOSSARY.md), with its link and the block from the marker to the end of that
             body or comment. A failed lookup is listed here and holds nothing.
           - Inconsistent: a done lane's status head that is not the pushed one; done with no report
-            file; a PR head that is not the status head; a PR closed without merging; a dependency
-            closed as not planned (it also holds GO); a PR body
+            file; a lane whose Now Kind is `spare` that has a brief (it took a lane, so its Kind is
+            that lane's; done, it is checked as `pr`); a PR head that is not the status head; a PR
+            closed without merging; a dependency closed as not planned (it also holds GO); a PR body
             draft with a title line, a closing keyword outside a `Closes #N` line, or `Closes`
             lines that are not exactly one per issue on the brief's `Closes:` line; a line matching
             project.md's deny list (`- **Deny list:** <path>`, one regex per line; an end of the
@@ -89,7 +91,9 @@ ready   read-only. Prints what the coordinator can do next, the Plan warning fir
             number; when the records folder has no .gitattributes, naming the fix; and
             one when the deny list is missing, is not valid UTF-8 (a BOM is fine), or has a line
             that is not a usable pattern, such as one with a zero-length match (`\\b`) (by line
-            number, never its text); done lanes then wait, with no deny-list check.
+            number, never its text); done lanes then wait, with no deny-list check. And one
+            per records file (plan.md, plan-history.md, briefs/*.md, reports/*.md,
+            status/*.md) with a line matching the deny list, by line numbers, never the name.
           - Plan: a warning when plan.md is larger than --plan-limit bytes (default 16384, 16 KB).
           - relay.py: a warning when the git checkout holding project.md's `relay.py:` path
             (relative to --checkout, else the current folder) is behind its origin/<default>,
@@ -99,6 +103,14 @@ ready   read-only. Prints what the coordinator can do next, the Plan warning fir
             backticked span, else its text before a trailing `(...)` note. No such line, a
             project.md that is not UTF-8 (a Records warning), a missing folder, or a path outside
             a checkout: no check.
+          - Skipped: what ran past ready's time budget ($RELAY_READY_SECONDS, default 75 s, well
+            under an agent's 2-minute command limit): the fetch, the relay.py check, Parents, each
+            lane by key, and a count of done lanes outside plan.md's Now table (no line printed
+            for those, as they are most likely merged or finished). Past the budget a running lookup is
+            killed and none starts, so ready still prints every lane's line and the sections it
+            sorted in time; a skipped step's or lane's partial findings are dropped (they may be
+            wrong), a skipped fetch skips the conflict check as a failed one does, and skipped
+            Parents hold every GO.
         After a section's items, `  hint:` lines give the coordinator's next step for the kinds
         of line it holds (READY_HINTS).
         --checkout <dir>: a local clone; `git fetch --prune` there, then `git merge-tree` each
@@ -137,14 +149,17 @@ waitchecks  waits for PR <N>'s first check, then watches its checks. Polls `gh p
         or pending counts), runs `gh pr checks <N> --watch`, keeping only its errors (with no
         terminal it reprints the table every 10 s, to stdout), then prints `gh pr checks <N>`
         once; both calls' errors go to stderr. None by the last poll: prints `no checks
-        appeared`, plus `no CI configured` when the repo has no Actions workflow and nothing
-        reported on the default branch head (as `ready` decides). A failed poll is retried at the
-        next one. No overall timeout once watching.
+        appeared`, then one line naming the `ci-fallbacks.md` case: `no CI configured` (as `ready`
+        decides) or no workflow under the default branch's .github/workflows/ runs on
+        `pull_request` or `pull_request_target` (each file's top-level `on:`): *CI cannot run*;
+        one does, there is no workflow file (CI outside Actions), or the lookup failed: *Checks
+        not started*. A failed poll is retried at the next one. No overall timeout once watching.
 
 merge   merges lanes one at a time, in the order given. First, every key must be listed under
         `ready`'s Ready to merge and nowhere else (--checkout as for `ready`, default the current
-        folder), and given once, or nothing merges; so does a failed `git fetch` there, or a
-        deny list `ready` reports under Records (one line, by line number).
+        folder), and given once, or nothing merges; so does a failed `git fetch` there, a
+        deny list `ready` reports under Records (one line, by line number), or a deny-list name
+        in a records file (one line per file, as `ready` prints it).
         Then, per key, with no wait for checks (Ready to merge already needs them all passed):
         its head still the sha Ready to merge printed; mergeStateStatus `CLEAN` (UNKNOWN, while
         GitHub recomputes after a merge, is asked again after 5, 15 and 30 seconds); `gh pr merge
@@ -159,11 +174,11 @@ merge, a lookup or the comment failed); waitchecks 0 when the checks passed, 1 w
 3 when no check appeared, 4 when a lookup failed (the last poll's, or a watch that failed with
 no failed check behind it, a gh error say); merge 0 when every key merged, 1 when it stopped
 (a key not ready, or a fetch, lookup, merge state or `gh pr merge` that failed);
-2 on a usage error (waitchecks: a CI start wait that is not a number of minutes, or a
-project.md that is not UTF-8; merge: a key given twice, or a --checkout that is not a git
-checkout; localcheck: a project.md that is not UTF-8, or a checks line with more than one
-command, or only a Windows override, in one item) or a missing
-records folder (status too: it creates only status/ inside it).
+2 on a usage error (argparse's too, after which waitchecks and merge still print their hint;
+waitchecks: a CI start wait that is not a number of minutes, or a project.md that is not UTF-8;
+merge: a key given twice, or a --checkout that is not a git checkout; localcheck: a project.md
+that is not UTF-8, or a checks line with more than one command, or only a Windows override, in
+one item) or a missing records folder (status too: it creates only status/ inside it).
 waitchecks and merge: an error not named above (a bug, say) exits 4 with one line, never 1;
 output the console cannot encode is replaced, not fatal; a last `hint (exit <code>):` line on
 stdout gives the coordinator's next step for that exit (EXIT_HINTS).
@@ -192,9 +207,35 @@ CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]|\r(?!\n)")
 LOOKUP_ERRORS = (RuntimeError, ValueError, KeyError, TypeError, OSError, re.error)
 
 
+READY_SECONDS = 75  # ready's default time budget: well under an agent's 2-minute command limit
+TIMED_OUT = 124  # run's exit code for a command killed, or never started, past `deadline`
+deadline = None  # the time.monotonic() ready's lookups must end by; None outside ready
+timed_out = []  # the commands run killed or skipped past `deadline`, in order
+
+
 def run(cmd, cwd=None):
-    p = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, encoding="utf-8")
-    return p.returncode, p.stdout, p.stderr
+    """(exit code, stdout, stderr). Past `deadline`, a running command is killed and a new one
+    never starts: both return TIMED_OUT and are added to `timed_out`."""
+    left = None if deadline is None else deadline - time.monotonic()
+    if left is not None and left <= 0:
+        timed_out.append(cmd)
+        return TIMED_OUT, "", "skipped: ready's time budget is spent"
+    p = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                         encoding="utf-8")
+    try:
+        out, err = p.communicate(timeout=left)
+    except subprocess.TimeoutExpired:
+        p.kill()
+        try:  # a grandchild holding the pipes open must not hold ready past its budget
+            p.communicate(timeout=2)
+        except subprocess.TimeoutExpired:
+            pass
+        timed_out.append(cmd)
+        return TIMED_OUT, "", "timed out: ready's time budget is spent"
+    except BaseException:  # as subprocess.run: an interrupt leaves no child running
+        p.kill()
+        raise
+    return p.returncode, out, err
 
 
 def gh_base():
@@ -371,6 +412,27 @@ def deny_patterns(records):
     return pats
 
 
+def records_deny_hits(records, deny):
+    """One line per records file the coordinator commits (plan.md, plan-history.md, briefs,
+    reports, status) with a line matching a <deny> pattern, by file and line numbers, never the
+    name; [] when <deny> is empty. PR body drafts are checked per lane, by check_pr_body."""
+    regexes = [deny_regex(pat) for pat in deny or []]
+    if not regexes:
+        return []
+    paths = [records / "plan.md", records / "plan-history.md",
+             *(p for d in ("briefs", "reports", "status") for p in sorted((records / d).glob("*.md")))]
+    found = []
+    for path in paths:
+        if not path.is_file():
+            continue
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+        hits = sorted({i for i, l in enumerate(lines, 1) for rx in regexes if rx.search(l)})
+        if hits:
+            found.append(f"{path.relative_to(records).as_posix()} lines {hits}: a deny-list name "
+                         "(lines only, never the name)")
+    return found
+
+
 def pushed_head(checkout, branch):
     """The sha of origin's <branch>, "" when origin has no such branch; RuntimeError when
     ls-remote fails (no repo, no network), so the lane reads lookup failed, not unpushed."""
@@ -380,7 +442,7 @@ def pushed_head(checkout, branch):
     return ls.split()[0] if ls.strip() else ""
 
 
-PR_FIELDS = "number,state,headRefOid,mergeable,statusCheckRollup"
+PR_FIELDS = "number,state,headRefOid,mergeable,statusCheckRollup,body"
 PR_LIST_MIN, PR_LIST_PER_LANE = 100, 3  # `ready`'s one PR list: --limit max(MIN, PER_LANE * lanes)
 
 
@@ -394,7 +456,8 @@ class ReadyLookups:
     checkout's just-fetched origin/* refs (ls-remote per branch without a checkout, or when the
     fetch or the ref read failed), and every PR from one `gh pr list --state all`. In a full
     list, a branch with no merged PR there gets its own lookup, since older PRs may be cut off.
-    A failed list fails each lane that asks for it."""
+    A failed list fails each lane that asks for it; one that timed out is asked for again, so
+    each such lane times out too and `ready` lists it as skipped."""
 
     def __init__(self, checkout, fetched, lanes):
         self.checkout, self.limit = checkout, max(PR_LIST_MIN, PR_LIST_PER_LANE * lanes)
@@ -415,11 +478,13 @@ class ReadyLookups:
         if self.error:
             raise RuntimeError(self.error)
         if self.index is None:
+            before = len(timed_out)
             try:
                 listed = gh("pr", "list", "--repo", repo, "--state", "all", "--limit",
                             str(self.limit), "--json", "headRefName," + PR_FIELDS) or []
             except LOOKUP_ERRORS as e:
-                self.error = str(e)
+                if len(timed_out) == before:
+                    self.error = str(e)
                 raise
             self.full, self.index = len(listed) >= self.limit, {}
             for p in listed:
@@ -500,6 +565,69 @@ def no_ci(repo):
         return False
 
 
+ON_LINE = re.compile(r"""^["']?on["']?\s*:(.*)$""")
+PR_EVENT = re.compile(r"\bpull_request(?:_target)?\b")
+PR_EVENT_ITEM = re.compile(r"""^\s*(?:-\s*)?["']?pull_request(?:_target)?["']?\s*(?::|$)""")
+
+
+def indent(line):
+    return len(line) - len(line.lstrip())
+
+
+def runs_on_pull_request(text):
+    """True when workflow text's top-level `on:` names `pull_request` or `pull_request_target`
+    (counting both errs toward asking the user): inline (`on: pull_request`, a flow list or map,
+    which may run on over the lines below) or as a child key or list item."""
+    lines = [re.sub(r"(^|\s)#.*", "", ln).rstrip() for ln in text.lstrip("﻿").splitlines()]
+    for i, line in enumerate(lines):
+        m = ON_LINE.match(line)
+        if not m:
+            continue
+        block = []
+        for child in lines[i + 1:]:
+            if child:
+                if not child[0].isspace() and not child.startswith(("-", "]", "}")):
+                    break
+                block.append(child)
+        if m.group(1).strip():
+            return bool(PR_EVENT.search(" ".join([m.group(1)] + block)))
+        top = min(map(indent, block), default=0)
+        return any(PR_EVENT_ITEM.match(c) for c in block if indent(c) == top)
+    return False
+
+
+def ci_case(repo):
+    """Which ci-fallbacks.md case a PR with no checks is, from the default branch's workflow
+    files (their `on:` lines) and no_ci: one line naming the case."""
+    if no_ci(repo):
+        return ("no CI configured: no Actions workflow and nothing reported on the default branch "
+                "head: take *CI cannot run*")
+    try:
+        try:
+            listed = gh("api", f"repos/{repo}/contents/.github/workflows")
+        except RuntimeError as e:
+            if "HTTP 404" not in str(e):
+                raise
+            listed = None
+        if not isinstance(listed, list):  # no folder, or a file by that name
+            listed = []
+        files = [f["path"] for f in listed if f.get("type") == "file"
+                 and f["name"].endswith((".yml", ".yaml"))]
+        on_pr = [f for f in files if runs_on_pull_request(
+            gh_raw("api", "-H", "Accept: application/vnd.github.raw+json",
+                   f"repos/{repo}/contents/{f}"))]
+    except LOOKUP_ERRORS as e:
+        return f"workflow lookup failed ({e}): take *Checks not started*"
+    if not files:
+        return ("no workflow file on the default branch (CI outside Actions): take *Checks not "
+                "started*")
+    if not on_pr:
+        return (f"no workflow on the default branch runs on a pull_request event "
+                f"({', '.join(files)}): take *CI cannot run*")
+    return (f"a workflow on the default branch runs on a pull_request event ({', '.join(on_pr)}): "
+            "take *Checks not started*")
+
+
 def checks_state(rollup, repo=None):
     if not rollup:
         return "no CI configured" if no_ci(repo) else "no checks reported"
@@ -546,6 +674,7 @@ READY_SECTIONS = (
     "Ready for PR",
     "Ready to merge",
     "Waiting",
+    "Skipped",
     "No status yet",
     "Merged",
     "Finished",
@@ -647,11 +776,17 @@ READY_HINTS = (
      "a CI fallback: follow `ci-fallbacks.md`; its *Which case* says which applies"),
     ("Waiting", r"^\S+: (PR #\d+ checks pending|parked on )", "`checks pending` and a parked "
      "lane's open dependency need nothing"),
-    ("Waiting", r"^\S+: spare, waits for a brief", "a spare needs nothing until a lane needs a "
+    ("Waiting", r"^\S+: PR #\d+ body differs from its draft", "the draft changed after the PR "
+     "opened: run the line's `gh pr edit`, after fixing the draft first when `ready` flags its PR "
+     "body under Inconsistent"),
+    ("Waiting", r"^\S+: spare, available: ", "a spare needs nothing until a lane needs a "
      "worker: write that lane's brief as `briefs/<the spare's key>.md`, set the spare's Now "
      "Kind to that lane's (`pr` unless it is a run or audit), and send `GO #<the spare's key>`"),
     ("Waiting", r"^\S+: deny-list check not run", "deny-list check not run: follow the deny-list "
      "line under Records, and rerun `ready` only after the user says the deny list is fixed"),
+    ("Skipped", "", "the machine is likely busy (builds, low memory): rerun `ready` once it is "
+     "quieter, or in the background with a larger $RELAY_READY_SECONDS; until then a skipped "
+     "lane's state is its status file, and its line above"),
     ("No status yet", "", "a lane in Now stays `started` until its worker writes one; a brief "
      "with no session is a lane not started (*Starting a lane*, on the user's yes) or one "
      "stopped (move it to plan-history.md)"),
@@ -677,6 +812,10 @@ READY_HINTS = (
     ("Records", r"^pr-bodies/", "in a PR body draft: message its worker to fix that line in the "
      "draft and write `done` again, since `ready` checks the draft before a PR opens; open no PR "
      "for that lane until `ready` no longer flags it"),
+    ("Records", r"^(reports|status)/.*a deny-list name", "a deny-list name in a worker's report or "
+     "status file: message its worker to fix that line (a status: rerun its last `relay.py "
+     "status` with a `--doing` that leaves the name out); commit the records only once `ready` "
+     "no longer flags it"),
     ("Records", r"^plan\.md line \d+: Main checkout names lane ", "a Main checkout holder not "
      "in Now: release it (`none`), or name the lane in Now that holds it"),
     ("Records", r"^plan\.md line \d+: Now kind ", "set that Now row's Kind to one of pr, run, "
@@ -703,7 +842,7 @@ EXIT_HINTS = {
         1: "a failed check goes to the user with the watch output; checks that could not run "
            "(as `ready` then says) are a CI fallback (`ci-fallbacks.md`, its *Which case*)",
         2: "a usage error: fix what its error line names and rerun",
-        3: "no checks appeared: a CI fallback (`ci-fallbacks.md`, its *Which case*)",
+        3: "no checks appeared: take the `ci-fallbacks.md` case the line above names",
         4: "a lookup failed or an unexpected error: rerun it once; if it exits 4 again, give the "
            "user its line",
     },
@@ -711,7 +850,8 @@ EXIT_HINTS = {
         0: "read the default branch's run for the last merge commit instead of rerunning checks "
            "locally; tell the user which lanes merged",
         1: "it stopped at one lane, on the line saying why, and merged no lane after it. A key "
-           "not under Ready to merge (nothing merged): fix what `ready` says. Any other stop (a "
+           "not under Ready to merge (nothing merged): fix what `ready` says, as for a deny-list "
+           "name in a records file. Any other stop (a "
            "moved head, a merge state other than CLEAN, a failed lookup or `gh pr merge`): give "
            "the user that line. Tell the user which lanes merged and where it stopped",
         2: "a usage error, nothing merged: fix what its error line names and rerun",
@@ -740,6 +880,36 @@ def print_section(section, items):
 
 
 def cmd_ready(a):
+    global deadline
+    try:
+        budget = float(os.environ.get("RELAY_READY_SECONDS") or READY_SECONDS)
+    except ValueError:
+        budget = -1.0
+    if not 0 <= budget < float("inf"):
+        print("RELAY_READY_SECONDS is not a number of seconds", file=sys.stderr)
+        return 2
+    deadline = time.monotonic() + budget
+    timed_out.clear()
+    try:
+        return ready_report(a, budget)
+    finally:
+        deadline = None
+
+
+def timed_step(label, out, skipped, fallback, fn, *args):
+    """fn(*args); when one of its commands ran past ready's budget, drop what it added to out,
+    add label to skipped and return fallback instead, since what it found may be wrong."""
+    sizes, before = {k: len(v) for k, v in out.items()}, len(timed_out)
+    result = fn(*args)
+    if len(timed_out) == before:
+        return result
+    for k, size in sizes.items():
+        del out[k][size:]
+    skipped.append(label)
+    return fallback
+
+
+def ready_report(a, budget):
     records = pathlib.Path(a.records)
     status_dir = records / "status"
     if not records.is_dir():
@@ -778,15 +948,22 @@ def cmd_ready(a):
     left_out = {"Merged": 0, "Finished": 0}
     repo = a.repo
     fetched = False
+    skipped, skipped_lanes, skipped_moved = [], [], 0
     if a.checkout:
-        fetched = not run(["git", "fetch", "-q", "--prune", "origin"], cwd=a.checkout)[0]
-    out["relay.py"] += relay_py_behind(records, a.checkout)
-    repo, parents = ready_parents(repo, out)
+        fetched = not timed_step("fetch", out, skipped, (TIMED_OUT,), run,
+                                 ["git", "fetch", "-q", "--prune", "origin"], a.checkout)[0]
+    out["relay.py"] += timed_step("relay.py check", out, skipped, [], relay_py_behind, records,
+                                  a.checkout)
+    repo, parents = timed_step("Parents", out, skipped, (repo, None), ready_parents, repo, out)
     try:
         deny = deny_patterns(records)
     except LOOKUP_ERRORS as e:
         out["Records"].append(str(e))
         deny = None
+    try:
+        out["Records"] += records_deny_hits(records, deny)
+    except LOOKUP_ERRORS as e:
+        out["Records"].append(f"records deny-list check failed: {e}")
     lookups = ReadyLookups(a.checkout, fetched, len(have))
     print_section("Plan", out["Plan"])
     print("Lanes:")
@@ -806,11 +983,17 @@ def cmd_ready(a):
         # plan-history.md); its kind is unknown there, so it is `pr`
         moved = st["state"] == "done" and now is not None and key not in now
         kind = (now or {}).get(key, LANE_KINDS[0])
-        lane = {k: [] for k in READY_SECTIONS} if moved else out
+        lane, before = {k: [] for k in READY_SECTIONS}, len(timed_out)
         if not moved:
             print(line)
+        # a spare given a brief has taken a lane: as `spare` it would finish with no PR
+        spare_brief = kind == "spare" and (records / "briefs" / f"{key}.md").exists()
+        if spare_brief:
+            lane["Inconsistent"].append(f"{key}: a spare with a brief: set its Now Kind to its "
+                                        "lane's (`pr` unless it is a run or audit)")
         if parents is None and st["state"] == "parked":
-            lane["Waiting"].append(f"{key}: parked; no GO while the Parents lookup fails")
+            why = "is skipped" if "Parents" in skipped else "fails"
+            lane["Waiting"].append(f"{key}: parked; no GO while the Parents lookup {why}")
         elif key.isdigit() and int(key) in (parents or ()):
             lane["Inconsistent"].append(f"{key}: issue #{key} is a parent, never a lane")
         else:
@@ -818,10 +1001,11 @@ def cmd_ready(a):
                 if repo is None and (st["state"] in ("parked", "done")):
                     repo = gh("repo", "view", "--json", "nameWithOwner")["nameWithOwner"]
                 if st["state"] == "parked" and kind == "spare":
-                    lane["Waiting"].append(f"{key}: spare, waits for a brief")
+                    if not spare_brief:
+                        lane["Waiting"].append(f"{key}: spare, available: waits for a brief")
                 elif st["state"] == "parked":
                     ready_parked(records, key, repo, lane)
-                elif st["state"] == "done" and kind in NO_PR_KINDS:
+                elif st["state"] == "done" and kind in NO_PR_KINDS and not spare_brief:
                     ready_finished(records, key, kind, lane)
                 elif st["state"] == "done":
                     ready_done(records, key, st, repo, a.checkout, lane, deny, lookups, fetched,
@@ -830,14 +1014,27 @@ def cmd_ready(a):
                     lane["Waiting"].append(f"{key}: blocked: {st.get('doing', '')}")
             except LOOKUP_ERRORS as e:
                 lane["Waiting"].append(f"{key}: lookup failed: {e}")
-        if moved:
-            sections = [s for s, items in lane.items() if items]
-            if sections in (["Merged"], ["Finished"]):
-                left_out[sections[0]] += 1
+        sections = [s for s, items in lane.items() if items]
+        if len(timed_out) > before:  # what the lane found before the timeout may be wrong
+            if moved:  # most likely merged or finished, so counted, not listed
+                skipped_moved += 1
             else:
+                skipped_lanes.append(key)
+        elif moved and sections in (["Merged"], ["Finished"]):
+            left_out[sections[0]] += 1
+        else:
+            if moved:
                 print(line)
-                for s, items in lane.items():
-                    out[s] += items
+            for s, items in lane.items():
+                out[s] += items
+    if skipped_lanes:
+        skipped.append(f"lane{'s' if len(skipped_lanes) > 1 else ''} {', '.join(skipped_lanes)}")
+    if skipped_moved:
+        skipped.append(f"{skipped_moved} done lane{'s' if skipped_moved > 1 else ''} not in "
+                       "plan.md's Now table")
+    if skipped:
+        out["Skipped"].append(f"lookups past ready's {budget:g} s budget ($RELAY_READY_SECONDS): "
+                              f"{', '.join(skipped)}")
     if not have:
         print("  (none)")
     for what, n in (("merged", left_out["Merged"]), ("finished, no-PR", left_out["Finished"])):
@@ -1050,12 +1247,18 @@ def ready_done(records, key, st, repo, checkout, out, deny, lookups=None, fetche
         out["Inconsistent"].append(f"{key}: PR #{pr['number']} head {pr['headRefOid'][:12]} "
                                    f"is not the status head {head}")
         return
+    draft = pathlib.Path(st.get("PR body draft", ""))
+    stale = pr.get("body") is not None and draft.is_file() and (  # gh may return CRLF
+        pr["body"].replace("\r\n", "\n").strip() != draft.read_text(encoding="utf-8").strip())
+    if stale:
+        out["Waiting"].append(f"{key}: PR #{pr['number']} body differs from its draft: "
+                              f'gh pr edit {pr["number"]} --body-file "{draft.as_posix()}"')
     checks = checks_state(pr.get("statusCheckRollup"), repo)
     if pr.get("mergeable", "").upper() == "CONFLICTING":
         out["Waiting"].append(f"{key}: PR #{pr['number']} has a merge conflict")
     elif checks != "passed":
         out["Waiting"].append(f"{key}: PR #{pr['number']} {checks}")
-    else:
+    elif not stale:
         out["Ready to merge"].append(f"{key}: PR #{pr['number']} --match-head-commit "
                                      f"{pr['headRefOid']}{skipped}")
 
@@ -1377,8 +1580,7 @@ def wait_checks(pr, repo, schedule):
     if error is not None:
         return LOOKUP_FAILED
     print(f"no checks appeared on PR #{pr} within {schedule[-1] / 60:g} minutes")
-    if no_ci(repo):
-        print("no CI configured: no Actions workflow and nothing reported on the default branch head")
+    print(ci_case(repo))
     return NO_CHECKS
 
 
@@ -1514,6 +1716,11 @@ def cmd_merge(a):
         deny = deny_patterns(records)
     except LOOKUP_ERRORS as e:
         return fail(f"{e}; nothing merged")
+    hits = records_deny_hits(records, deny)
+    for hit in hits:
+        print(f"{hit}; nothing merged", file=sys.stderr)
+    if hits:
+        return 1
     lanes = []
     for key in a.keys:
         found = ready_to_merge(records, key, repo, a.checkout, deny)
@@ -1568,7 +1775,14 @@ def main(argv=None):
     g.add_argument("--checkout", default=".")
     m = sub.add_parser("roadmap", help="print each open issue's blocked-by and `## Files`")
     m.add_argument("--repo")
-    a = p.parse_args(argv)
+    try:
+        a = p.parse_args(argv)
+    except SystemExit as e:  # argparse's usage error exits 2 before the command runs
+        cmd = next((t for t in (sys.argv[1:] if argv is None else argv)
+                    if not t.startswith("-")), None)
+        if e.code == 2 and cmd in EXIT_HINTS:
+            print(f"hint (exit 2): {EXIT_HINTS[cmd][2]}", flush=True)
+        raise
     command = {"status": cmd_status, "ready": cmd_ready, "roadmap": cmd_roadmap,
                "localcheck": cmd_localcheck, "waitchecks": cmd_waitchecks,
                "merge": cmd_merge}[a.cmd]
