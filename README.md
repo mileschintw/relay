@@ -1,34 +1,56 @@
 # relay
 
-Lightweight multi-session coordination for Claude Code, built to sit beside [mattpocock-skills](https://github.com/mattpocock/skills). The **coordinator** is one desktop-app session. It orders the work, starts one **worker** session per issue and gates your consent. A records branch holds the plan and each worker's status.
+Run several Claude Code sessions on one repo at the same time, with every yes asked in one place.
 
-Requires: Claude Code desktop app, mattpocock-skills, git 2.38+, `gh` (signed in), Python 3.10+. The project must be a GitHub repo.
+Built to sit beside [mattpocock-skills](https://github.com/mattpocock/skills): they turn an idea into issues, relay gets those issues built in parallel.
 
-## Quick start
+## The problem
 
-Install once per machine, in Claude Code:
+Once the work is split into issues, building them in parallel by hand means opening a session per issue, briefing each one, remembering which is waiting on which, and answering questions in a dozen windows. Nothing records who is done, and nothing stops a session from opening a PR or merging before you said so.
+
+relay makes one desktop-app session the **coordinator**. It orders the issues, starts one **worker** session per issue (parking the ones that must wait), and asks you every question that needs your consent: start these lanes, open this PR, merge it. Workers branch, test, review and report. A records branch keeps the plan, so another day, machine or coordinator can pick up where this one stopped.
+
+## How it works
+
+```mermaid
+flowchart LR
+    you([you]) -- "every yes: start, open PR, merge" --> C[coordinator session]
+    C -- "starts, or parks until GO" --> W1[worker: lane 1]
+    C -- "starts, or parks until GO" --> W2[worker: lane 2]
+    W1 --> P1[branch and PR]
+    W2 --> P2[branch and PR]
+    C <-- "plan, briefs" --> R[(records branch coord)]
+    W1 -- "status, report" --> R
+    W2 -- "status, report" --> R
+```
+
+The records branch is an orphan branch, `coord`, checked out beside the repo as `<repo>-coord/` and never merged:
 
 ```
-/plugin marketplace add mileschintw/relay
-/plugin install relay@relay
+project.md      settings: language, checks, test bar, off-limits paths
+plan.md         current state only (done work moves to plan-history.md)
+briefs/<key>.md ~10-line briefs, one per lane
+status/<key>.md written by relay.py status
+reports/  pr-bodies/
 ```
 
-The plugin is cloned over HTTPS, so installs and updates need no GitHub SSH key.
+## Compared with the alternatives
 
-Then, once per project, in the project's repo:
+| | Sessions by hand | `/implement-spec` | relay |
+|---|---|---|---|
+| Unit of work | a session you start and brief | a subagent, gone when it finishes | a session per lane, with its own worktree and branch, that you can open and talk to |
+| Output | whatever each session does | one integration branch, one PR at the end | one PR per lane |
+| Your yes | in each window, if asked | once, to start the run | before each session, PR and merge, all in the coordinator |
+| State | in your head | none; an interrupted run starts over | plan, status and reports on the `coord` branch |
 
-```
-/setup-matt-pocock-skills     # issue tracker and labels relay builds on
-/relay:setup                  # creates the coord records branch beside the repo, asks a few settings
-```
+Pick `/implement-spec` for a few tickets you want done fast with one final review. Pick relay when each change should be reviewed and merged on its own, or the work spans days or machines. More in [Getting started](docs/getting-started.md#relay-or-implement-spec).
 
-Day to day:
+## Lightweight, in numbers
 
-```
-/grill-with-docs              # design; no code yet
-/to-tickets                   # issues with blocking links on GitHub
-/relay:coordinate             # in a new desktop-app session: the coordinator
-```
+- **No server.** Three skills, two Python scripts (standard library only) and one `SessionStart` hook. Everything else is git, `gh` and the desktop app.
+- **One branch.** All records live on `coord` (a public repo may keep them in a separate private repo instead). On your default branch, relay adds only what you accept during setup: a pointer line in `AGENTS.md`, a paragraph in `docs/agents/issue-tracker.md`, and a CI workflow if the repo has none.
+- **One line always loaded.** Only `relay:work` is model-invoked, so its one-line description is the cost in every session. `/relay:setup` and `/relay:coordinate` load only when you type them.
+- **A small main skill.** `/relay:coordinate` is 92 lines and 2,579 words (117 lines and 3,857 words before the slimming in [#112](https://github.com/mileschintw/relay/issues/112)), with six sub-files read only when needed.
 
 ## Example
 
@@ -44,41 +66,23 @@ you          yes
 coordinator  PR merged. Sent GO #3; lane 3 started from the new main.
 ```
 
-What `/relay:setup` leaves beside the repo (`<repo>-coord/`, the orphan branch `coord`):
+## Install
+
+Requires: Claude Code desktop app, mattpocock-skills, git 2.38+, `gh` (signed in), Python 3.10+. The project must be a GitHub repo.
 
 ```
-project.md      settings: language, checks, test bar, off-limits paths
-plan.md         current state only (done work moves to plan-history.md)
-briefs/<key>.md ~10-line briefs, one per lane
-status/<key>.md written by relay.py status
-reports/  pr-bodies/
+/plugin marketplace add mileschintw/relay
+/plugin install relay@relay
+/relay:setup                  # once per project, after /setup-matt-pocock-skills
 ```
 
-## Layout
+The plugin is cloned over HTTPS, so installs and updates need no GitHub SSH key.
 
-Only `plugin/` is installed; everything else is for developing relay.
+Day to day: `/grill-with-docs` to design, `/to-tickets` for issues with blocking links, then `/relay:coordinate` in a new desktop-app session.
 
-| Path | What |
-|---|---|
-| `plugin/skills/setup` | `/relay:setup`: turn relay on in a repo |
-| `plugin/skills/coordinate` | `/relay:coordinate`: the coordinator; `close-out.md`, `unattended.md`, `compact.md`, `large-outputs.md`, `app-limits.md`, `ci-fallbacks.md` are read on demand |
-| `plugin/skills/work` | `relay:work`: what each worker follows |
-| `plugin/tools/relay.py` | `status` (a worker's status file), `ready` (what the coordinator can do next), `roadmap` (each open issue's blocked-by and Files section), `localcheck` (the checks, run locally when CI cannot), `waitchecks` (wait for a PR's first check, then watch its checks), `merge` (merge Ready to merge lanes one at a time, stopping on the first problem) |
-| `plugin/tools/resume.py` | the `SessionStart` (`compact`) hook: after a compact, points the coordinator or a worker at its records (language line, what to reread) |
-| `plugin/hooks/hooks.json` | registers `resume.py` on `SessionStart` with the `compact` matcher |
-| `plugin/GLOSSARY.md` | the terms |
-| `.claude-plugin/marketplace.json` | the catalog; its entry installs `plugin/` from the `release` branch |
-| `tests/` | `python3 -I tests/test_relay.py` |
-| `.github/workflows/test.yml` | CI: the tests (Ubuntu, Windows) and `claude plugin validate .` |
-| `docs/getting-started.md` | the longer walkthrough and how relay splits work with mattpocock-skills |
-| `docs/adr/` | decisions and why (ADRs) |
+## More
 
-## Releasing
-
-`main` is where work lands; installs come from `release`, so a merge to `main` reaches no one until it is released.
-
-1. On `main`, raise `version` in `plugin/.claude-plugin/plugin.json` (users get a new copy only when it changes; keep `version` out of `marketplace.json`).
-2. `claude plugin validate .` and the tests pass.
-3. `git push origin main:release` (fast-forward only), then tag `relay--v<version>`.
-
-`marketplace.json` is read from `main`, so a change to it reaches users on their next marketplace update, without a release. To try unreleased skills locally: `claude --plugin-dir plugin`.
+- [Getting started](docs/getting-started.md): the full walkthrough and the rules worth knowing
+- [Layout](docs/layout.md): what each file in this repo does
+- [Releasing](docs/releasing.md): how a merge to `main` reaches users
+- [Decisions](docs/adr/)

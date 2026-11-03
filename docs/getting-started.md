@@ -65,3 +65,9 @@ Both start every ticket on the frontier at once, with no cap, and both build eac
 - Sessions can be started only in a turn you typed in the desktop app; messages (`GO`) reach existing sessions any time. That is why waiting lanes are started parked.
 - Hard dependencies live in GitHub's blocked-by; "same section, not at the same time" lives in the brief and the plan, and its order can be swapped.
 - The plan holds current state only and moves, never deletes, what is done.
+
+## See also
+
+- [README](../README.md): what relay is for, in one page
+- [Layout](layout.md): what each file in this repo does
+- [Releasing](releasing.md): how a merge to `main` reaches users
