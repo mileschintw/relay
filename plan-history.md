@@ -278,3 +278,8 @@ Merged 2026-11-03 06:13 UTC (PR #155, body updated after two catch-ups) on the u
 ## Lane 161 merged (2026-11-03 00:45 -0800)
 
 - #161 (relay.py writes stdout and stderr as UTF-8, errors=replace, so a cp950 pipe no longer crashes it): PR #163 merged at c76b934 after CI, under the round merge right (Handover › Merge right, 2026-11-03 00:28 -0800).
+
+## Lane 159 merged; round 2026-11-03 00:28 done
+
+- #159 (CI path tiers via a `changes` job; waitchecks passes a PR that workflow-level path filters skip entirely): PR #164 merged after CI, opened after #163 so CI tested both together, under the round merge right.
+- Round merge right, moved from Handover: **Merge right:** round 2026-11-03 00:28 -0800, lanes 159 and 161: user picked "是，這輪都 CI 過就合併 (推薦)" (yes, merge every lane of this round once CI passes). Move to plan-history.md once both have merged or stopped.
