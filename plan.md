@@ -35,6 +35,7 @@ Every open issue, once. "Order" is the wave (1 = can start now). "Kind" is `free
 | #119 README as a one-page product page | — | #112 (closed) | none | README.md; New docs/layout.md; New docs/releasing.md; docs/getting-started.md | needs-triage |
 | #130 relay.py hints that need new behaviour (C104 draft changed after PR; F16 workflow on: lines) | — | #112 (closed) | none | relay.py (cmd_ready, cmd_waitchecks); tests; coordinate/SKILL.md (Finishing a lane); ci-fallbacks.md (Checks not started) | needs-triage |
 | #139 ready: check every committed records file against the deny list (found in the #112 retro) | — | none | none | relay.py (cmd_ready, deny-list checks); tests; coordinate/SKILL.md (Plan: A `Records:` warning) | needs-triage |
+| #140 Alarm only while a worker can move without the user (from the alarm grilling; completes #48) | — | none | none | coordinate/SKILL.md (Following progress: Alarm); GLOSSARY.md (Alarm); unattended.md (The round ends) | needs-triage |
 
 Filled 2026-11-02 from `relay.py roadmap`. #112, #115, #116, #117 list several paths on one bullet, which `parse_files` reads as one path; the paths above are from the issue text.
 
@@ -50,7 +51,7 @@ none
 
 - Owner note (#112, from lane 133, C126): for the user's own CLAUDE.md: "On Windows, write a commit message with a double quote in it to a file and use `git commit -F`." (`reports/133.md`)
 - Owner note (#112, from lane 132, W33): add to the one project that uses it, in its `project.md` checks or brief template: "A test that needs a pull request (a CI trigger, say): open none; write in the report how to confirm it after the merge." (`reports/132.md`)
-- Since 2026-11-02 00:37 -0800: triage #114–#119, #130 and #139 (labelled needs-triage, "not scheduled until triaged"; #112 closed, so none is blocked any more).
+- Since 2026-11-02 00:37 -0800: triage #114–#119, #130, #139 and #140 (labelled needs-triage, "not scheduled until triaged"; #112 closed, so none is blocked any more).
 
 ## Deadlines
 
