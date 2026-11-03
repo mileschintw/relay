@@ -20,9 +20,8 @@ none (ruling 2, no new features during the slimming, ended when #112 closed 2026
 |---|---|---|---|---|
 | 139 | #139 | local_910e2d1e-d6e1-4dcb-9637-b3d4fc1f2c69 (folder lane-132-1ec78c, an archived lane's, on its own branch claude/lane-139-e5e149) | done, PR #155; asked to merge main again (conflicts after 118) | — |
 | 119 | #119 | local_be67e121-5073-463c-9e5b-f85be961719e | done, held: final pass at round end (user, 2026-11-02 21:49 -0800), with the design session's banner | — |
-| 115 | #115 | local_d99544c7-e9aa-457e-b591-c0159b0b23ec | done, PR #156, waitchecks running; merges cleanly | — |
 
-Lane 118 (PR #154) merged 2026-11-03 06:00 UTC → `plan-history.md`. Lane 130 (PR #153) merged 2026-11-03 05:48 UTC → `plan-history.md`. Lane 116 (PR #152) merged 2026-11-03 05:36 UTC → `plan-history.md`. Lanes 145 (PR #148), 140 (PR #149) and 114 (PR #150) merged 2026-11-03 05:29 UTC → `plan-history.md`. Lane 141 (#141, #142, PR #143) merged → `plan-history.md`. Lanes 132 (#132, PR #135), 131 (#131, PR #136) 133 (#133, PR #137) and 134 (#134, PR #138) merged → `plan-history.md`. Lane 110 (#110, inventory, no PR) finished and #110 closed on the user's "Reviewed, go ahead" → `plan-history.md`. Lanes 109 (PR #121), 107 (PR #122), 108 (PR #124), 120 (PR #125), 111 (PR #127), 123 (PR #128) and 113 (PR #129) merged → `plan-history.md`, "Lanes 107–111". All lanes through 103 merged; 0.3.2 released → `plan-history.md` (waves 1–2, lanes 33, 42, 45–51, 60–64, 71–75, 0.3.1 and 0.3.2 rounds, close-outs).
+Lane 115 (PR #156) merged 2026-11-03 → `plan-history.md`. Lane 118 (PR #154) merged 2026-11-03 06:00 UTC → `plan-history.md`. Lane 130 (PR #153) merged 2026-11-03 05:48 UTC → `plan-history.md`. Lane 116 (PR #152) merged 2026-11-03 05:36 UTC → `plan-history.md`. Lanes 145 (PR #148), 140 (PR #149) and 114 (PR #150) merged 2026-11-03 05:29 UTC → `plan-history.md`. Lane 141 (#141, #142, PR #143) merged → `plan-history.md`. Lanes 132 (#132, PR #135), 131 (#131, PR #136) 133 (#133, PR #137) and 134 (#134, PR #138) merged → `plan-history.md`. Lane 110 (#110, inventory, no PR) finished and #110 closed on the user's "Reviewed, go ahead" → `plan-history.md`. Lanes 109 (PR #121), 107 (PR #122), 108 (PR #124), 120 (PR #125), 111 (PR #127), 123 (PR #128) and 113 (PR #129) merged → `plan-history.md`, "Lanes 107–111". All lanes through 103 merged; 0.3.2 released → `plan-history.md` (waves 1–2, lanes 33, 42, 45–51, 60–64, 71–75, 0.3.1 and 0.3.2 rounds, close-outs).
 
 ## Roadmap
 
@@ -30,7 +29,6 @@ Every open issue, once. "Order" is the wave (1 = can start now). "Kind" is `free
 
 | Issue | Order | Blocked by (GitHub) | Same-section wait | Files it owns | Kind |
 |---|---|---|---|---|---|
-| #115 Spare-worker pool for lanes started while the user is away | 2 | #112 (closed) | after #116, relay.py ready (spare kind) | coordinate/SKILL.md (Starting a lane); unattended.md; work/SKILL.md; relay.py (ready); tests | free |
 | #119 README as a one-page product page | 2 | #112 (closed) | after #145, README.md Install | README.md; New docs/layout.md; New docs/releasing.md; docs/getting-started.md | free |
 | #146 Point the coordinator's round steps at the round merge right (from lane 114's review) | — | none | none | coordinate/SKILL.md (Scheduling, First turn step 5, Finishing step 6, Consent: The user's words, term list) | needs-triage |
 | #147 ready: a blocked lane's doing line prints a deny-list name under Waiting (from lane 139) | 2 | none | none | relay.py (cmd_ready's lane loop); tests | free |
