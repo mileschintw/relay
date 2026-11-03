@@ -343,3 +343,10 @@ relay.py docstring's Exit section names ready's exit 2; README's coordinate line
 
 - **Merge right:** 2026-11-03 14:19 -0800, lanes 166, 167, 168, 173, 174: question "這一輪五條 lane（#166、#167、#168、#173、#174）全部平行啟動，並且每條都「開 PR，CI 通過後合併」？", picked "啟動五條並授權合併 (Recommended)". (The 2026-11-03 00:28 round's moved to `plan-history.md`.)
 Ended: all five lanes merged 2026-11-03.
+
+## Round 2026-11-03 and 0.3.5
+
+- Coordinator Handover at write-out: title Relay coordination, worktree D:/Repos/relay/.claude/worktrees/lane-114-30073e, id local_f0eb7091-3f4b-4994-afb1-091422a00e8b, mode normal. Took over 2026-11-03 14:17 -0800 from local_41f71e49-… (lane-141-e7f5cd), which wrote itself out 2026-11-03 03:49 -0800 after release 0.3.4 (→ `plan-history.md`, "Rounds 2026-11-02/03 and 0.3.4").
+- Last Next: release 0.3.5. User 2026-11-03 picked "全部照做 (Recommended)" to the question "要照下面的步驟發布嗎？", whose steps were: version PR; merge after CI and main's push run (ubuntu, windows) pass; `git push origin main:release`; tag `relay--v0.3.5`; update the local install in D:\Repos
+- 0.3.5 released 2026-11-03 15:46 -0800: main's push run 41741118123 for b2bee65 passed (ubuntu and windows test); `release` fast-forwarded 5b7c556..b2bee65; tag `relay--v0.3.5`. Local-scope install in D:\Repos\relay updated 0.3.4 → 0.3.5.
+- Close-out 2026-11-03 15:46 -0800: five worker sessions (166, 167, 168, 173, 174) archived on the user's pick 「全部照做」; snapshot/174 holds lane 174's fix scripts (other scratchpads held only test logs); no temporary rulings; coordinator wrote itself out.
