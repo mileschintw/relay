@@ -18,7 +18,7 @@ none (ruling 2, no new features during the slimming, ended when #112 closed 2026
 
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
-| 141 | #141 | local_38fa00ab-eb72-46ba-8d5e-080913870688 (lane-141-e7f5cd, `claude/lane-141-e7f5cd`) | started | — |
+| 141 | #141 | local_38fa00ab-eb72-46ba-8d5e-080913870688 (lane-141-e7f5cd, `claude/lane-141-e7f5cd`) | working | — |
 
 Lanes 132 (#132, PR #135), 131 (#131, PR #136) 133 (#133, PR #137) and 134 (#134, PR #138) merged → `plan-history.md`. Lane 110 (#110, inventory, no PR) finished and #110 closed on the user's "Reviewed, go ahead" → `plan-history.md`. Lanes 109 (PR #121), 107 (PR #122), 108 (PR #124), 120 (PR #125), 111 (PR #127), 123 (PR #128) and 113 (PR #129) merged → `plan-history.md`, "Lanes 107–111". All lanes through 103 merged; 0.3.2 released → `plan-history.md` (waves 1–2, lanes 33, 42, 45–51, 60–64, 71–75, 0.3.1 and 0.3.2 rounds, close-outs).
 
