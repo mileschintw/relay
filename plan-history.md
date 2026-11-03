@@ -283,3 +283,9 @@ Merged 2026-11-03 06:13 UTC (PR #155, body updated after two catch-ups) on the u
 
 - #159 (CI path tiers via a `changes` job; waitchecks passes a PR that workflow-level path filters skip entirely): PR #164 merged after CI, opened after #163 so CI tested both together, under the round merge right.
 - Round merge right, moved from Handover: **Merge right:** round 2026-11-03 00:28 -0800, lanes 159 and 161: user picked "是，這輪都 CI 過就合併 (推薦)" (yes, merge every lane of this round once CI passes). Move to plan-history.md once both have merged or stopped.
+
+## Lane 165 (0.3.4 release blocker)
+
+Merged 2026-11-03 11:15 UTC (PR #170, 248742b) on the user's 「開 PR，CI 過就合併」. Found by the 0.3.4 release review; review follow-up #169 taken into 0.3.4 as lane 169.
+
+| 165 | #165 | local_43920acb-1c58-4549-94e4-5c56dedf5aaa | done, PR #170 | — |
