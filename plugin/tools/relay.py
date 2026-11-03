@@ -181,8 +181,8 @@ merge   merges lanes one at a time, in the order given. First, every key must be
 Exit: status 0 when written, 1 when a check fails; ready 0 after printing, 2 on a bad
 $RELAY_READY_SECONDS (below); roadmap 0 after printing, 1 when a lookup fails; localcheck 0
 when every command passed, else 1 (a command, the merge, a lookup or the comment failed);
-waitchecks 0 when the checks passed (or CI does not cover the PR's paths), 1 when one failed, 3 when no check appeared, 4 when a lookup failed
-(the last poll's, or a watch that failed with no failed check behind it, a gh error say), 5
+waitchecks 0 when the checks passed (or CI does not cover the PR's paths), 1 when one failed,
+3 when no check appeared, 4 when a lookup failed (the last poll's, or a watch that failed with no failed check behind it, a gh error say), 5
 when the watch timed out; merge 0 when every
 key merged, 1 when it stopped (a key not ready, or a fetch, lookup, merge state or `gh pr merge`
 that failed);
