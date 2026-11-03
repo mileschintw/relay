@@ -91,10 +91,11 @@ ready   read-only. Prints what the coordinator can do next, the Plan warning fir
           - Skipped: what ran past ready's time budget ($RELAY_READY_SECONDS, default 75 s, well
             under an agent's 2-minute command limit): the fetch, the relay.py check, Parents, each
             lane by key, and a count of done lanes outside plan.md's Now table (no line printed
-            for those, as they are most likely merged). Past the budget a running lookup is killed and none starts, so ready
-            still prints every lane's line and the sections it sorted in time; a skipped lane's
-            partial findings are dropped (they may be wrong), and a skipped fetch skips the
-            conflict check as a failed one does.
+            for those, as they are most likely merged). Past the budget a running lookup is
+            killed and none starts, so ready still prints every lane's line and the sections it
+            sorted in time; a skipped step's or lane's partial findings are dropped (they may be
+            wrong), a skipped fetch skips the conflict check as a failed one does, and skipped
+            Parents hold every GO.
         After a section's items, `  hint:` lines give the coordinator's next step for the kinds
         of line it holds (READY_HINTS).
         --checkout <dir>: a local clone; `git fetch --prune` there, then `git merge-tree` each
@@ -213,6 +214,9 @@ def run(cmd, cwd=None):
             pass
         timed_out.append(cmd)
         return TIMED_OUT, "", "timed out: ready's time budget is spent"
+    except BaseException:  # as subprocess.run: an interrupt leaves no child running
+        p.kill()
+        raise
     return p.returncode, out, err
 
 
@@ -435,12 +439,12 @@ class ReadyLookups:
         if self.error:
             raise RuntimeError(self.error)
         if self.index is None:
-            n = len(timed_out)
+            before = len(timed_out)
             try:
                 listed = gh("pr", "list", "--repo", repo, "--state", "all", "--limit",
                             str(self.limit), "--json", "headRefName," + PR_FIELDS) or []
             except LOOKUP_ERRORS as e:
-                if len(timed_out) == n:
+                if len(timed_out) == before:
                     self.error = str(e)
                 raise
             self.full, self.index = len(listed) >= self.limit, {}
@@ -715,6 +719,8 @@ def cmd_ready(a):
     try:
         budget = float(os.environ.get("RELAY_READY_SECONDS") or READY_SECONDS)
     except ValueError:
+        budget = -1.0
+    if not 0 <= budget < float("inf"):
         print("RELAY_READY_SECONDS is not a number of seconds", file=sys.stderr)
         return 2
     deadline = time.monotonic() + budget
@@ -725,16 +731,17 @@ def cmd_ready(a):
         deadline = None
 
 
-def timed_step(label, out, skipped, fn, *args):
-    """fn(*args); when one of its commands ran past ready's budget, drop what it added to out
-    (it may be wrong) and add label to skipped."""
-    sizes, n = {k: len(v) for k, v in out.items()}, len(timed_out)
+def timed_step(label, out, skipped, fallback, fn, *args):
+    """fn(*args); when one of its commands ran past ready's budget, drop what it added to out,
+    add label to skipped and return fallback instead, since what it found may be wrong."""
+    sizes, before = {k: len(v) for k, v in out.items()}, len(timed_out)
     result = fn(*args)
-    if len(timed_out) > n:
-        for k, size in sizes.items():
-            del out[k][size:]
-        skipped.append(label)
-    return result
+    if len(timed_out) == before:
+        return result
+    for k, size in sizes.items():
+        del out[k][size:]
+    skipped.append(label)
+    return fallback
 
 
 def ready_report(a, budget):
@@ -777,11 +784,11 @@ def ready_report(a, budget):
     fetched = False
     skipped, skipped_lanes, skipped_moved = [], [], 0
     if a.checkout:
-        fetched = not timed_step("fetch", out, skipped, run,
+        fetched = not timed_step("fetch", out, skipped, (TIMED_OUT,), run,
                                  ["git", "fetch", "-q", "--prune", "origin"], a.checkout)[0]
-    out["relay.py"] += timed_step("relay.py check", out, skipped, relay_py_behind, records,
+    out["relay.py"] += timed_step("relay.py check", out, skipped, [], relay_py_behind, records,
                                   a.checkout)
-    repo, parents = timed_step("Parents", out, skipped, ready_parents, repo, out)
+    repo, parents = timed_step("Parents", out, skipped, (repo, None), ready_parents, repo, out)
     try:
         deny = deny_patterns(records)
     except LOOKUP_ERRORS as e:
@@ -804,11 +811,12 @@ def ready_report(a, budget):
         line = f"  {key}: {st['state']}, {st['branch']} @ {st['head']}, {st['time']}"
         # a done lane outside Now is left out when its only line is Merged (moved to plan-history.md)
         moved = st["state"] == "done" and now is not None and key not in now
-        lane, n = {k: [] for k in READY_SECTIONS}, len(timed_out)
+        lane, before = {k: [] for k in READY_SECTIONS}, len(timed_out)
         if not moved:
             print(line)
         if parents is None and st["state"] == "parked":
-            lane["Waiting"].append(f"{key}: parked; no GO while the Parents lookup fails")
+            why = "is skipped" if "Parents" in skipped else "fails"
+            lane["Waiting"].append(f"{key}: parked; no GO while the Parents lookup {why}")
         elif key.isdigit() and int(key) in (parents or ()):
             lane["Inconsistent"].append(f"{key}: issue #{key} is a parent, never a lane")
         else:
@@ -823,7 +831,7 @@ def ready_report(a, budget):
                     lane["Waiting"].append(f"{key}: blocked: {st.get('doing', '')}")
             except LOOKUP_ERRORS as e:
                 lane["Waiting"].append(f"{key}: lookup failed: {e}")
-        if len(timed_out) > n:  # what the lane found before the timeout may be wrong
+        if len(timed_out) > before:  # what the lane found before the timeout may be wrong
             if moved:  # most likely merged, so counted, not listed
                 skipped_moved += 1
             else:

@@ -1887,6 +1887,39 @@ class ReadyTimeoutTests(Base):
         self.assertEqual(p.stdout.strip(), str(relay.TIMED_OUT), p.stderr)
         self.assertLess(time.monotonic() - start, 20)
 
+    def test_a_budget_that_is_not_seconds_is_a_usage_error(self):
+        for bad in ("soon", "nan", "-1", "inf"):
+            os.environ["RELAY_READY_SECONDS"] = bad
+            code, _, err = self.call("ready", str(self.records))
+            self.assertEqual(code, 2, bad)
+            self.assertIn("RELAY_READY_SECONDS", err)
+
+    def test_a_step_cut_off_midway_returns_its_fallback_and_drops_its_lines(self):
+        out, skipped = {"relay.py": ["kept"], "Records": []}, []
+
+        def step():  # one command in time, then one past the budget
+            out["Records"].append("partial")
+            relay.run(["git", "--version"])
+            relay.deadline = time.monotonic()
+            relay.run(["git", "--version"])
+            return ["a wrong warning"]
+        relay.deadline = time.monotonic() + 60
+        try:
+            got = relay.timed_step("relay.py check", out, skipped, [], step)
+        finally:
+            relay.deadline = None
+        self.assertEqual(got, [])
+        self.assertEqual(out, {"relay.py": ["kept"], "Records": []})
+        self.assertEqual(skipped, ["relay.py check"])
+
+    def test_parked_lanes_wait_while_parents_are_skipped(self):
+        code, _, err = self.call("status", str(self.records), "20", "--state", "parked",
+                                 "--doing", "waits")
+        self.assertEqual(code, 0, err)
+        out, _ = self.timed_ready(0)
+        self.assertIn("20: parked; no GO while the Parents lookup is skipped", out)
+        self.assertNotIn("Ready for GO", out)
+
     def test_other_commands_have_no_budget(self):
         os.environ["RELAY_READY_SECONDS"] = "0"
         self.assertEqual(relay.run(["git", "--version"])[0], 0)
