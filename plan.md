@@ -5,9 +5,9 @@ Current state only. Done work moves to `plan-history.md` with a one-line pointer
 ## Handover
 
 - **Coordinator:** local session in worktree D:/Repos/relay/.claude/worktrees/lane-114-30073e (branch claude/relay-coordinate-d12771), took over 2026-11-03 14:17 -0800. Mode: normal. Previous coordinator (local_41f71e49-…, lane-141-e7f5cd) wrote itself out 2026-11-03 03:49 -0800 after release 0.3.4 (→ `plan-history.md`, "Rounds 2026-11-02/03 and 0.3.4"). `relay.py` is `project.md`'s line (main checkout, at `5b7c556`).
-- **Next:** nothing running. Open: #166, #167, #168, #173, #174, all triaged ready-for-agent (#173's triage settled the CI question: windows tests on push to main only; #174 is its follow-up, report a failed push run in `ready`). Proposing one round of all five, 2026-11-03. Owner steps: upload `docs/social-preview/social-preview.png` in Settings › General › Social preview.
+- **Next:** nothing running. Open: #166, #167, #168, #173, #174, all triaged ready-for-agent (#173's triage settled the CI question: windows tests on push to main only; #174 is its follow-up, report a failed push run in `ready`). Round of all five approved 2026-11-03 14:19 -0800; starting lanes 166, 167, 168, 173, 174. Owner steps: upload `docs/social-preview/social-preview.png` in Settings › General › Social preview.
 - **Alarm:** `project.md`'s `Alarm: 10` (the user's 10 minutes, 2026-10-31 01:51 「可以就這樣改」, moved there when #82 merged); waiting on CI relies on the background `waitchecks` ending, not the alarm.
-- **Merge right:** none (the 2026-11-03 00:28 round's moved to `plan-history.md` once 159 and 161 merged).
+- **Merge right:** 2026-11-03 14:19 -0800, lanes 166, 167, 168, 173, 174: question "這一輪五條 lane（#166、#167、#168、#173、#174）全部平行啟動，並且每條都「開 PR，CI 通過後合併」？", picked "啟動五條並授權合併 (Recommended)". (The 2026-11-03 00:28 round's moved to `plan-history.md`.)
 - **Unattended log:** none.
 
 ## Rulings
