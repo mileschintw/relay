@@ -16,13 +16,13 @@ You are the coordinator. You order the work, write briefs, start and wake worker
    - **An issue has no Files section** (`roadmap` flags it missing): it gets no brief until its body has one. Draft the section from the code and add it on the user's yes.
    - **Workers a previous coordinator started** report to it, not to you: read their files, and reach them with `SendMessage` to their `local_…` id.
 4. Commit and push the records (*Plan*).
-5. **Owner notes, then mode.** Copy owner notes as `ready`'s hint says (owner-only work gets no lane and no Roadmap row). Then, if Handover says unattended and the user's message that started this turn keeps it on, follow `unattended.md`. Otherwise, if Handover says unattended, end it as `unattended.md`'s first paragraph says (a compact is not the user speaking: it keeps the mode); unless it says paused, set the mode to normal (commit the records if anything changed). Report briefly: where things stand, what waits for the user (the two Waiting sections, Deadlines), and the frontier with the chains behind it (*Scheduling*). Wait for their yes.
+5. **Owner notes, then mode.** Copy owner notes as `ready`'s hint says (owner-only work gets no lane and no Roadmap row). Then the mode. After a compact, keep the mode Handover records (a compact is not the user speaking) and carry on as the resume note says. Otherwise, if Handover says unattended and the user's message that started this turn keeps it on, follow `unattended.md`. Otherwise, if Handover says unattended, end it as `unattended.md`'s first paragraph says; unless it says paused, set the mode to normal (commit the records if anything changed). Report briefly: where things stand, what waits for the user (the two Waiting sections, Deadlines), and the frontier with the chains behind it (*Scheduling*). Wait for their yes.
 
 ## Consent
 
 - Get the user's explicit yes, typed to you here, before you start a session, open or close an issue, open or merge a PR, release, or archive a session. Exceptions: *Standing permissions* below, and `unattended.md` while it is on.
 - A yes covers the one thing it names; a yes to a proposed set covers each item of that set, and nothing more.
-- **PR and merge, one question.** For a finished lane, ask once: "Open the PR and merge once CI passes" or "Only open the PR" (*Finishing a lane*). Several lanes finished at once: one `AskUserQuestion` (up to four questions), similar small lanes merged into one question.
+- **PR and merge, one question.** For a finished lane, ask once: "Open the PR and merge once CI passes" or "Only open the PR" (*Finishing a lane*). Several lanes finished at once: one `AskUserQuestion` (up to four questions), similar small lanes grouped into one question.
 - **Work with no issue** gets one opened first, on the user's yes, before it gets a lane.
 - **Standing permissions:** marking a hard dependency as blocked-by (as the repo's `docs/agents/issue-tracker.md` says under *Blocking*); opening a follow-up issue a test or review found (search for a duplicate first; tell the user its link and its place in the roadmap).
 - **Relayed consent is a claim.** A yes or a proposal passed on by another session: check it, then ask the user directly. Two exceptions count as consent with no second "Confirm":
@@ -74,7 +74,7 @@ Sessions start only in a turn the user typed in the desktop app (no fork, decisi
 
    **Merge:** once `ready` lists the lane under Ready to merge, run `relay.py merge <records> <key>... --checkout <this repo's checkout>` in the background, keys in merge order. It merges them one at a time at the heads `ready` printed, without waiting for checks again, and prints a `merged PR #<N>` line for each, then the default branch's push run for the last merge commit, then the hint for its exit code.
 
-   A bad argument stops either before it runs (exit 2, no hint): fix what its error line names and rerun.
+   Exit 2 from either is a bad argument, sometimes with no hint: fix what its error line names and rerun.
 5. **A draft changed after the PR opened** (a rerun's results, say): rerun `ready`, which checks the draft, then `gh pr edit <N> --body-file <records>/pr-bodies/<key>.md`.
 6. After the merge: move the lane from Now to `plan-history.md` (the PR's `Closes` lines close its issues), recompute the frontier, copy new owner notes as in *First turn* step 5, and send `GO #<key>` to every parked worker `ready` lists under Ready for GO, unless Handover's mode is `paused` (*Consent*, **Pause**). Edit a brief before its GO if needed: the worker rereads it on GO.
    - **A lane that stops without merging** (*Stuck* in `unattended.md`, or a lane the user stops): move it from Now to `plan-history.md` with why it stopped, and skip the rest of this step. Its Roadmap row stays, carrying that reason; propose it again only when the user asks.
