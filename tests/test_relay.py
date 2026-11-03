@@ -1026,6 +1026,85 @@ class WaitchecksTests(Base):
         self.assertEqual(relay.ci_start_schedule(self.records), [0, 60, 180, 360])
 
 
+class UncoveredPathsTests(Base):
+    """#159: a PR whose every changed path is outside the paths filters of the workflows that run
+    on pull_request gets no checks; waitchecks passes it on the first empty poll."""
+
+    waitchecks, QUEUED = WaitchecksTests.waitchecks, WaitchecksTests.QUEUED
+    FILTERED = {"test.yml": "on:\n  pull_request:\n    paths:\n      - 'plugin/**'\n"
+                            "      - tests/**  # the suite\n  push:\n    branches: [main]\n",
+                "lint.yml": "on:\n  pull_request:\n    paths-ignore: ['docs/**', '**.md']\n"}
+
+    def test_a_docs_only_pr_passes_without_the_ci_start_wait(self):
+        code, out, err = self.waitchecks(after=99, workflow_files=self.FILTERED,
+                                         pr_files={"5": ["docs/a.png", "README.md"]})
+        self.assertEqual((code, self.polls), (0, [0.0]), err)
+        self.assertIn("CI does not cover these paths: the 2 changed path(s) are outside the paths "
+                      "filters of .github/workflows/test.yml, .github/workflows/lint.yml; no "
+                      "checks to wait for", out)
+        self.assertNotIn("no checks appeared", out)
+
+    def test_a_pr_ci_covers_still_waits_for_its_checks(self):
+        code, out, err = self.waitchecks(after=2, workflow_files=self.FILTERED,
+                                         pr_files={"5": ["docs/a.png", "plugin/tools/relay.py"]})
+        self.assertEqual((code, self.polls), (0, [0.0, 60.0]), err)
+        self.assertIn("checks of 5", out)
+        self.assertNotIn("does not cover", out)
+        code, out, err = self.waitchecks(after=99, workflow_files=self.FILTERED,
+                                         pr_files={"5": ["tests/test_relay.py"]})
+        self.assertEqual(code, 3, err)
+        self.assertIn("no checks appeared on PR #5 within 6 minutes", out)
+
+    def test_any_doubt_keeps_the_wait(self):
+        unfiltered = {**self.FILTERED, "ci.yml": "on: [push, pull_request]\n"}
+        for data in ({"workflow_files": unfiltered, "pr_files": {"5": ["docs/a.png"]}},
+                     {"workflow_files": self.FILTERED},  # the file list lookup failed
+                     {"workflow_files": self.FILTERED, "pr_files": {"5": []}},
+                     {"workflow_files": self.FILTERED,
+                      "pr_files": {"5": ["docs/a.png", ".github/workflows/test.yml"]}},
+                     {"workflow_files": self.FILTERED, "pr_files": {"5": ["docs/a.png"]},
+                      "broken": ["lint.yml"]},
+                     {"workflow_files": {"ci.yml": "on: push\n"}, "pr_files": {"5": ["a.md"]}},
+                     {"workflows": 0, "pr_files": {"5": ["a.md"]}}):
+            code, out, err = self.waitchecks(after=99, **data)
+            self.assertEqual(code, 3, (data, out, err))
+            self.assertNotIn("does not cover", out)
+
+    def test_pull_request_filters(self):
+        cases = {
+            "on: pull_request\n": [None],
+            "on: push\n": [],
+            "on:\n  pull_request:\n    paths: [plugin/**, 'tests/**']\n":
+                [("paths", ["plugin/**", "tests/**"])],
+            "on:\n  pull_request:\n    branches: [main]\n    paths-ignore:\n      - \"docs/**\"\n"
+            "      - '*.md'\n  push:\n    paths: [x]\n": [("paths-ignore", ["docs/**", "*.md"])],
+            "on:\n  pull_request:\n    paths: [a]\n  pull_request_target:\n":
+                [("paths", ["a"]), None],
+            "on:\n  - push\n  - pull_request\n": [None],
+            "on:\n  pull_request: {paths: [a]}\n": [None],  # a flow map: read as no filter
+            "on:\n  pull_request:\n    paths: [a]\n    paths-ignore: [b]\n": [None],
+        }
+        for text, filters in cases.items():
+            self.assertEqual(relay.pull_request_filters(text), filters, text)
+
+    def test_path_patterns_follow_github(self):
+        match = relay.path_filter_matches
+        self.assertTrue(match(["docs/**"], "docs/a/b.png"))
+        self.assertFalse(match(["docs/*"], "docs/a/b.png"))
+        self.assertTrue(match(["docs/*"], "docs/b.png"))
+        self.assertTrue(match(["**/README.md"], "README.md"))
+        self.assertTrue(match(["**/README.md"], "a/b/README.md"))
+        self.assertTrue(match(["**.md"], "a/b.md"))
+        self.assertFalse(match(["*.md"], "a/b.md"))
+        self.assertTrue(match(["*.jsx?"], "a.js"))  # ?: zero or one of the character before
+        self.assertFalse(match(["plugin/**", "!plugin/docs/**"], "plugin/docs/x.md"))
+        self.assertTrue(match(["plugin/**", "!plugin/docs/**", "plugin/docs/keep.md"],
+                              "plugin/docs/keep.md"))
+        self.assertFalse(match(["a.txt"], "xa.txt"))
+        self.assertTrue(match(["a+b.txt"], "aab.txt"))
+        self.assertTrue(match(["[ab].txt"], "b.txt"))
+
+
 class MergeTests(Base):
     """merge takes lanes 12 (PR #5) and 13 (PR #6) from Ready to merge, with time faked."""
 
@@ -1537,7 +1616,7 @@ class HintTests(Base):
     applies to (#131); one test per batch-H row of the #110 inventory."""
 
     QUEUED, FAILED, OK = WaitchecksTests.QUEUED, WaitchecksTests.FAILED, MergeTests.OK
-    waitchecks = WaitchecksTests.waitchecks
+    waitchecks, QUEUED = WaitchecksTests.waitchecks, WaitchecksTests.QUEUED
     merge, merges = MergeTests.merge, MergeTests.merges
     lanes = SafeExitTests.lanes
     parent = OwnerNoteTests.parent
@@ -1621,8 +1700,9 @@ class HintTests(Base):
     def test_c99_waitchecks_prints_the_next_step_for_each_exit(self):
         code, out, _ = self.waitchecks()
         self.assertEqual(code, 0)
-        self.assertTrue(out.rstrip().endswith("hint (exit 0): the checks passed: merge "
-                                              "(coordinate's *Finishing a lane* step 4, **Merge**)"))
+        self.assertTrue(out.rstrip().endswith("hint (exit 0): the checks passed, or CI does not "
+                                              "cover the PR's paths: merge (coordinate's "
+                                              "*Finishing a lane* step 4, **Merge**)"))
         code, out, _ = self.waitchecks(watch=(1, "X test fail"), rollup=self.FAILED,
                                        checks={"5": "test\tfail"})
         self.assertEqual(code, 1)

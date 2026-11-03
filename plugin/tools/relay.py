@@ -150,7 +150,11 @@ waitchecks  waits for PR <N>'s first check, then watches its checks. Polls `gh p
         line stretches that to 1/6, 1/2 and all of its minutes. As soon as a check exists (queued
         or pending counts), runs `gh pr checks <N> --watch`, keeping only its errors (with no
         terminal it reprints the table every 10 s, to stdout), then prints `gh pr checks <N>`
-        once; both calls' errors go to stderr. None by the last poll: prints `no checks
+        once; both calls' errors go to stderr. None at the first poll, and every default-branch
+        workflow that runs on `pull_request` has a `paths` or `paths-ignore` filter that skips
+        all of the PR's changed paths (`gh api .../pulls/<N>/files`; none under
+        .github/workflows/, fewer than 300): prints `CI does not cover these paths` and passes,
+        with no CI start wait. None by the last poll: prints `no checks
         appeared`, then one line naming the `ci-fallbacks.md` case: `no CI configured` (as `ready`
         decides) or no workflow under the default branch's .github/workflows/ runs on
         `pull_request` or `pull_request_target` (each file's top-level `on:`): *CI cannot run*;
@@ -173,8 +177,8 @@ merge   merges lanes one at a time, in the order given. First, every key must be
 
 Exit: status 0 when written, 1 when a check fails; ready 0 after printing; roadmap 0 after
 printing, 1 when a lookup fails; localcheck 0 when every command passed, else 1 (a command, the
-merge, a lookup or the comment failed); waitchecks 0 when the checks passed, 1 when one failed,
-3 when no check appeared, 4 when a lookup failed (the last poll's, or a watch that failed with
+merge, a lookup or the comment failed); waitchecks 0 when the checks passed (or CI does not
+cover the PR's paths), 1 when one failed, 3 when no check appeared, 4 when a lookup failed (the last poll's, or a watch that failed with
 no failed check behind it, a gh error say), 5 when the watch timed out; merge 0 when every
 key merged, 1 when it stopped (a key not ready, or a fetch, lookup, merge state or `gh pr merge`
 that failed);
@@ -583,10 +587,9 @@ def indent(line):
     return len(line) - len(line.lstrip())
 
 
-def runs_on_pull_request(text):
-    """True when workflow text's top-level `on:` names `pull_request` or `pull_request_target`
-    (counting both errs toward asking the user): inline (`on: pull_request`, a flow list or map,
-    which may run on over the lines below) or as a child key or list item."""
+def on_block(text):
+    """Workflow text's top-level `on:`: (its inline value, the lines below that belong to it),
+    comments stripped; None when there is none."""
     lines = [re.sub(r"(^|\s)#.*", "", ln).rstrip() for ln in text.lstrip("﻿").splitlines()]
     for i, line in enumerate(lines):
         m = ON_LINE.match(line)
@@ -598,11 +601,158 @@ def runs_on_pull_request(text):
                 if not child[0].isspace() and not child.startswith(("-", "]", "}")):
                     break
                 block.append(child)
-        if m.group(1).strip():
-            return bool(PR_EVENT.search(" ".join([m.group(1)] + block)))
-        top = min(map(indent, block), default=0)
-        return any(PR_EVENT_ITEM.match(c) for c in block if indent(c) == top)
-    return False
+        return m.group(1).strip(), block
+    return None
+
+
+def runs_on_pull_request(text):
+    """True when workflow text's top-level `on:` names `pull_request` or `pull_request_target`
+    (counting both errs toward asking the user): inline (`on: pull_request`, a flow list or map,
+    which may run on over the lines below) or as a child key or list item."""
+    return bool(pull_request_filters(text))
+
+
+PATHS_KEY = re.compile(r"""^\s*["']?(paths(?:-ignore)?)["']?\s*:(.*)$""")
+
+
+def unquote(item):
+    item = item.strip()
+    return item[1:-1] if len(item) > 1 and item[0] == item[-1] and item[0] in "'\"" else item
+
+
+def paths_filter(lines):
+    """(`paths` or `paths-ignore`, its patterns) from the lines under a pull_request key; None
+    when it has neither, both, an empty list or a form not read here (a flow list over lines)."""
+    level = min(map(indent, lines), default=0)
+    found = []
+    for i, line in enumerate(lines):
+        m = PATHS_KEY.match(line)
+        if not m or indent(line) != level:
+            continue
+        value = m.group(2).strip()
+        if value.startswith("["):
+            if not value.endswith("]"):
+                return None
+            items = [unquote(v) for v in value[1:-1].split(",") if v.strip()]
+        elif value:
+            items = [unquote(value)]
+        else:
+            items = []
+            for c in lines[i + 1:]:
+                if indent(c) < level or (indent(c) == level and not c.lstrip().startswith("-")):
+                    break
+                if c.lstrip().startswith("-"):
+                    items.append(unquote(c.lstrip()[1:]))
+        found.append((m.group(1), items))
+    return found[0] if len(found) == 1 and found[0][1] else None
+
+
+def pull_request_filters(text):
+    """One entry per `pull_request` or `pull_request_target` event under workflow text's
+    top-level `on:`: its paths_filter, or None when it has none (or an inline value, read as
+    none); empty when the workflow does not run on either."""
+    found = on_block(text)
+    if not found:
+        return []
+    inline, block = found
+    if inline:
+        return [None] * len(PR_EVENT.findall(" ".join([inline] + block)))
+    top = min(map(indent, block), default=0)
+    filters = []
+    for i, line in enumerate(block):
+        if indent(line) != top or not PR_EVENT_ITEM.match(line):
+            continue
+        sub = []
+        for c in block[i + 1:]:
+            if indent(c) <= top:
+                break
+            sub.append(c)
+        bare = line.lstrip().startswith("-") or line.partition(":")[2].strip()
+        filters.append(None if bare else paths_filter(sub))
+    return filters
+
+
+def path_pattern(pattern):
+    """A GitHub path filter pattern as a regex: `*` any characters but `/`, `**` any, `**/` any
+    folders or none, `?` and `+` zero-or-one and one-or-more of the character before, `[...]` a
+    character class."""
+    out, i = [], 0
+    while i < len(pattern):
+        if pattern.startswith("**/", i):
+            out.append("(?:.*/)?")
+            i += 3
+        elif pattern.startswith("**", i):
+            out.append(".*")
+            i += 2
+        elif pattern[i] == "*":
+            out.append("[^/]*")
+            i += 1
+        elif pattern[i] in "?+":
+            out.append(pattern[i])
+            i += 1
+        elif pattern[i] == "[" and "]" in pattern[i + 1:]:
+            end = pattern.index("]", i + 1)
+            out.append(pattern[i:end + 1])
+            i = end + 1
+        else:
+            out.append(re.escape(pattern[i]))
+            i += 1
+    return re.compile("".join(out))
+
+
+def path_filter_matches(patterns, path):
+    """True when the last of patterns that matches path is not a `!` one."""
+    hit = False
+    for p in patterns:
+        if path_pattern(p.removeprefix("!")).fullmatch(path):
+            hit = not p.startswith("!")
+    return hit
+
+
+PR_FILES_LIMIT = 300  # GitHub's paths filters see this many changed files, then may run anyway
+
+
+def uncovered(pr, repo):
+    """The line saying CI does not cover PR <pr>: every default-branch workflow that runs on
+    pull_request has a paths filter that none of its changed paths (renames' old paths too)
+    passes. None when one may run: no such workflow, one with no filter, a changed path under
+    .github/workflows/ (the PR may change a filter), PR_FILES_LIMIT changed paths or more, no
+    changed path, or a failed lookup."""
+    try:
+        filters = {f: fs for f, fs in ((f, pull_request_filters(t))
+                                       for f, t in workflow_texts(repo).items()) if fs}
+        paths = list(dict.fromkeys(p for p in gh_raw(
+            "api", f"repos/{repo}/pulls/{pr}/files", "--paginate",
+            "--jq", ".[] | .filename, (.previous_filename // empty)").splitlines() if p))
+        if (not filters or not paths or len(paths) >= PR_FILES_LIMIT
+                or any(p.startswith(".github/workflows/") for p in paths)):
+            return None
+        for kind, patterns in (f or (None, None) for fs in filters.values() for f in fs):
+            if kind is None:
+                return None
+            hits = [path_filter_matches(patterns, p) for p in paths]
+            if (any(hits) if kind == "paths" else not all(hits)):
+                return None
+    except LOOKUP_ERRORS:
+        return None
+    return (f"CI does not cover these paths: the {len(paths)} changed path(s) are outside the "
+            f"paths filters of {', '.join(filters)}; no checks to wait for")
+
+
+def workflow_texts(repo):
+    """{path: text} for each .yml or .yaml file in the default branch's .github/workflows/, none
+    when the folder is missing. Raises LOOKUP_ERRORS."""
+    try:
+        listed = gh("api", f"repos/{repo}/contents/.github/workflows")
+    except RuntimeError as e:
+        if "HTTP 404" not in str(e):
+            raise
+        listed = None
+    if not isinstance(listed, list):  # no folder, or a file by that name
+        listed = []
+    return {f["path"]: gh_raw("api", "-H", "Accept: application/vnd.github.raw+json",
+                              f"repos/{repo}/contents/{f['path']}")
+            for f in listed if f.get("type") == "file" and f["name"].endswith((".yml", ".yaml"))}
 
 
 def ci_case(repo):
@@ -612,19 +762,9 @@ def ci_case(repo):
         return ("no CI configured: no Actions workflow and nothing reported on the default branch "
                 "head: take *CI cannot run*")
     try:
-        try:
-            listed = gh("api", f"repos/{repo}/contents/.github/workflows")
-        except RuntimeError as e:
-            if "HTTP 404" not in str(e):
-                raise
-            listed = None
-        if not isinstance(listed, list):  # no folder, or a file by that name
-            listed = []
-        files = [f["path"] for f in listed if f.get("type") == "file"
-                 and f["name"].endswith((".yml", ".yaml"))]
-        on_pr = [f for f in files if runs_on_pull_request(
-            gh_raw("api", "-H", "Accept: application/vnd.github.raw+json",
-                   f"repos/{repo}/contents/{f}"))]
+        texts = workflow_texts(repo)
+        files = list(texts)
+        on_pr = [f for f, text in texts.items() if runs_on_pull_request(text)]
     except LOOKUP_ERRORS as e:
         return f"workflow lookup failed ({e}): take *Checks not started*"
     if not files:
@@ -847,7 +987,8 @@ READY_HINTS = (
 # The coordinator's next step for each exit code of waitchecks and merge, printed last.
 EXIT_HINTS = {
     "waitchecks": {
-        0: "the checks passed: merge (coordinate's *Finishing a lane* step 4, **Merge**)",
+        0: "the checks passed, or CI does not cover the PR's paths: merge (coordinate's "
+           "*Finishing a lane* step 4, **Merge**)",
         1: "a failed check goes to the user with the watch output; checks that could not run "
            "(as `ready` then says) are a CI fallback (`ci-fallbacks.md`, its *Which case*)",
         2: "a usage error: fix what its error line names and rerun",
@@ -1560,12 +1701,12 @@ def pr_rollup(pr, repo):
 
 def wait_checks(pr, repo, schedule):
     """Poll PR <pr>'s checks at each time in schedule (seconds from now) until one exists, queued
-    or pending included, then `gh pr checks --watch` it. Returns 0 when the checks passed, 1 when
-    one failed, NO_CHECKS when none appeared by the last poll, LOOKUP_FAILED when the last poll's
-    lookup failed with none seen, or the watch failed with no failed check behind it,
-    WATCH_TIMED_OUT when the watch ran past WATCH_FACTOR times the last poll's time (it is
-    killed)."""
-    start, error = time.monotonic(), None
+    or pending included, then `gh pr checks --watch` it. Returns 0 when the checks passed, or at
+    the first poll with none when CI does not cover the PR's paths (uncovered), 1 when one failed,
+    NO_CHECKS when none appeared by the last poll, LOOKUP_FAILED when the last poll's lookup
+    failed with none seen, or the watch failed with no failed check behind it, WATCH_TIMED_OUT
+    when the watch ran past WATCH_FACTOR times the last poll's time (it is killed)."""
+    start, error, asked = time.monotonic(), None, False
     for i, at in enumerate(schedule, 1):
         time.sleep(max(0, at - (time.monotonic() - start)))
         try:
@@ -1602,6 +1743,11 @@ def wait_checks(pr, repo, schedule):
             return LOOKUP_FAILED
         if error is None:
             print(f"poll {i} at {at / 60:g} min: no checks yet", flush=True)
+            if not asked:
+                asked, line = True, uncovered(pr, repo)
+                if line:
+                    print(line)
+                    return 0
     if error is not None:
         return LOOKUP_FAILED
     print(f"no checks appeared on PR #{pr} within {schedule[-1] / 60:g} minutes")
