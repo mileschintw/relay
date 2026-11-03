@@ -44,7 +44,7 @@ none
 
 - Owner note (#145, from lane 145): after the merge, on a machine with no GitHub SSH key and no `url.*.insteadOf` override (`git config --show-origin --get-regexp '^url\..*insteadof'` prints nothing; remove the one added for 0.3.3 with `git config --global --unset-all url.https://github.com/.insteadOf`), run `claude plugin marketplace update relay` then `claude plugin update relay@relay`: it should succeed with no `Permission denied (publickey)`. (`reports/145.md`)
 
-- Triage #146 (lane 114's follow-up). #147 and #151 ready-for-agent (2026-11-02 21:49 -0800, picked); one lane for both, now startable (118 merged); needs a typed turn to start.
+- Triage #146 (lane 114's follow-up). (#147 and #151: lane 147 started 2026-11-03 00:07 -0800.)
 
 - Owner note (#112, from lane 133, C126): for the user's own CLAUDE.md: "On Windows, write a commit message with a double quote in it to a file and use `git commit -F`." (`reports/133.md`)
 - Owner note (#112, from lane 132, W33): add to the one project that uses it, in its `project.md` checks or brief template: "A test that needs a pull request (a CI trigger, say): open none; write in the report how to confirm it after the merge." (`reports/132.md`)
