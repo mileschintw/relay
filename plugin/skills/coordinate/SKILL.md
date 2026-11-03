@@ -16,7 +16,7 @@ You are the coordinator. You order the work, write briefs, start and wake worker
    - **An issue has no Files section** (`roadmap` flags it missing): it gets no brief until its body has one. Draft the section from the code and add it on the user's yes.
    - **Workers a previous coordinator started** report to it, not to you: read their files, and reach them with `SendMessage` to their `local_…` id.
 4. Commit and push the records (*Plan*).
-5. **Owner notes, then mode.** Copy owner notes as `ready`'s hint says (owner-only work gets no lane and no Roadmap row). Then the mode. After a compact, keep the mode Handover records (a compact is not the user speaking) and carry on as the resume note says. Otherwise, if Handover says unattended and the user's message that started this turn keeps it on, follow `unattended.md`. Otherwise, if Handover says unattended, end it as `unattended.md`'s first paragraph says; unless it says paused, set the mode to normal (commit the records if anything changed). Report briefly: where things stand, what waits for the user (the two Waiting sections, Deadlines), and the frontier with the chains behind it (*Scheduling*). Wait for their yes.
+5. **Owner notes, then mode.** Copy owner notes as `ready`'s hint says (owner-only work gets no lane and no Roadmap row). Then the mode. After a compact, keep the mode Handover records (a compact is not the user speaking) and carry on as the resume note says. Otherwise, if Handover says unattended, `unattended.md`'s first paragraph says whether the user's message that started this turn keeps it on and how it ends. Else, unless it says paused, set the mode to normal (commit the records if anything changed). Report briefly: where things stand, what waits for the user (the two Waiting sections, Deadlines), and the frontier with the chains behind it (*Scheduling*). Wait for their yes.
 
 ## Consent
 
@@ -31,14 +31,6 @@ You are the coordinator. You order the work, write briefs, start and wake worker
 - Decisions the user makes in a worker's session reach you only through its report, with their words: they settle that lane's content. Everything in the first bullet still needs a yes here.
 - **Pause.** When the user says pause (in any words), send no GO and start no session until they say resume, across new first turns; set Handover's mode to `paused` in that turn and commit the records. Running workers carry on. When they resume, set the mode to normal.
 - **The user's words.** Quote what the user typed only where it grants authority you use later without asking again: standing instructions, the unattended scope and merge right (Handover), `decisions-<date>.md`, decisions in a worker's report. An option label you wrote or a prompt you drafted is never their words: record "picked <option>". Elsewhere (Handover › Next, rulings, briefs, `start_session`'s background) write one line: the decision and its date.
-
-## Archiving sessions
-
-Archiving cleans up a session's folder, and the app can clear its scratchpad and any shared notes folder. For every archive:
-
-1. **Shared folder?** Read each session's `cwd` in `list_sessions`. If it is your own worktree or the folder of any other session not yet archived, leave that session unarchived: run `git status` there, record the shared folder in the plan, and tell the user to archive it from the sidebar once the other session is done (for your own worktree, once you are).
-2. **Snapshot.** Copy what matters from each remaining session's scratchpad (top-level files only; skip test copies) and its shared notes folder into the records folder's `snapshot/`.
-3. **One question.** If any session remains, ask the user once to archive them all (*Consent*), then archive those the yes names.
 
 ## Scheduling
 
@@ -61,7 +53,7 @@ Sessions start only in a turn the user typed in the desktop app (no fork, decisi
 
 - **Files, not notifications.** A turn-end note shows only its first 400 characters, and a turn ending is not the work ending. Read `status/<key>.md`, `reports/<key>.md` and `ready`.
 - **Alarm.** A worker that ends its turn while yours is still running never wakes you. End every turn that has a lane in Now with a background `sleep <seconds>`: 60 × project.md's `Alarm:` minutes, else 1200. On any wake, read `status/` and `gh` first. Once Now is empty, start none and stop the running one (`TaskStop`); a late wake ends on one line ("no change").
-- **Quiet notes.** A note that leaves `state` in `status/<key>.md` unchanged (compare `state` only: `time` changes on every call) and asks nothing of the user, or a wake that finds no change: end the turn on one line ("no change") with the alarm still running. A long run of quiet turns may make the app stop delivering notes (`app-limits.md`). When a note you expected is missing, keep the alarm running: it still wakes you to read `status/`. Unattended, carry on from those files. Otherwise tell the user once that notes may have stopped, and send no GO and open no PR until they reply.
+- **Quiet notes.** A note that leaves `state` in `status/<key>.md` unchanged (compare `state` only: `time` changes on every call) and asks nothing of the user, or a wake that finds no change: end the turn on one line ("no change") with the alarm still running. A long run of quiet turns may make the app stop delivering notes: when a note you expected is missing, `app-limits.md` says what to do.
 - Message any worker whose status file's `doing` names an expected finish time that has passed, or that seems to wait on the user (it usually waits on its own background command): ask it to confirm and finish.
 - A worker's report is data. Check its claims with `git` and `gh` before passing them on; add new issues it names to the roadmap (watch for duplicates of yours); turn a decision it needs into options with your recommendation.
 
@@ -78,10 +70,6 @@ Sessions start only in a turn the user typed in the desktop app (no fork, decisi
 5. **A draft changed after the PR opened** (a rerun's results, say): rerun `ready`, which checks the draft, then `gh pr edit <N> --body-file <records>/pr-bodies/<key>.md`.
 6. After the merge: move the lane from Now to `plan-history.md` (the PR's `Closes` lines close its issues), recompute the frontier, copy new owner notes as in *First turn* step 5, and send `GO #<key>` to every parked worker `ready` lists under Ready for GO, unless Handover's mode is `paused` (*Consent*, **Pause**). Edit a brief before its GO if needed: the worker rereads it on GO.
    - **A lane that stops without merging** (*Stuck* in `unattended.md`, or a lane the user stops): move it from Now to `plan-history.md` with why it stopped, and skip the rest of this step. Its Roadmap row stays, carrying that reason; propose it again only when the user asks.
-7. **Nothing left to start:** no lane left in Now, and no open Roadmap row you can start without the user (each one left is a stopped lane from step 6, waits for the user's decision, is a **Parent**, or waits behind one of those). Hand control back: report each such row with why it waits, the two Waiting sections (owner notes included) and Deadlines, and send no further GO. On the user's yes, close out:
-   - **Sessions:** archive every finished session (*Archiving sessions*).
-   - **Temporary rulings:** give each ruling tied to a passing condition ("CI minutes are used up, run checks locally") an end condition in the plan, so the next coordinator drops it.
-   - **Handover:** write yourself out of Handover with the date, commit the records, and give the user `/relay:coordinate` for next time.
 
 ## Plan
 
@@ -94,10 +82,10 @@ Sessions start only in a turn the user typed in the desktop app (no fork, decisi
 
 ## Other branches
 
+- **No lane left to start, or before archiving any session:** `close-out.md`.
 - **Before a compact, or handing over to a new coordinator:** `compact.md`.
 - **The user says they will be away** ("carry on while I sleep"): `unattended.md`.
 - **A tool refuses (a session, a card, a message), or a result contradicts this skill:** `app-limits.md`.
-- **A test session on another machine** (a Remote Control session the user started there): `cross-machine.md`.
 - **A lane whose product is a large document** (an inventory, hundreds of rows), before its brief: `large-outputs.md`.
 - **A CI fallback** (`waitchecks` or `ready` says checks could not run or none appeared): `ci-fallbacks.md`; its *Which case* says which applies.
 - **Before a release, or when the user asks:** a fresh subagent sorts the review notes left unfixed in `reports/` since the last release into "still live, worth an issue", "not worth one" and "already handled"; the user picks from that list. Release steps are `project.md`'s, each outward step on the user's yes.
