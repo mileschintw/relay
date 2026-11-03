@@ -19,10 +19,10 @@ Current state only. Done work moves to `plan-history.md` with a one-line pointer
 
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
-| 131 | #131 | local_f2033247-ca09-4bc2-a8a0-52a56f9764e0 (landed in archived lane 123's folder D:\Repos\relay\.claude\worktrees\lane-123-e04fcc, on its own branch `claude/lane-131-614a65`; keep lane 123's session archived) | started | — |
-| 132 | #132 | local_6cf7be21-97d0-42c0-875f-37bf25e51cfe (lane-132-1ec78c, `claude/lane-132-1ec78c`) | started | — |
-| 133 | #133 | local_0cb902a2-31ed-4213-a264-b224b4eac02d (lane-133-1fd07d, `claude/lane-133-1fd07d`) | started (parked) | GO #133 after #131 merges |
-| 134 | #134 | local_199699b7-06a0-4986-b24b-d069ebe14bb8 (lane-134-eb4fc2, `claude/lane-134-eb4fc2`) | started (parked) | GO #134 after #133 merges |
+| 131 | #131 | local_f2033247-ca09-4bc2-a8a0-52a56f9764e0 (landed in archived lane 123's folder D:\Repos\relay\.claude\worktrees\lane-123-e04fcc, on its own branch `claude/lane-131-614a65`; keep lane 123's session archived) | working | — |
+| 132 | #132 | local_6cf7be21-97d0-42c0-875f-37bf25e51cfe (lane-132-1ec78c, `claude/lane-132-1ec78c`) | review | — |
+| 133 | #133 | local_0cb902a2-31ed-4213-a264-b224b4eac02d (lane-133-1fd07d, `claude/lane-133-1fd07d`) | parked | GO #133 after #131 merges |
+| 134 | #134 | local_199699b7-06a0-4986-b24b-d069ebe14bb8 (lane-134-eb4fc2, `claude/lane-134-eb4fc2`) | parked | GO #134 after #133 merges |
 
 Lane 110 (#110, inventory, no PR) finished and #110 closed on the user's "Reviewed, go ahead" → `plan-history.md`. Lanes 109 (PR #121), 107 (PR #122), 108 (PR #124), 120 (PR #125), 111 (PR #127), 123 (PR #128) and 113 (PR #129) merged → `plan-history.md`, "Lanes 107–111". All lanes through 103 merged; 0.3.2 released → `plan-history.md` (waves 1–2, lanes 33, 42, 45–51, 60–64, 71–75, 0.3.1 and 0.3.2 rounds, close-outs).
 
