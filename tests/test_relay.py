@@ -8,7 +8,7 @@ import sys
 import tempfile
 import time
 import unittest
-from contextlib import redirect_stdout, redirect_stderr
+from contextlib import nullcontext, redirect_stdout, redirect_stderr
 from unittest import mock
 
 HERE = pathlib.Path(__file__).resolve().parent
@@ -2145,26 +2145,26 @@ class PushRunTests(Base):
     """ready's Default branch section: each workflow's latest completed push run on the default
     branch, reported when it failed (#174)."""
 
-    def run_(self, workflow, conclusion, sha="abcdef1234567890", status="completed", n=1):
+    def push_run(self, workflow, conclusion, sha="abcdef1234567890", status="completed", n=1):
         return {"workflowName": workflow, "status": status,
                 "conclusion": conclusion if status == "completed" else "", "headSha": sha,
                 "url": f"https://github.com/o/r/actions/runs/{n}"}
 
     def test_a_failed_push_run_prints_before_lanes_with_its_hint(self):
-        self.gh({"runs": [self.run_("tests", "failure")]})
+        self.gh({"runs": [self.push_run("tests", "failure")]})
         out = self.ready()
         line = "  tests: push run failure at abcdef12: https://github.com/o/r/actions/runs/1"
         self.assertIn(f"Default branch:\n{line}\n  hint: a failed push run", out)
         self.assertLess(out.index("Default branch:"), out.index("Lanes:"))
         for conclusion in ("timed_out", "startup_failure"):
-            self.gh({"runs": [self.run_("tests", conclusion)]})
+            self.gh({"runs": [self.push_run("tests", conclusion)]})
             self.assertIn(f"tests: push run {conclusion} at abcdef12", self.ready())
 
     def test_only_each_workflows_latest_completed_run_decides(self):
-        self.gh({"runs": [self.run_("tests", "success", n=2), self.run_("tests", "failure")]})
+        self.gh({"runs": [self.push_run("tests", "success", n=2), self.push_run("tests", "failure")]})
         self.assertNotIn("Default branch", self.ready())
-        self.gh({"runs": [self.run_("lint", "success", n=3), self.run_("tests", "failure", n=2),
-                          self.run_("lint", "failure")]})
+        self.gh({"runs": [self.push_run("lint", "success", n=3), self.push_run("tests", "failure", n=2),
+                          self.push_run("lint", "failure")]})
         out = self.ready()
         self.assertIn("  tests: push run failure at abcdef12: "
                       "https://github.com/o/r/actions/runs/2\n", out)
@@ -2172,16 +2172,16 @@ class PushRunTests(Base):
 
     def test_cancelled_skipped_and_in_progress_runs(self):
         for conclusion in ("cancelled", "skipped"):
-            self.gh({"runs": [self.run_("tests", conclusion), self.run_("tests", "failure")]})
+            self.gh({"runs": [self.push_run("tests", conclusion), self.push_run("tests", "failure")]})
             self.assertNotIn("Default branch", self.ready(), conclusion)
-        self.gh({"runs": [self.run_("tests", "", status="in_progress")]})
+        self.gh({"runs": [self.push_run("tests", "", status="in_progress")]})
         self.assertNotIn("Default branch", self.ready())
-        self.gh({"runs": [self.run_("tests", "", status="queued", n=2),
-                          self.run_("tests", "failure")]})
+        self.gh({"runs": [self.push_run("tests", "", status="queued", n=2),
+                          self.push_run("tests", "failure")]})
         self.assertIn("runs/1 (a newer run is in progress)", self.ready())
 
     def test_all_green_or_no_runs_prints_no_section(self):
-        for runs in ([], [self.run_("tests", "success"), self.run_("lint", "success")]):
+        for runs in ([], [self.push_run("tests", "success"), self.push_run("lint", "success")]):
             self.gh({"runs": runs})
             self.assertNotIn("Default branch", self.ready())
 
@@ -2197,35 +2197,50 @@ class PushRunTests(Base):
     def test_a_lookup_past_the_budget_is_skipped_and_lanes_are_unchanged(self):
         self.addCleanup(os.environ.pop, "RELAY_READY_SECONDS", None)
         os.environ["RELAY_READY_SECONDS"] = "3"
-        self.gh({"slow": {"--event": 30}, "runs": [self.run_("tests", "failure")]})
+        head = self.branch("lane-12")
+        self.done("12", "lane-12", head)
+        self.gh({"slow": {"--event": 30}, "runs": [self.push_run("tests", "failure")]})
         out = self.ready()
+        # the budget is spent, so the lane is skipped as after any spent budget, its line kept
+        self.assertIn("  12: done, lane-12 @", out)
         self.assertIn("Skipped:\n  lookups past ready's 3 s budget ($RELAY_READY_SECONDS): "
-                      "the default branch's push runs", out)
+                      "the default branch's push runs, lane 12\n", out)
         self.assertNotIn("Default branch:", out)
 
     def test_ready_to_merge_and_exit_code_unchanged(self):
         head = self.branch("lane-12")
         self.done("12", "lane-12", head)
         ok = [{"name": "ci", "status": "COMPLETED", "conclusion": "SUCCESS"}]
-        self.gh({"runs": [self.run_("tests", "failure")],
+        self.gh({"runs": [self.push_run("tests", "failure")],
                  "prs": {"lane-12": [{"number": 5, "state": "OPEN", "headRefOid": head,
                                       "mergeable": "MERGEABLE", "statusCheckRollup": ok}]}})
         out = self.ready()  # asserts exit 0
         self.assertIn("tests: push run failure", out)
         self.assertIn(f"Ready to merge:\n  12: PR #5 --match-head-commit {head}", out)
-        self.assertEqual(relay.ready_to_merge(self.records, "12", "o/r", str(self.clone), []),
-                         (5, head))
 
-    def test_exactly_one_gh_call(self):
+    def test_exactly_one_extra_gh_call(self):
         calls = pathlib.Path(str(self.fake) + ".calls")
-        for runs in ([], [self.run_("tests", "failure"), self.run_("lint", "failure")]):
+        self.done("12", "lane-12", self.branch("lane-12"))
+
+        def ready_calls(**patch):
             calls.unlink(missing_ok=True)
+            with (mock.patch.multiple(relay, **patch) if patch else nullcontext()):
+                self.ready()
+            return calls.read_text(encoding="utf-8").splitlines()
+        for runs in ([], [self.push_run("tests", "failure"), self.push_run("lint", "failure")]):
             self.gh({"runs": runs})
-            self.ready()
-            listed = [c for c in calls.read_text(encoding="utf-8").splitlines()
-                      if c.startswith("run ")]
-            self.assertEqual(len(listed), 1, listed)
-            self.assertIn("--repo o/r --branch main --event push", listed[0])
+            without = ready_calls(ready_push_runs=lambda *args: None)
+            got = ready_calls()
+            extra = [c for c in got if c.startswith("run ")]
+            self.assertEqual((len(got) - len(without), len(extra)), (1, 1), got)
+            self.assertIn("--repo o/r --branch main --event push", extra[0])
+
+    def test_no_origin_head_is_a_failed_lookup_not_a_guess(self):
+        git("remote", "set-head", "origin", "--delete", cwd=self.clone)
+        self.gh({"runs": [self.push_run("tests", "failure")]})
+        out = self.ready()
+        self.assertIn("Default branch:\n  push run lookup failed: no origin/HEAD", out)
+        self.assertNotIn("tests: push run", out)
 
 
 class ReadyTimeoutTests(Base):
