@@ -270,3 +270,7 @@ Merged 2026-11-03 06:13 UTC (PR #155, body updated after two catch-ups) on the u
 ## Lane 147 merged (2026-11-03 00:24 -0800)
 
 - #147 (ready withholds a deny-list name in a blocked lane's Waiting line; also when the deny list is unusable, user picked "keep") and #151 (waitchecks stops a watch past 20 CI start waits, exit 5): PR #160 merged at 298be05 after CI (user picked "open the PR and merge once CI passes" 2026-11-03 00:18 -0800).
+
+## Lane 146 merged (2026-11-03)
+
+- #146 (coordinate/SKILL.md's round steps point at Consent › Merge right for a round; +98 words): PR #162 merged after CI (user picked "open the PR and merge once CI passes" 2026-11-03 00:20 -0800). Opened #161 (cp950 print crash).
