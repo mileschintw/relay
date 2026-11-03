@@ -489,6 +489,32 @@ class ReadyTests(Base):
         (self.records / "plan.md").write_text("# Plan\n\tindented\n")
         self.assertNotIn("Records:", self.ready())
 
+    def test_free_form_coordinator_line_warns_with_hint(self):
+        (self.records / "plan.md").write_text(
+            "# Plan\n\n## Handover\n\n- **Coordinator:** the session in worktree D:\\w (branch b), "
+            "since 2026-11-01; mode normal.\n", encoding="utf-8")
+        out = self.ready()
+        self.assertIn("Records:\n  plan.md line 5: Handover > Coordinator is not in the "
+                      "template's shape", out)
+        self.assertIn("hint: rewrite it as the template's `title ..., worktree ..., id ..., "
+                      "mode ....`, or `none` when no coordinator holds the plan", out)
+        # ASCII only: `ready` prints to a console that may not hold more (cp950, say)
+        self.assertTrue(all(line.isascii() for line in out.splitlines() if "Coordinator" in line))
+
+    def test_template_and_none_coordinator_lines_do_not_warn(self):
+        for line in ("title t, worktree D:\\w, id unknown, mode paused. Since today.",
+                     "none. The previous coordinator (worktree D:\\old, id local_0ld)"):
+            (self.records / "plan.md").write_text(f"# Plan\n\n- **Coordinator:** {line}\n",
+                                                  encoding="utf-8")
+            self.assertNotIn("Coordinator", self.ready())
+
+    def test_setup_plan_template_passes_coordinator_check(self):
+        template = HERE.parent / "plugin" / "skills" / "setup" / "templates" / "plan.md"
+        (self.records / "plan.md").write_bytes(template.read_bytes())
+        self.assertNotIn("Coordinator", self.ready())
+        self.assertEqual(relay.parse_coordinator(relay.coordinator_field(
+            template.read_text(encoding="utf-8"))[1]), {})
+
     def test_fresh_records_and_brief_without_status(self):
         for d in ("status", "reports", "pr-bodies"):
             (self.records / d).rmdir()
@@ -1657,6 +1683,36 @@ class HintTests(Base):
         self.assertEqual(hint, "tell the user, and give them the line to settle by hand")
 
 
+class CoordinatorLineTests(unittest.TestCase):
+    """parse_coordinator: Handover's Coordinator line in the template's shape, or `none`."""
+
+    def test_template_shape(self):
+        self.assertEqual(relay.parse_coordinator(
+            "title t, worktree D:\\Repos\\x, id local_1, mode unattended. Since 2026-11-02."),
+            {"worktree": "D:\\Repos\\x", "mode": "unattended"})
+
+    def test_path_with_spaces(self):
+        self.assertEqual(relay.parse_coordinator(
+            "title t, worktree /home/u/my repo, id unknown, mode normal.")["worktree"],
+            "/home/u/my repo")
+
+    def test_none_names_no_coordinator(self):
+        self.assertEqual(relay.parse_coordinator("none"), {})
+        self.assertEqual(relay.parse_coordinator(
+            "none. The previous coordinator (worktree D:\\old, id local_0ld)"), {})
+
+    def test_other_lines_rejected(self):
+        for line in (
+                "the session in worktree D:\\w (branch b), since 2026-11-01; mode normal. "
+                "The previous coordinator (worktree D:\\old, id local_0ld)",
+                "the session in worktree D:\\w, id local_1; mode normal.",
+                "title t, worktree `D:\\w`, id unknown, mode normal.",
+                "title t, worktree D:\\w, id unknown, mode sleepy.",
+                "title t, worktree D:\\w, id unknown, mode normal",
+                "nonexistent", "none-ish", ""):
+            self.assertIsNone(relay.parse_coordinator(line), line)
+
+
 class ResumeTests(unittest.TestCase):
     """resume.py, the SessionStart (compact) hook, run the way the hook runs it."""
     RESUME = HERE.parent / "plugin" / "tools" / "resume.py"
@@ -1707,6 +1763,18 @@ class ResumeTests(unittest.TestCase):
         plan.write_text(plan.read_text(encoding="utf-8").replace(
             str(self.coord), self.coord.as_posix() + "/"), encoding="utf-8")
         self.assertIn("relay coordinator", self.resume(self.coord))
+
+    def test_free_form_coordinator_line_prints_nothing(self):
+        (self.records / "plan.md").write_text(
+            f"# Plan\n\n## Handover\n\n- **Coordinator:** the session in worktree {self.coord} "
+            "(branch c), since 2026-11-01; mode normal.\n", encoding="utf-8")
+        self.assertEqual(self.resume(self.coord), "")
+
+    def test_none_with_previous_coordinator_prints_nothing(self):
+        (self.records / "plan.md").write_text(
+            f"# Plan\n\n## Handover\n\n- **Coordinator:** none. The previous coordinator "
+            f"(worktree {self.coord}, id local_0ld)\n", encoding="utf-8")
+        self.assertEqual(self.resume(self.coord), "")
 
     def test_worker_gets_its_lane_files_from_a_subfolder(self):
         (self.lane / "sub").mkdir()

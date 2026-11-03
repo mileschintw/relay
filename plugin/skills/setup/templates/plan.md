@@ -5,7 +5,7 @@ Current state only. An entry moves to `plan-history.md` the moment it is DONE or
 ## Handover
 
 <!-- No transient environment facts here (which device the user is on, memory pressure): check them live each turn, or ask. -->
-- **Coordinator:** title <session title>, worktree <path>, id <once a tool result shows it, else "unknown">, mode <normal | unattended | paused>.
+- **Coordinator:** none. A coordinator taking the plan replaces this field with `title <session title>, worktree <path>, id <once a tool result shows it, else "unknown">, mode <normal | unattended | paused>.`, more sentences after it if needed; writing itself out, it starts the field with `none` again. `relay.py ready` flags any other start.
 - **Next:** <the next step; who it waits on (the user, lane <key>, a check, nobody); the user's authorization for it (the yes, standing instruction or unattended scope that covers it, or "needs a yes")>. Also anything in flight: a background command, a question asked, a message with no answer yet.
 - **Standing instructions:** <"none", or each with the user's words and time; once one is withdrawn, move it to plan-history.md>.
 - **Unattended log:** <"none"; while unattended: the user's words, scope, merge right; then each session started, PR merged, question answered (and why), lane stopped, with times; once it ends, move the log to plan-history.md and leave one summary line>

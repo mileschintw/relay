@@ -73,7 +73,9 @@ ready   read-only. Prints what the coordinator can do next, the Plan warning fir
             brief, by file with the count of each. Checked first, so a bad byte is a
             warning, never a crash; a lane whose brief or PR body draft has one also shows as
             lookup failed.
-            Also a warning when the records folder has no .gitattributes, naming the fix, and
+            Also a warning when plan.md's Handover > Coordinator line is in neither of its forms
+            (the template's `title ..., worktree ..., id ..., mode ....`, or `none`), by line
+            number; when the records folder has no .gitattributes, naming the fix; and
             one when the deny list is missing, is not valid UTF-8 (a BOM is fine), or has a line
             that is not a usable pattern, such as one with a zero-length match (`\\b`) (by line
             number, never its text); done lanes then wait, with no deny-list check.
@@ -620,6 +622,8 @@ READY_HINTS = (
     ("Records", r"^(plan\.md|plan-history\.md|briefs/).*(invalid UTF-8|control character|bare "
      r"CR|mixed line endings)", "whatever edits plan.md, plan-history.md or a brief keeps its "
      "encoding (UTF-8) and its line endings (LF, as .gitattributes sets)"),
+    ("Records", r"^plan\.md line \d+: Handover > Coordinator ", "rewrite it as the template's "
+     "`title ..., worktree ..., id ..., mode ....`, or `none` when no coordinator holds the plan"),
     ("relay.py", r"merge --ff-only", "tell the user; run that `git -C ... merge --ff-only` "
      "command only on the user's yes, since it moves their checkout; a standing instruction to "
      "keep it current (on project.md's relay.py line, or under Handover) is that yes"),
@@ -683,6 +687,11 @@ def cmd_ready(a):
         if path.is_file():
             out["Records"] += check_encoding(path, path.relative_to(records).as_posix(),
                                              endings=path in with_endings)
+    coordinator = (coordinator_field(plan.read_text(encoding="utf-8", errors="replace"))
+                   if plan.is_file() else None)
+    if coordinator and parse_coordinator(coordinator[1]) is None:
+        out["Records"].append(f"plan.md line {coordinator[0]}: Handover > Coordinator is not in "
+                              "the template's shape")
     if not (records / ".gitattributes").is_file():
         out["Records"].append(
             ".gitattributes missing, so records stay CRLF on Windows: copy setup's "
@@ -1068,6 +1077,28 @@ def project_line(records, label):
     m = re.search(rf"^- \*\*{re.escape(label)}:\*\*(.*)$", text, re.M)
     value = m.group(1).strip() if m else ""
     return value if value.strip("`\". ").lower() not in ("", "none") else None
+
+
+COORDINATOR_FIELD = re.compile(r"^- \*\*Coordinator:\*\*(.*)$", re.M)
+COORDINATOR_SHAPE = re.compile(r"title .+?, worktree ([^`]+?), id [^,\s]+, "
+                               r"mode (normal|unattended|paused)\.(?:\s|$)")
+
+
+def coordinator_field(text):
+    """(line number, text) of plan.md's `- **Coordinator:**` line, or None when it has none."""
+    m = COORDINATOR_FIELD.search(text)
+    return (text.count("\n", 0, m.start()) + 1, m.group(1).strip()) if m else None
+
+
+def parse_coordinator(value):
+    """Handover's Coordinator field in one of its two forms: {"worktree", "mode"} for the
+    template's `title <t>, worktree <path>, id <id>, mode <mode>.`, {} for `none` (no coordinator
+    holds the plan), each at the field's start and optionally followed by more text; None for
+    anything else. A path in backticks is anything else."""
+    if re.match(r"none(?=[\s.,;:]|$)", value):
+        return {}
+    m = COORDINATOR_SHAPE.match(value)
+    return {"worktree": m.group(1), "mode": m.group(2)} if m else None
 
 
 def check_commands(line, windows=None):
