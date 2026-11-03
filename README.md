@@ -67,9 +67,8 @@ coordinator  Ready: #114, #116, #118, #130, #139, #140, #145, #119, #115.
 you          開工這一輪   ("start this round")
 coordinator  Started the lanes; 119 and 115 parked (119 waits for GO #119).
    ...       workers branch, test, review, write status/<key>.md and a report
-coordinator  Lane 145 is done, no blocker. Opened PR #148; merge once CI passes?
-you          yes
-coordinator  #148 merged. Sent GO #119; lane 119 started from the new main.
+coordinator  Lane 145 is done, no blocker. PR #148 opened and, after CI, merged.
+             Sent GO #119; lane 119 started from the new main.
 ```
 
 ## Install
