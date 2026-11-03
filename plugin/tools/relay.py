@@ -86,6 +86,8 @@ ready   read-only. Prints what the coordinator can do next, the Plan warning fir
             backticked span, else its text before a trailing `(...)` note. No such line, a
             project.md that is not UTF-8 (a Records warning), a missing folder, or a path outside
             a checkout: no check.
+        After a section's items, `  hint:` lines give the coordinator's next step for the kinds
+        of line it holds (READY_HINTS).
         --checkout <dir>: a local clone; `git fetch --prune` there, then `git merge-tree` each
         Ready for PR / Ready to merge branch against the default branch; a conflict moves it to
         Waiting. Pushed heads come from its origin/* refs; without --checkout, or when that
@@ -103,7 +105,8 @@ roadmap read-only. Prints a table, one row per open issue: `| #N title | blocked
         trailing `(...)` scopes the change; other lines in the section, nested bullets and fenced
         blocks are skipped, and it ends at the next `#`/`##` heading. A parent (an issue with
         sub-issues) shows `parent`. An issue with no section, or one with no bullet, shows as
-        missing, listed again under the table; paths are never inferred.
+        missing, listed again under the table; paths are never inferred. A last `hint:` line
+        says how an empty Roadmap is filled from the rows.
 
 localcheck  the checks CI would run, for when it cannot (billing, quota). In --checkout (default
         the current folder): `git fetch`, a detached worktree at the lane's pushed head (from its
@@ -149,7 +152,8 @@ checkout; localcheck: a project.md that is not UTF-8, or a checks line with more
 command, or only a Windows override, in one item) or a missing
 records folder (status too: it creates only status/ inside it).
 waitchecks and merge: an error not named above (a bug, say) exits 4 with one line, never 1;
-output the console cannot encode is replaced, not fatal.
+output the console cannot encode is replaced, not fatal; a last `hint (exit <code>):` line on
+stdout gives the coordinator's next step for that exit (EXIT_HINTS).
 `gh` is called through $RELAY_GH when set (a command line, for tests).
 Standard library only, Python 3.10+.
 """
@@ -559,11 +563,105 @@ def now_keys(plan):
     return keys
 
 
+# The coordinator's next step for each kind of `ready` line, printed as `  hint:` lines after the
+# section's items: (section, a regex one of its items must match, hint). Each hint prints once.
+READY_HINTS = (
+    ("Plan", "", "do one pruning pass of everything else: move each entry that is DONE or "
+     "CONFIRMED (a merged lane, a done wave, a process log) to the end of plan-history.md, "
+     "leaving a one-line pointer"),
+    ("Ready for GO", "", "send each `GO #<key>` to its worker (coordinate's *Finishing a lane* "
+     "step 6); while Handover's mode is paused, hold it and send it once the user resumes"),
+    ("Ready for PR", "", "coordinate's *Finishing a lane* step 1, when nothing for its key is "
+     "under Inconsistent or Waiting"),
+    ("Ready to merge", "", "coordinate's *Finishing a lane* step 4, **Merge**: run `relay.py "
+     "merge` in the background, keys in merge order"),
+    ("Waiting", r": blocked: ", "a blocked lane's question goes to the user as options with your "
+     "recommendation (unattended: `unattended.md`)"),
+    ("Waiting", r"conflict", "a conflict: message its worker to catch up, push, and write `done` "
+     "again"),
+    ("Waiting", r"lookup failed", "a lookup failure: rerun `ready`"),
+    ("Waiting", r"check failed", "a failed check goes to the user with the watch output"),
+    ("Waiting", r"checks could not run|no CI configured|no checks reported", "a CI fallback: "
+     "follow `ci-fallbacks.md`; its *Which case* says which applies"),
+    ("Waiting", r"checks pending|parked on", "`checks pending` and a parked lane's open "
+     "dependency need nothing"),
+    ("Waiting", r"deny-list check not run", "deny-list check not run: follow the deny-list line "
+     "under Records, and rerun `ready` only after the user says the deny list is fixed"),
+    ("No status yet", "", "a lane in Now stays `started` until its worker writes one; a brief "
+     "with no session is a lane not started (*Starting a lane*, on the user's yes) or one "
+     "stopped (move it to plan-history.md)"),
+    ("Merged", "", "coordinate's *Finishing a lane* step 6, for a lane still in Now"),
+    ("Parents", "", "a parent gets one Roadmap row with Kind `parent` and no brief or worker; "
+     "its children are the lanes"),
+    ("Parents", r"every child closed as completed", "every child closed as completed: ask the "
+     "user before closing the parent (*Consent*)"),
+    ("Owner notes", "", "copy each one plan.md's *Waiting for the user's decision* lacks into "
+     "it, with its link; owner-only work gets no lane and no Roadmap row"),
+    ("Inconsistent", "", "fix the plan line it contradicts, or message the lane's worker when "
+     "its own files are wrong"),
+    ("Inconsistent", r"PR body", "a PR body problem: message its worker to fix the draft, push, "
+     "and write `done` again"),
+    ("Could not parse", "", "message its worker to rerun its last `relay.py status`; never edit "
+     "a status file by hand"),
+    ("Records", r"^(plan\.md|plan-history\.md|briefs/)", "in plan.md, plan-history.md or a "
+     "brief: fix that line with the Edit tool (mixed line endings: rewrite the whole file as "
+     "UTF-8 with LF endings), rerun `ready`, and commit the records"),
+    ("Records", r"^pr-bodies/", "in a PR body draft: message its worker to fix that line in the "
+     "draft and write `done` again; open no PR for that lane until `ready` no longer flags it"),
+    ("Records", r"^project\.md(?!'s deny list)", "in project.md, the user's settings: give the "
+     "user the line"),
+    ("Records", r"deny list", "a deny-list line: give the user the line and wait for them to fix "
+     "it; never open, read or print the deny file, since its lines are the names it keeps out"),
+    ("Records", r"^(plan\.md|plan-history\.md|briefs/).*(invalid UTF-8|control character|bare "
+     r"CR|mixed line endings)", "whatever edits "
+     "plan.md, plan-history.md or a brief keeps its encoding (UTF-8) and its line endings (LF, "
+     "as .gitattributes sets)"),
+    ("relay.py", r"merge --ff-only", "tell the user; run that `git -C ... merge --ff-only` "
+     "command only on the user's yes, since it moves their checkout; a standing instruction to "
+     "keep it current (on project.md's relay.py line, or under Handover) is that yes"),
+    ("relay.py", r"by hand", "tell the user, and give them the line to settle by hand"),
+)
+
+# The coordinator's next step for each exit code of waitchecks and merge, printed last.
+EXIT_HINTS = {
+    "waitchecks": {
+        0: "the checks passed: merge (coordinate's *Finishing a lane* step 4, **Merge**)",
+        1: "a failed check goes to the user with the watch output; checks that could not run "
+           "(as `ready` then says) are a CI fallback (`ci-fallbacks.md`, its *Which case*)",
+        2: "a usage error: fix what its error line names and rerun",
+        3: "no checks appeared: a CI fallback (`ci-fallbacks.md`, its *Which case*)",
+        4: "a lookup failed or an unexpected error: rerun it once; if it exits 4 again, give the "
+           "user its line",
+    },
+    "merge": {
+        0: "read the default branch's run for the last merge commit instead of rerunning checks "
+           "locally; tell the user which lanes merged",
+        1: "it stopped at one lane, on the line saying why, and merged no lane after it. A key "
+           "not under Ready to merge (nothing merged): fix what `ready` says. Any other stop (a "
+           "moved head, a merge state other than CLEAN, a failed lookup or `gh pr merge`): give "
+           "the user that line. Tell the user which lanes merged and where it stopped",
+        2: "a usage error, nothing merged: fix what its error line names and rerun",
+        4: "exit 4: do not rerun; give the user its line, and run `ready` to see which lanes "
+           "merged. Tell the user which lanes merged and where it stopped",
+    },
+}
+ROADMAP_HINT = ("hint: an empty Roadmap: fill Issue, Blocked by and Files it owns from these rows, "
+                "then Order and Kind, and replace every placeholder")
+
+
+def section_hints(section, items):
+    """The READY_HINTS for <section> that one of <items> matches, in table order."""
+    return [hint for s, pattern, hint in READY_HINTS
+            if s == section and any(re.search(pattern, i) for i in items)]
+
+
 def print_section(section, items):
     if items:
         print(f"{section}:")
         for item in items:
             print(f"  {item}")
+        for hint in section_hints(section, items):
+            print(f"  hint: {hint}")
 
 
 def cmd_ready(a):
@@ -938,6 +1036,7 @@ def cmd_roadmap(a):
         print(row)
     if missing:
         print(f"\nMissing `## Files`: {', '.join(missing)}")
+    print(ROADMAP_HINT)
     return 0
 
 
@@ -1352,11 +1451,14 @@ def main(argv=None):
         return command(a)
     # their exit 1 means a check failed or a merge stopped: never let an error say that
     try:
-        return command(a)
+        code = command(a)
     except Exception as e:  # noqa: BLE001
         print(f"{a.cmd}: unexpected error: {type(e).__name__}: {' '.join(str(e).split())}",
               file=sys.stderr)
-        return LOOKUP_FAILED
+        code = LOOKUP_FAILED
+    if code in EXIT_HINTS[a.cmd]:
+        print(f"hint (exit {code}): {EXIT_HINTS[a.cmd][code]}", flush=True)
+    return code
 
 
 if __name__ == "__main__":
