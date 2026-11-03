@@ -5,7 +5,7 @@ Current state only. Done work moves to `plan-history.md` with a one-line pointer
 ## Handover
 
 - **Coordinator:** none. The last coordinator (local_41f71e49-d203-4671-9234-61ad31a7903f, worktree D:/Repos/relay/.claude/worktrees/lane-141-e7f5cd) wrote itself out 2026-11-03 03:49 -0800 after the 2026-11-02/03 rounds and release 0.3.4 (→ `plan-history.md`, "Rounds 2026-11-02/03 and 0.3.4"). `relay.py` is `project.md`'s line (main checkout, at `5b7c556`). Next time: `/relay:coordinate`.
-- **Next:** nothing running. Open: #166, #167, #168 (needs-triage, small doc fixes from the 0.3.4 review). Owner steps: upload `docs/social-preview/social-preview.png` in Settings › General › Social preview. The session "btw: 以後CI都只跑ubuntu…" (local_0a2ff276-2189-46a4-9a8e-9cf95abca6f0) shares the coordinator's worktree lane-141-e7f5cd: archive both from the sidebar.
+- **Next:** nothing running. Open: #166, #167, #168 (needs-triage, small doc fixes from the 0.3.4 review); #173 (needs-info, Windows CI only on push to main: talk it over with the user first). Owner steps: upload `docs/social-preview/social-preview.png` in Settings › General › Social preview. The session "btw: 以後CI都只跑ubuntu…" (local_0a2ff276-2189-46a4-9a8e-9cf95abca6f0) shares the coordinator's worktree lane-141-e7f5cd: archive both from the sidebar.
 - **Alarm:** `project.md`'s `Alarm: 10` (the user's 10 minutes, 2026-10-31 01:51 「可以就這樣改」, moved there when #82 merged); waiting on CI relies on the background `waitchecks` ending, not the alarm.
 - **Merge right:** none (the 2026-11-03 00:28 round's moved to `plan-history.md` once 159 and 161 merged).
 - **Unattended log:** none.
@@ -31,6 +31,7 @@ Every open issue, once. "Order" is the wave (1 = can start now). "Kind" is `free
 | #166 coordinate: name the Unattended log for the unattended merge right (needs-triage) | 1 | none | none | coordinate/SKILL.md (Consent › The user's words); unattended.md | free |
 | #167 setup: CI start wait also caps the checks watch (needs-triage) | 1 | none | none | setup/templates/project.md; GLOSSARY.md | free |
 | #168 Doc drift: ready's exit 2, README word count (needs-triage) | 1 | none | none | relay.py docstring; README.md | free |
+| #173 CI: run windows tests only on push to main, not on PRs? (needs-info: discuss with the user before any lane) | — | none | none | .github/workflows/test.yml | limited: user decision |
 
 Filled 2026-11-02 from `relay.py roadmap`. #112, #115, #116, #117 list several paths on one bullet, which `parse_files` reads as one path; the paths above are from the issue text.
 
