@@ -40,7 +40,8 @@ ready   read-only. Prints what the coordinator can do next, the Plan warning fir
             (at least one, none pending), no conflict and a body equal to the draft.
           - Waiting: parked lanes with an open dependency; a parked spare with no brief
             (`spare, available: waits for a brief`); blocked lanes, with their `doing` line
-            (`(doing withheld: a deny-list name)` when it matches the deny list);
+            (`(doing withheld: a deny-list name)` when it matches the deny list, `(doing
+            withheld: deny-list check not run)` when Records reports the deny list);
             done lanes with a conflict, pending or failed checks, a failed lookup, an open PR whose
             body differs from the PR body draft (ends trimmed; the line gives the `gh pr edit`
             command), or a deny list Records reports (`deny-list check not run`). A failed
@@ -174,8 +175,9 @@ Exit: status 0 when written, 1 when a check fails; ready 0 after printing; roadm
 printing, 1 when a lookup fails; localcheck 0 when every command passed, else 1 (a command, the
 merge, a lookup or the comment failed); waitchecks 0 when the checks passed, 1 when one failed,
 3 when no check appeared, 4 when a lookup failed (the last poll's, or a watch that failed with
-no failed check behind it, a gh error say), 5 when the watch timed out; merge 0 when every key merged, 1 when it stopped
-(a key not ready, or a fetch, lookup, merge state or `gh pr merge` that failed);
+no failed check behind it, a gh error say), 5 when the watch timed out; merge 0 when every
+key merged, 1 when it stopped (a key not ready, or a fetch, lookup, merge state or `gh pr merge`
+that failed);
 2 on a usage error (argparse's too, after which waitchecks and merge still print their hint;
 waitchecks: a CI start wait that is not a number of minutes, or a project.md that is not UTF-8;
 merge: a key given twice, or a --checkout that is not a git checkout; localcheck: a project.md
@@ -210,7 +212,8 @@ LOOKUP_ERRORS = (RuntimeError, ValueError, KeyError, TypeError, OSError, re.erro
 
 
 READY_SECONDS = 75  # ready's default time budget: well under an agent's 2-minute command limit
-TIMED_OUT = 124  # run's exit code for a command killed, or never started, past `deadline`
+TIMED_OUT = 124  # run's exit code for a command killed, or never started, past `deadline`,
+# or killed past its own `timeout`
 deadline = None  # the time.monotonic() ready's lookups must end by; None outside ready
 timed_out = []  # the commands run killed or skipped past `deadline`, in order
 
@@ -973,6 +976,7 @@ def ready_report(a, budget):
     except LOOKUP_ERRORS as e:
         out["Records"].append(f"records deny-list check failed: {e}")
     lookups = ReadyLookups(a.checkout, fetched, len(have))
+    deny_rx = None if deny is None else [deny_regex(pat) for pat in deny]
     print_section("Plan", out["Plan"])
     print("Lanes:")
     for path in sorted(status_dir.glob("*.md")):
@@ -1019,9 +1023,11 @@ def ready_report(a, budget):
                     ready_done(records, key, st, repo, a.checkout, lane, deny, lookups, fetched,
                                moved)
                 elif st["state"] == "blocked":
-                    doing = st.get("doing", "")
-                    if any(deny_regex(pat).search(doing) for pat in deny or []):
-                        doing = "(doing withheld: a deny-list name)"  # Records names the file
+                    doing = st.get("doing", "")  # Records names the file of a hit
+                    if deny_rx is None:
+                        doing = "(doing withheld: deny-list check not run)"
+                    elif any(rx.search(doing) for rx in deny_rx):
+                        doing = "(doing withheld: a deny-list name)"
                     lane["Waiting"].append(f"{key}: blocked: {doing}")
             except LOOKUP_ERRORS as e:
                 lane["Waiting"].append(f"{key}: lookup failed: {e}")

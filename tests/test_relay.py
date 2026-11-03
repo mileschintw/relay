@@ -541,6 +541,10 @@ class ReadyTests(Base):
         self.assertIn("Waiting:\n  12: blocked: (doing withheld: a deny-list name)", out)
         self.assertIn("status/12.md lines", out)
         self.assertNotIn("AcmeCorp", out)
+        (self.records / "deny.txt").write_text("Acme\n\\b\n")  # an unusable line: no check
+        out = self.ready()
+        self.assertIn("12: blocked: (doing withheld: deny-list check not run)", out)
+        self.assertNotIn("AcmeCorp", out)
 
     def test_merged(self):
         head = self.branch("lane-12")
@@ -2017,6 +2021,21 @@ class ReadyTimeoutTests(Base):
         out, _ = self.timed_ready(0)
         self.assertIn("20: parked; no GO while the Parents lookup is skipped", out)
         self.assertNotIn("Ready for GO", out)
+
+    def test_a_command_timeout_kills_it_and_the_deadline_still_wins(self):
+        sleeper = [sys.executable, "-c", "import time; time.sleep(30)"]
+        start, before = time.monotonic(), len(relay.timed_out)
+        self.assertEqual(relay.run(sleeper, timeout=0.5),
+                         (relay.TIMED_OUT, "", "timed out after 0.5 s"))
+        self.assertEqual(relay.timed_out[before:], [])  # not ready's budget
+        relay.deadline = time.monotonic() + 0.5
+        try:
+            code, _, err = relay.run(sleeper, timeout=60)
+        finally:
+            relay.deadline = None
+        self.assertEqual((code, relay.timed_out[before:]), (relay.TIMED_OUT, [sleeper]))
+        self.assertIn("ready's time budget", err)
+        self.assertLess(time.monotonic() - start, 15)
 
     def test_other_commands_have_no_budget(self):
         os.environ["RELAY_READY_SECONDS"] = "0"
