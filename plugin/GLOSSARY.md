@@ -57,7 +57,7 @@ The checkout of branch `coord`: an orphan branch of this repo, checked out besid
 `plan.md` in the records folder: the current state only. Done work moves to `plan-history.md`.
 
 **Handover**
-The plan section naming the current coordinator (title, worktree, id, mode; `none` when no coordinator holds it), the next step and who it waits on, the user's standing instructions and the unattended log. What a coordinator rereads to resume after a compact or a handover.
+The plan section naming the current coordinator (title, worktree, id, mode; `none` when no coordinator holds it), the next step and who it waits on, the user's standing instructions, the round's merge right and the unattended log. What a coordinator rereads to resume after a compact or a handover.
 
 **Now table**
 The plan table of lanes with a session: key, issues, session, state, and what a parked lane waits for.
@@ -97,6 +97,12 @@ When no lane is left to run or start: the coordinator hands control back and, on
 
 **CI fallback**
 The path a lane on "merge once CI passes" takes when its CI cannot run or no check appears (`coordinate/ci-fallbacks.md`).
+
+**Round**
+The lanes the user approves to start in one yes (the frontier and the chains behind it, so often several waves); in unattended mode, the lanes in its scope. A lane started later joins on its own yes. A round ends when each of its lanes has merged or stopped. (A worker's review round is unrelated.)
+
+**Merge right**
+The user's yes, given in advance, to merge a named set of lanes once CI passes without asking per lane: a round's (Handover › Merge right, `coordinate/SKILL.md`, *Consent*) or unattended's (recorded with its scope in the Unattended log, `coordinate/unattended.md`).
 
 **Unattended**
 A mode the user turns on in words ("I'm going to sleep, carry on"), with a scope (which issues) and a merge right (which PRs the coordinator may merge without asking) recorded in the plan.
