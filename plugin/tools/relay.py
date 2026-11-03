@@ -1419,7 +1419,8 @@ def ready_done(records, key, st, repo, checkout, out, deny, lookups=None, fetche
     checks, uncovered = checks_state(pr.get("statusCheckRollup"), repo), ""
     if checks == "no checks reported":  # as waitchecks: no workflow runs on these paths (#165)
         line = uncovered_line(pr["number"], repo)
-        checks, uncovered = ("passed", f" ({line})") if line else (checks, "")
+        if line:
+            checks, uncovered = "passed", f" ({line})"
     if pr.get("mergeable", "").upper() == "CONFLICTING":
         out["Waiting"].append(f"{key}: PR #{pr['number']} has a merge conflict")
     elif checks != "passed":
@@ -1785,7 +1786,7 @@ def cmd_waitchecks(a):
 # merge ----------------------------------------------------------------------------------------
 
 READY_TO_MERGE = re.compile(r"PR #(\d+) --match-head-commit ([0-9a-f]{40})"
-                            r"(?: \(CI does not cover these paths: .*\))?$")
+                            r"(?: \(CI does not cover these paths: .*; no checks to wait for\))?$")
 STATE_RETRIES = (5, 15, 30)  # seconds; GitHub says UNKNOWN while it recomputes after a merge
 RUN_WAITS = (0, 10, 20)  # seconds; a push run takes a few seconds to appear
 
