@@ -7,7 +7,8 @@ Finds the records folder (the repo's AGENTS.md/CLAUDE.md pointer line, else the 
 `git worktree list` shows on branch coord). When this session's worktree is the coordinator's in
 plan.md's Handover (its Coordinator line in the template's shape, as relay.parse_coordinator reads
 it), prints the user's language line and what to reread; when its branch is a lane's in
-status/<key>.md, prints the language line and that lane's brief, status and report paths. Anything else, or any failure, prints nothing: the hook never blocks a session.
+status/<key>.md, prints the language line and that lane's brief, status and report paths.
+Anything else, or any failure, prints nothing: the hook never blocks a session.
 """
 import json
 import os

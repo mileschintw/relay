@@ -494,10 +494,12 @@ class ReadyTests(Base):
             "# Plan\n\n## Handover\n\n- **Coordinator:** the session in worktree D:\\w (branch b), "
             "since 2026-11-01; mode normal.\n", encoding="utf-8")
         out = self.ready()
-        self.assertIn("Records:\n  plan.md line 5: Handover › Coordinator is not in the "
+        self.assertIn("Records:\n  plan.md line 5: Handover > Coordinator is not in the "
                       "template's shape", out)
-        self.assertIn("hint: rewrite it as the template's `title …, worktree …, id …, mode ….`, "
+        self.assertIn("hint: rewrite it as the template's `title ..., worktree ..., id ..., mode ....`, "
                       "or `none` when no coordinator holds the plan", out)
+        # ASCII only: `ready` prints to a console that may not hold more (cp950, say)
+        self.assertTrue(all(line.isascii() for line in out.splitlines() if "Coordinator" in line))
 
     def test_template_and_none_coordinator_lines_do_not_warn(self):
         for line in ("title t, worktree D:\\w, id unknown, mode paused. Since today.",
@@ -1700,7 +1702,7 @@ class CoordinatorLineTests(unittest.TestCase):
                 "title t, worktree `D:\\w`, id unknown, mode normal.",
                 "title t, worktree D:\\w, id unknown, mode sleepy.",
                 "title t, worktree D:\\w, id unknown, mode normal",
-                "nonexistent", ""):
+                "nonexistent", "none-ish", ""):
             self.assertIsNone(relay.parse_coordinator(line), line)
 
 
