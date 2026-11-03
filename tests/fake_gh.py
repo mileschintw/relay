@@ -28,7 +28,8 @@
                    "mergedAt": "<time>", "mergeCommit": {"oid": "<sha>"}}},  # other `pr view 5`;
                                                   # a list answers per call, the last one repeated
  "merge_fail": {"5": "message"},                  # `pr merge 5` exits 1 with this message
- "runs": [{"databaseId": 9, "status": "queued"}]} # `run list`'s answer, default []
+ "runs": [{"databaseId": 9, "status": "queued"}]} # `run list`'s answer, default [] (merge's
+                                                  # push run, and ready's Default branch)
 prs: `pr list --head <branch>`'s answer; without --head, every PR with its headRefName, cut at
 --limit.
 children: an issue's sub-issues. bodies, comments: an issue's body and comments.

@@ -25,9 +25,9 @@ status  writes <records>/status/<key>.md, a worker's status file, then reads it 
         Fails (1), writing nothing, on a line break in a value, a head that is not a sha, or a
         detached HEAD with no --branch.
 
-ready   read-only. Prints what the coordinator can do next, the Plan warning first, then one line
-        per lane. When plan.md has a `## Now` table, a done lane whose key is not in its first
-        column and whose only line would be under Merged or Finished counts as moved to
+ready   read-only. Prints what the coordinator can do next, the Plan warning and the Default branch
+        section first, then one line per lane. When plan.md has a `## Now` table, a done lane
+        whose key is not in its first column and whose only line would be under Merged or Finished counts as moved to
         plan-history.md: it gets no line, and one line per section gives their count. Any other line it has (a PR still open, an
         Inconsistent) lists it as usual. The sections:
           - Ready for GO: parked lanes whose every dependency is closed as completed. The
@@ -100,6 +100,13 @@ ready   read-only. Prints what the coordinator can do next, the Plan warning fir
             per records file (plan.md, plan-history.md, briefs/*.md, reports/*.md,
             status/*.md) with a line matching the deny list, by line numbers, never the name.
           - Plan: a warning when plan.md is larger than --plan-limit bytes (default 16384, 16 KB).
+          - Default branch: one line per workflow whose latest completed push run on the default
+            branch (origin/HEAD of --checkout, else of the current folder) failed (`failure`,
+            `timed_out` or `startup_failure`; never `cancelled` or `skipped`): the workflow, the
+            conclusion, the short sha and the run URL, plus `(a newer run is in progress)` when
+            one is. From one `gh run list --event push` per run (its latest 100 runs). A failed
+            lookup is one `push run lookup failed` line. All green, or no push runs: no section.
+            Report only: it changes no lane's section and not the exit code.
           - relay.py: a warning when the git checkout holding project.md's `relay.py:` path
             (relative to --checkout, else the current folder) is behind its origin/<default>,
             with the count and the `git -C <checkout> merge --ff-only` fix. A checkout on another
@@ -109,9 +116,9 @@ ready   read-only. Prints what the coordinator can do next, the Plan warning fir
             project.md that is not UTF-8 (a Records warning), a missing folder, or a path outside
             a checkout: no check.
           - Skipped: what ran past ready's time budget ($RELAY_READY_SECONDS, default 75 s, well
-            under an agent's 2-minute command limit): the fetch, the relay.py check, Parents, each
-            lane by key, and a count of done lanes outside plan.md's Now table (no line printed
-            for those, as they are most likely merged or finished). Past the budget a running lookup is
+            under an agent's 2-minute command limit): the fetch, the relay.py check, Parents, the
+            default branch's push runs, each lane by key, and a count of done lanes outside
+            plan.md's Now table (no line printed for those, as they are most likely merged or finished). Past the budget a running lookup is
             killed and none starts, so ready still prints every lane's line and the sections it
             sorted in time; a skipped step's or lane's partial findings are dropped (they may be
             wrong), a skipped fetch skips the conflict check as a failed one does, and skipped
@@ -847,9 +854,11 @@ def check_encoding(path, name, endings=False):
 
 
 # cmd_ready's output sections, in print order. One per line, so lanes adding a section don't conflict.
-# cmd_ready prints Plan before the lane list (a long output gets cut; the warning must survive).
+# cmd_ready prints Plan and Default branch before the lane list (a long output gets cut; the
+# warnings must survive).
 READY_SECTIONS = (
     "Plan",
+    "Default branch",
     "Ready for GO",
     "Ready for PR",
     "Ready to merge",
@@ -939,6 +948,10 @@ READY_HINTS = (
     ("Plan", "", "do one pruning pass of everything else: move each entry that is DONE or "
      "CONFIRMED (a merged lane, a done wave, a process log) to the end of plan-history.md, "
      "leaving a one-line pointer"),
+    ("Default branch", r": push run (failure|timed_out|startup_failure) at ", "a failed push run "
+     "on the default branch: tell the user once, when it first appears or its sha changes, and "
+     "add the line to each PR-and-merge question; merging stays their call (unattended: log it "
+     "once in the Unattended log and keep merging)"),
     ("Ready for GO", "", "send each `GO #<key>` to its worker (coordinate's *Finishing a lane* "
      "step 6); while Handover's mode is paused, hold it and send it once the user resumes"),
     ("Ready for PR", "", "coordinate's *Finishing a lane* step 1, when nothing for its key is "
@@ -1138,6 +1151,8 @@ def ready_report(a, budget):
     out["relay.py"] += timed_step("relay.py check", out, skipped, [], relay_py_behind, records,
                                   a.checkout)
     repo, parents = timed_step("Parents", out, skipped, (repo, None), ready_parents, repo, out)
+    timed_step("the default branch's push runs", out, skipped, None, ready_push_runs, repo,
+               a.checkout, out)
     try:
         deny = deny_patterns(records)
     except LOOKUP_ERRORS as e:
@@ -1150,6 +1165,7 @@ def ready_report(a, budget):
     lookups = ReadyLookups(a.checkout, fetched, len(have))
     deny_rx = None if deny is None else [deny_regex(pat) for pat in deny]
     print_section("Plan", out["Plan"])
+    print_section("Default branch", out["Default branch"])
     print("Lanes:")
     for path in sorted(status_dir.glob("*.md")):
         key = path.stem
@@ -1230,7 +1246,7 @@ def ready_report(a, budget):
         if n:
             print(f"  ({n} {what} lane{'s' if n > 1 else ''} not in plan.md's Now table left out)")
     for section, items in out.items():
-        if section != "Plan":
+        if section not in ("Plan", "Default branch"):
             print_section(section, items)
     if not any(out.values()):
         print("Nothing to do.")
@@ -1332,6 +1348,41 @@ def ready_parents(repo, out):
     for issue in parent_issues:
         ready_owner_notes(repo, issue, out)
     return repo, parents
+
+
+# A push run conclusion `ready` reports; `cancelled` and `skipped` are not failures.
+PUSH_RUN_FAILED = ("failure", "timed_out", "startup_failure")
+PUSH_RUN_LIMIT = 100  # the push runs `ready` reads, newest first: enough to reach each workflow's
+# latest completed one
+
+
+def ready_push_runs(repo, checkout, out):
+    """One line under Default branch per workflow whose latest completed push run on the default
+    branch (of <checkout>, else the current folder) failed, saying so when a newer run of it is
+    in progress; a failed lookup is one line there. One `gh run list` call."""
+    base = default_branch(checkout).removeprefix("origin/")
+    try:
+        runs = gh("run", "list", *(["--repo", repo] if repo else []), "--branch", base,
+                  "--event", "push", "--limit", str(PUSH_RUN_LIMIT), "--json",
+                  "workflowName,status,conclusion,headSha,url") or []
+    except LOOKUP_ERRORS as e:
+        out["Default branch"].append(f"push run lookup failed: {e}")
+        return
+    decided, running = set(), set()
+    for r in runs:  # newest first
+        name = r.get("workflowName") or "(unnamed workflow)"
+        if name in decided:
+            continue
+        if r.get("status") != "completed":
+            running.add(name)
+            continue
+        decided.add(name)
+        if r.get("conclusion") in PUSH_RUN_FAILED:
+            line = (f"{name}: push run {r['conclusion']} at {(r.get('headSha') or '?')[:8]}: "
+                    f"{r.get('url')}")
+            if name in running:
+                line += " (a newer run is in progress)"
+            out["Default branch"].append(line)
 
 
 def ready_owner_notes(repo, issue, out):

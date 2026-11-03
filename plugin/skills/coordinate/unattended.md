@@ -17,6 +17,7 @@ A lane is in scope when the user's scope names its issue and the roadmap's Kind 
 - **Spares:** give a spare an in-scope lane with no session as *Starting a lane*, **Spares**, says, adding the worker paragraph to its brief, and log it.
 - A fix to tests or CI only, changing no behaviour, that a lane in scope needs in order to merge counts as in scope: have a running worker make it, then log it.
 - **Stuck** (a check a worker cannot fix, an unexplained moved head, a conflict, a worker blocked on a decision only the user can make, a step from the list below): that lane stops, and so do the parked lanes behind it; log it; move each out of Now (*Finishing a lane*, **A lane that stops without merging**); carry on with the rest.
+- **A red default branch** (`ready`'s Default branch section): keep merging, since installs come from `release`; log each failed push run once, by workflow and sha. A lane whose worker's local check then fails because of the default branch is Stuck as above.
 - At every state change, update the Unattended log and push the records, so the user reads what happened when they return.
 - **The round ends** when no in-scope lane is running or parked (each merged or stopped): close out each spare still parked, write a closing summary in the Unattended log, push the records, and end the turn with no alarm. Until then, set the alarm before ending each turn as *Following progress*, **Alarm**, says.
 
