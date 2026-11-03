@@ -15,7 +15,7 @@ A lane is in scope when the user's scope names its issue and the roadmap's Kind 
 - **PRs and merges** only when the user granted it: a lane finished with no blocker gets its PR; a lane under `ready`'s Ready to merge gets `relay.py merge` (*Finishing a lane*, **Merge**). A CI fallback goes on only as `ci-fallbacks.md`, **Asking the user**, allows.
 - **Answering a worker's question:** in scope and reversible, answer from the plan and the rulings, and log the question, your answer and why. Unsure: that lane is Stuck.
 - A fix to tests or CI only, changing no behaviour, that a lane in scope needs in order to merge counts as in scope: have a running worker make it, then log it.
-- **Stuck** (a check a worker cannot fix, an unexplained moved head, a conflict, a worker blocked on a decision only the user can make, a step from the list below): that lane stops, and so do the parked lanes behind it; log it; move each out of Now (*Finishing a lane*, a lane that stops without merging); carry on with the rest.
+- **Stuck** (a check a worker cannot fix, an unexplained moved head, a conflict, a worker blocked on a decision only the user can make, a step from the list below): that lane stops, and so do the parked lanes behind it; log it; move each out of Now (*Finishing a lane*, **A lane that stops without merging**); carry on with the rest.
 - At every state change, update the Unattended log and push the records, so the user reads what happened when they return.
 - **The round ends** when no in-scope lane is running or parked (each merged or stopped): write a closing summary in the Unattended log, push the records, and end the turn with no alarm. Until then, set the alarm before ending every turn.
 

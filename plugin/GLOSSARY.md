@@ -93,7 +93,7 @@ Work only the user can do, recorded on a parent: a block in the parent's body or
 The coordinator's background `sleep` that wakes it to read `status/` while lanes run, since a worker's turn end may not. It waits the minutes on project.md's `Alarm:` line, 20 without one.
 
 **Close-out**
-The end of a round, once no lane is left to start: the coordinator hands control back and, on the user's yes, archives finished sessions, gives temporary rulings an end condition and writes itself out of Handover (`coordinate/close-out.md`).
+When no lane is left to run or start: the coordinator hands control back and, on the user's yes, archives finished sessions, gives temporary rulings an end condition and writes itself out of Handover (`coordinate/close-out.md`).
 
 **CI fallback**
 The path a lane on "merge once CI passes" takes when its CI cannot run or no check appears (`coordinate/ci-fallbacks.md`).

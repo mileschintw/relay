@@ -6,7 +6,7 @@ Measured, not documented; the app can change. When a tool result contradicts a l
 - **Fallback:** an `own_initiative` card; the user's click starts it with no further typing. Under Remote Control even cards can be refused ("Nothing was proposed"): keep the brief in the records folder, list it in the plan, and ask the user to say one line in the desktop app.
 - **SendMessage to a session that already exists** works in any turn, event turns included, and starts a turn in it. This is what makes parked workers and GO work.
 - A target session in a different permission mode may hold the message for the user's approval (why *Starting a lane* leaves `permission_mode` out).
-- When a note you expected is missing after a long run of notes with no user message, the app may have stopped delivering them. Keep the alarm running: it still wakes you to read `status/`. Unattended, carry on from those files. Otherwise tell the user once that notes may have stopped, and send no GO and open no PR until they reply.
+- **A note you expected is missing:** keep the alarm running (after a long run of notes with no user message, the app may have stopped delivering them): it still wakes you to read `status/`. Unattended, carry on from those files. Otherwise tell the user once that notes may have stopped, and send no GO and open no PR until they reply.
 - `AskUserQuestion` answers in a worker's session are invisible to you (`list_events` does not show them).
 
 ## Session folders

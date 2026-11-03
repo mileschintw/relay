@@ -15,7 +15,7 @@ For a lane on "merge once CI passes" whose CI cannot run or has not started (coo
 2. On their yes: `relay.py localcheck <records> <key> --checkout <this repo's checkout> --comment <N>`.
 3. When it passes with no status-head warning, check the head it printed is still the PR head (`gh pr view <N> --json headRefOid`), then `gh pr merge <N> --merge --match-head-commit <that sha>`. Tell the user the lane merged, and go on to *Finishing a lane*'s after-the-merge step.
 
-A failed local check is a failed check: it goes to the user with its output, as in *Finishing a lane*.
+A failed local check is a failed check: it goes to the user with its output, as in *Finishing a lane* (`waitchecks`'s hint).
 
 ## Checks not started
 
