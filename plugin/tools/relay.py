@@ -74,8 +74,8 @@ ready   read-only. Prints what the coordinator can do next, the Plan warning fir
             warning, never a crash; a lane whose brief or PR body draft has one also shows as
             lookup failed.
             Also a warning when plan.md's Handover > Coordinator line is in neither of its forms
-            (the template's `title ..., worktree ..., id ..., mode ....`, or `none`), by line number;
-            when the records folder has no .gitattributes, naming the fix; and
+            (the template's `title ..., worktree ..., id ..., mode ....`, or `none`), by line
+            number; when the records folder has no .gitattributes, naming the fix; and
             one when the deny list is missing, is not valid UTF-8 (a BOM is fine), or has a line
             that is not a usable pattern, such as one with a zero-length match (`\\b`) (by line
             number, never its text); done lanes then wait, with no deny-list check.

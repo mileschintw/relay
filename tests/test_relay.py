@@ -496,8 +496,8 @@ class ReadyTests(Base):
         out = self.ready()
         self.assertIn("Records:\n  plan.md line 5: Handover > Coordinator is not in the "
                       "template's shape", out)
-        self.assertIn("hint: rewrite it as the template's `title ..., worktree ..., id ..., mode ....`, "
-                      "or `none` when no coordinator holds the plan", out)
+        self.assertIn("hint: rewrite it as the template's `title ..., worktree ..., id ..., "
+                      "mode ....`, or `none` when no coordinator holds the plan", out)
         # ASCII only: `ready` prints to a console that may not hold more (cp950, say)
         self.assertTrue(all(line.isascii() for line in out.splitlines() if "Coordinator" in line))
 
