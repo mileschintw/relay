@@ -7,7 +7,7 @@ You are a worker: one lane, one worktree, one branch, one pull request; you stop
 
 Your start message names the records folder and your brief (`briefs/<key>.md`); the app names the coordinator (the session that started you) and its id. Read, in order: the brief, the records folder's `project.md`, and each issue on the brief's *Closes* line (body and comments).
 
-**Precedence:** the issues decide what to build; the brief overrides `project.md` and this skill. Nothing overrides the brief's lane tests, `project.md`'s test bar, off-limits paths and ask-first list, or another lane's files. When the brief says the user is away, an item on the ask-first list blocks (*Status*) instead of being asked. Talk to the user, and write the report, in `project.md`'s user language; status lines, commits and the PR body in its repo-file language.
+**Precedence:** the issues decide what to build; the brief overrides `project.md` and this skill. Nothing overrides the brief's lane tests, `project.md`'s test bar, off-limits paths and ask-first list, or another lane's files. Talk to the user, and write the report, in `project.md`'s user language; status lines, commits and the PR body in its repo-file language.
 
 ## Parked
 
@@ -22,14 +22,13 @@ When your start message says you are parked: read the brief, `project.md` and th
 3. **Review until no blocker.** `relay.py status <records> <key> --state review --doing "<one line>"`. Run `mattpocock-skills:code-review` with `origin/<default>` as the fixed point and the issues on the *Closes* line plus your brief as the spec (it needs neither from the user; a parent spec those issues link to is context, not spec), plus a `mattpocock-skills:writing-for-agents` review of changed agent-facing text. Fix blockers; list everything else as notes and leave them.
    - **Each later round** reviews only the commits since the head the last round reviewed (that head as the fixed point, the last round's blockers as the spec). Still blockers after three rounds: block (*Status*).
    - A finding outside the lane's scope is no blocker: handle it as *Status* says.
-4. **Checks.** Run `project.md`'s checks and the brief's lane tests; keep commands and output for the report. A skipped test counts as not run: name it in the report. A check `project.md` marks "main checkout only": don't run it here; name it in the report with its command, for the user to run before the merge. A failure: fix it, then back to step 3. A test that needs a pull request (a CI trigger, say): open none; write in the report how to confirm it after the merge.
+4. **Checks.** Run `project.md`'s checks and the brief's lane tests; keep commands and output for the report. A skipped test counts as not run: name it in the report. A check `project.md` marks "main checkout only": don't run it here; name it in the report with its command, for the user to run before the merge. A failure: fix it, then back to step 3.
 5. **PR body draft** at `<records>/pr-bodies/<key>.md`, in the `mattpocock-skills:pr` skill's shape, plus:
-   - one `Closes #N` line per issue on the brief's *Closes* line, each alone on its line; anywhere else, related issues are `Refs #N` (no fix/close/resolve before a `#N`);
+   - one `Closes #N` line per issue on the brief's *Closes* line, each alone on its line; anywhere else, related issues are `Refs #N` (no fix/close/resolve before a `#N`); no name from `project.md`'s deny list, if it names one (`ready` reports hits by line);
    - no title line (the coordinator passes the issue title separately);
-   - a *Review* section: each finding and how it was handled;
-   - no name from the deny list `project.md` names, if it names one (`ready` reports hits by line).
+   - a *Review* section: each finding and how it was handled.
 6. **Finish.** `git fetch`. If `origin/<default>` moved in a way that touches your files or the brief's *Before and after* line: *Catching up*, then rerun steps 3 and 4 for what changed. Write the report (*Report*). Check every clause of **Done when**; once all hold, run `relay.py status <records> <key> --state done --doing "<one line>"`. The coordinator opens the PR from that head. After `done`, the branch changes only when the coordinator asks for a fix: *Catching up*, rerun steps 3 and 4 for what changed, then `relay.py status <records> <key> --state done --doing "<one line>"` again.
-7. End your turn, with no background command still running, on a two-line summary naming the report file.
+7. End your turn on a two-line summary naming the report file, with nothing left running (*Status*, **Background runs**).
 
 **Done when:** everything each issue on the *Closes* line wants is built, or listed in the report as no longer holding; `project.md`'s checks and the lane tests pass on the pushed head, except "main checkout only" ones named in the report; the last review found no blocker; the PR body draft and the report are written. The status file then says `done` with that head.
 
@@ -38,10 +37,9 @@ When your start message says you are parked: read the brief, `project.md` and th
 Run `relay.py status` from your lane's worktree (it reads the branch and head there) at each milestone, never by hand. The coordinator reads your status file and your report, not your turn-end note.
 
 - **Blocked** on a decision only the user or the coordinator can make, or needing an off-limits file: `relay.py status <records> <key> --state blocked --doing "<the question>"`, the options in the report, and a `SendMessage` to the coordinator's id with one short question. Once answered, set the state back to the step you were on.
-- **Waiting on your own background runs**: never end a turn while a background job you depend on runs without a background wait that wakes you when it ends (a `run_in_background` command or `Monitor`). At each turn end before `done`, rerun the same `relay.py status` command with the same `--state` and a `--doing` naming what still runs and when you expect it to finish (`"still running <X>, <Y>; expected by <HH:MM>"`). The coordinator then tells waiting from a stall without reading your transcript.
+- **Background runs**: before `done`, never end a turn while a background job you depend on runs without a background wait that wakes you when it ends (a `run_in_background` command or `Monitor`); at `done`, none may still run. At each turn end before `done`, rerun the same `relay.py status` command with the same `--state` and a `--doing` naming what still runs and when you expect it to finish (`"still running <X>, <Y>; expected by <HH:MM>"`). The coordinator then tells waiting from a stall without reading your transcript.
 - A problem outside your lane (a review finding outside the lane's scope, a check that breaks after step 1, a shared file, a bug every lane hits): look it up first, with `gh issue list --search "<key words>" --state all` and the Roadmap in the records folder's `plan.md`.
-  - An open issue or a Roadmap row holds it: name that issue in the report.
-  - Only a closed issue holds it, or nothing does: open a new issue (`Refs` the closed issue when there is one, else an issue on your brief's *Closes* line) and list it in the report under issues opened. When it will hit other lanes too, also send the coordinator one short `SendMessage` naming the new issue.
+  - An open issue or a Roadmap row holds it: name that issue in the report. Only a closed issue holds it, or nothing does: open a new issue (`Refs` the closed issue when there is one, else an issue on your brief's *Closes* line) and list it in the report under issues opened. When it will hit other lanes too, also send the coordinator one short `SendMessage` naming the new issue.
   - It stops your lane: block (**Blocked** above). Otherwise, carry on.
 
 ## Report
@@ -59,7 +57,6 @@ Run `relay.py status` from your lane's worktree (it reads the branch and head th
 - problems outside the lane that the tracker or the Roadmap already holds, each with its issue number (already tracked; no action);
 - anything created, installed or removed outside the repo and your scratchpad, and whether you undid it;
 - **every decision the user made in this session, with their words** (the coordinator cannot see your `AskUserQuestion` answers): quote only what they typed; for an option you wrote, give the question and "picked <option>";
-- when the brief says the user is away, a *Decided while unattended* section;
 - open questions for the coordinator.
 
 `relay.py ready` checks the PR body draft for the coordinator, who commits the records folder; you commit neither.
