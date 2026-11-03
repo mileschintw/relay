@@ -258,3 +258,7 @@ Merged 2026-11-03 (PR #156) on the user's "open the PR and merge once CI passes"
 Merged 2026-11-03 06:13 UTC (PR #155, body updated after two catch-ups) on the user's "open the PR and merge once CI passes" (picked). Opened #147.
 
 | 139 | #139 | local_910e2d1e-d6e1-4dcb-9637-b3d4fc1f2c69 (folder lane-132-1ec78c, an archived lane's, on its own branch claude/lane-139-e5e149) | done, PR #155; asked to merge main again (conflicts after 118) | — |
+
+## Lane 119 merged (2026-11-03 00:05 -0800)
+
+- #119 README as a one-page product page, with the design session's banner (branch claude/nice-galileo-556006 @ 6ace6e5): PR #157 merged at 6676c3e after CI (user picked "open the PR and merge once CI passes" 2026-11-02 23:59 -0800). project.md's Test bar and Release line now point at `docs/layout.md` and `docs/releasing.md`, per the lane's report. Design session: About and 20 topics applied on the user's yes there; the social preview PNG is a manual upload for the user.
