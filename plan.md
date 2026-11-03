@@ -4,8 +4,8 @@ Current state only. Done work moves to `plan-history.md` with a one-line pointer
 
 ## Handover
 
-- **Coordinator:** the session in worktree D:\Repos\relay\.claude\worktrees\new-session-208f95 (branch `claude/relay-coordinate-f026f5`), since 2026-11-02 13:01 -0800; mode normal. The previous coordinator (worktree D:\Repos\relay\.claude\worktrees\lane-102-f7b67c, id local_41066841-894c-4b9c-8f9e-2ce0ab11a088) wrote itself out on 2026-11-02 after the round of lanes 107–123 (→ `plan-history.md`, "Lanes 107–111"; its 7 lane sessions archived, scratchpads in `snapshot/`). The next coordinator starts with `/relay:coordinate` in a new desktop-app session. `relay.py` is `project.md`'s line (main checkout, at `6ce2684`): fast-forward it after each merge.
-- **Next:** #112 runs as lane 131 (H) now (132 merged), then 133 (C1) on #131's merge, then 134 (C2) on #133's merge; then ask the user before closing parent #112. #114–#119 and #130 triage waits on the user (all blocked by #112). The compact hook (#111) is on main but reaches the user only with the next release (installed relay is 0.3.2); a release runs `project.md`'s one review pass first. Records `compact-instruction.md` is no longer used by the new flow; kept until the user decides.
+- **Coordinator:** the session in worktree D:\Repos\relay\.claude\worktrees\new-session-208f95 (branch `claude/relay-coordinate-f026f5`), since 2026-11-02 13:01 -0800; mode normal. The previous coordinator (worktree D:\Repos\relay\.claude\worktrees\lane-102-f7b67c, id local_41066841-894c-4b9c-8f9e-2ce0ab11a088) wrote itself out on 2026-11-02 after the round of lanes 107–123 (→ `plan-history.md`, "Lanes 107–111"; its 7 lane sessions archived, scratchpads in `snapshot/`). The next coordinator starts with `/relay:coordinate` in a new desktop-app session. `relay.py` is `project.md`'s line (main checkout, at `ebeb9a4`): fast-forward it after each merge.
+- **Next:** #112 runs as lane 133 (C1) now (131, 132 merged), then 134 (C2) on #133's merge; then ask the user before closing parent #112. #114–#119 and #130 triage waits on the user (all blocked by #112). The compact hook (#111) is on main but reaches the user only with the next release (installed relay is 0.3.2); a release runs `project.md`'s one review pass first. Records `compact-instruction.md` is no longer used by the new flow; kept until the user decides.
 - **Alarm:** `project.md`'s `Alarm: 10` (the user's 10 minutes, 2026-10-31 01:51 「可以就這樣改」, moved there when #82 merged); waiting on CI relies on the background `waitchecks` ending, not the alarm.
 - **Unattended log:** none.
 
@@ -19,11 +19,10 @@ Current state only. Done work moves to `plan-history.md` with a one-line pointer
 
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
-| 131 | #131 | local_f2033247-ca09-4bc2-a8a0-52a56f9764e0 (landed in archived lane 123's folder D:\Repos\relay\.claude\worktrees\lane-123-e04fcc, on its own branch `claude/lane-131-614a65`; keep lane 123's session archived) | PR #136 opened; waiting on CI, merge on pass (user: "Merge on CI"); argparse exit-2 hint added to #130 (ruling 2) | — |
-| 133 | #133 | local_0cb902a2-31ed-4213-a264-b224b4eac02d (lane-133-1fd07d, `claude/lane-133-1fd07d`) | parked | GO #133 after #131 merges |
+| 133 | #133 | local_0cb902a2-31ed-4213-a264-b224b4eac02d (lane-133-1fd07d, `claude/lane-133-1fd07d`) | GO sent | — |
 | 134 | #134 | local_199699b7-06a0-4986-b24b-d069ebe14bb8 (lane-134-eb4fc2, `claude/lane-134-eb4fc2`) | parked | GO #134 after #133 merges |
 
-Lane 132 (#132, PR #135) merged → `plan-history.md`. Lane 110 (#110, inventory, no PR) finished and #110 closed on the user's "Reviewed, go ahead" → `plan-history.md`. Lanes 109 (PR #121), 107 (PR #122), 108 (PR #124), 120 (PR #125), 111 (PR #127), 123 (PR #128) and 113 (PR #129) merged → `plan-history.md`, "Lanes 107–111". All lanes through 103 merged; 0.3.2 released → `plan-history.md` (waves 1–2, lanes 33, 42, 45–51, 60–64, 71–75, 0.3.1 and 0.3.2 rounds, close-outs).
+Lanes 132 (#132, PR #135) and 131 (#131, PR #136) merged → `plan-history.md`. Lane 110 (#110, inventory, no PR) finished and #110 closed on the user's "Reviewed, go ahead" → `plan-history.md`. Lanes 109 (PR #121), 107 (PR #122), 108 (PR #124), 120 (PR #125), 111 (PR #127), 123 (PR #128) and 113 (PR #129) merged → `plan-history.md`, "Lanes 107–111". All lanes through 103 merged; 0.3.2 released → `plan-history.md` (waves 1–2, lanes 33, 42, 45–51, 60–64, 71–75, 0.3.1 and 0.3.2 rounds, close-outs).
 
 ## Roadmap
 
@@ -32,8 +31,7 @@ Every open issue, once. "Order" is the wave (1 = can start now). "Kind" is `free
 | Issue | Order | Blocked by (GitHub) | Same-section wait | Files it owns | Kind |
 |---|---|---|---|---|---|
 | #112 Slim the skills by the reviewed inventory | — | none (#107–#110 closed) | none | its children's | parent (children #131–#134; ask the user before closing once all four close) |
-| #131 Slim batch H: ready/waitchecks/merge rules as relay.py hints | running | none | none | relay.py (hint lines in ready, waitchecks, merge, roadmap); tests | free |
-| #133 Slim batch C1: coordinate/SKILL.md under 5,000 tokens | parked | #131 | none | coordinate/SKILL.md (all but C2's rows); GLOSSARY.md (pointers) | free |
+| #133 Slim batch C1: coordinate/SKILL.md under 5,000 tokens | running | #131 (closed) | none | coordinate/SKILL.md (all but C2's rows); GLOSSARY.md (pointers) | free |
 | #134 Slim batch C2: coordinate sub-files and close-out.md | parked | #133 | none | New close-out.md; coordinate/SKILL.md (Other branches, C2's rows); app-limits, ci-fallbacks, compact, large-outputs, unattended .md; cross-machine.md (deleted); README.md (Layout); GLOSSARY.md | free |
 | #114 Merge right scoped to a round | — | #112 | none | coordinate/SKILL.md (Consent, Finishing a lane); setup/templates/plan.md (Handover) | needs-triage |
 | #115 Spare-worker pool for lanes started while the user is away | — | #112 | none | coordinate/SKILL.md (Starting a lane); unattended.md; work/SKILL.md; relay.py (ready); tests | needs-triage |
