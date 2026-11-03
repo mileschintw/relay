@@ -8,4 +8,4 @@
 
 Write every live fact from this conversation into its section of `plan.md`: the next step, who it waits on and the user's authorization for it go in Handover › Next, with anything in flight this very turn (a command running in the background, a question just asked, a message sent with no answer yet). Commit the records.
 
-Check: the plan holds each kind the top of `plan.md` says always stays, and Handover › Coordinator names this session's worktree in the template's shape (`title …, worktree <path>, id …, mode ….`, this session first; a previous coordinator, if named, after it): the hook finds the coordinator by that path, and prints nothing for a worktree it does not know.
+Check: the plan holds each kind the top of `plan.md` says always stays, and Handover › Coordinator names this session's worktree: the hook finds the coordinator by that path, and prints nothing for a worktree it does not know.

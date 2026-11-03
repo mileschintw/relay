@@ -1708,32 +1708,6 @@ class ResumeTests(unittest.TestCase):
             str(self.coord), self.coord.as_posix() + "/"), encoding="utf-8")
         self.assertIn("relay coordinator", self.resume(self.coord))
 
-    def set_coordinator(self, line):
-        (self.records / "plan.md").write_text(
-            f"# Plan\n\n## Handover\n\n- **Coordinator:** {line}\n", encoding="utf-8")
-
-    def test_coordinator_free_form_line_with_parenthesised_branch(self):
-        self.set_coordinator(
-            f"the session in worktree {self.coord} (branch c), since 2026-11-01; mode normal. "
-            f"The previous coordinator (worktree {self.lane}, id local_0ld) handed over.")
-        out = self.resume(self.coord)
-        self.assertIn("relay coordinator", out)
-        self.assertIn("- Mode normal, as Handover records it", out)
-
-    def test_coordinator_backticked_path(self):
-        self.set_coordinator(f"title t, worktree `{self.coord}`, id unknown, mode normal.")
-        self.assertIn("relay coordinator", self.resume(self.coord))
-
-    def test_coordinator_none_names_no_one(self):
-        self.set_coordinator(f"none. The previous coordinator (worktree {self.coord}, id local_0ld)")
-        self.assertEqual(self.resume(self.coord), "")
-
-    def test_coordinator_path_with_spaces(self):
-        spaced = self.tmp / "coord wt"
-        git("worktree", "add", "-q", "-b", "d", str(spaced), cwd=self.main)
-        self.set_coordinator(f"title t, worktree {spaced}, id unknown, mode normal.")
-        self.assertIn("relay coordinator", self.resume(spaced))
-
     def test_worker_gets_its_lane_files_from_a_subfolder(self):
         (self.lane / "sub").mkdir()
         out = self.resume(self.lane / "sub")

@@ -20,9 +20,6 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import relay  # noqa: E402  (beside this file; -I leaves the script's folder off sys.path)
 
 POINTER = re.compile(r"Multi-session work: records in (?:the worktree on branch coord|(\S+) beside)")
-# Handover's Coordinator line: the first `worktree <path>` field; the path ends at `,`, `;`, ` (`
-# or the line's end, or sits in backticks. A previous coordinator named later never counts.
-COORD_WORKTREE = re.compile(r"\bworktree (?:`([^`]+)`|(.+?)(?=[,;]| \(|$))")
 
 
 def git(cwd, *args):
@@ -81,8 +78,8 @@ def resume(cwd):
     plan = records / "plan.md"
     text = plan.read_text(encoding="utf-8", errors="replace") if plan.is_file() else ""
     coordinator = field(text, "Coordinator")
-    m = None if re.match(r"none\b", coordinator, re.I) else COORD_WORKTREE.search(coordinator)
-    if m and same(m.group(1) or m.group(2), top):
+    m = re.search(r"worktree (.+?), id ", coordinator)
+    if m and same(m.group(1), top):
         mode = re.search(r"\bmode (\w+)", coordinator)
         return "\n".join(filter(None, [
             f"relay: you are the relay coordinator; records at {records}. Files beat the compact summary.",
