@@ -83,7 +83,7 @@ A `run`, `audit` or `spare` lane (the Now table's Kind) opens no PR: once `ready
 - The roadmap table is the only list of open issues: change it when any issue opens or closes.
 - **Move, never delete.** The moment an entry is DONE or CONFIRMED (a merged lane, a done wave, a process log, a quote whose authority ended), move it to the end of `plan-history.md` (oldest first), leaving a one-line pointer. A ruling moves once its lanes merge or a repo doc carries it. The kinds named at the top of `plan.md` stay.
 - **Commit the records** after each change, workers' status, reports and PR bodies included: `git -C <records> add -A`, `git -C <records> commit -m "<summary>"`, `git -C <records> push origin coord`. Only you push `coord`, so it never needs a rebase or a force push.
-- A `Records:` line from `ready` carries its own hint; `relay.py merge` stops on the same lines. A missing `.gitattributes`: its line names the fix.
+- A `Records:` line from `ready` carries its own hint; `relay.py merge` stops on the same lines. A missing `.gitattributes`: its line names the fix. A deny-list name in a records file: you fix plan.md, plan-history.md and briefs, the lane's worker its own report or status; commit the records only once `ready` no longer flags it, since a pushed name stays in `coord`'s history.
 
 ## Other branches
 

@@ -91,7 +91,9 @@ ready   read-only. Prints what the coordinator can do next, the Plan warning fir
             number; when the records folder has no .gitattributes, naming the fix; and
             one when the deny list is missing, is not valid UTF-8 (a BOM is fine), or has a line
             that is not a usable pattern, such as one with a zero-length match (`\\b`) (by line
-            number, never its text); done lanes then wait, with no deny-list check.
+            number, never its text); done lanes then wait, with no deny-list check. And one
+            per records file (plan.md, plan-history.md, briefs/*.md, reports/*.md,
+            status/*.md) with a line matching the deny list, by line numbers, never the name.
           - Plan: a warning when plan.md is larger than --plan-limit bytes (default 16384, 16 KB).
           - relay.py: a warning when the git checkout holding project.md's `relay.py:` path
             (relative to --checkout, else the current folder) is behind its origin/<default>,
@@ -155,8 +157,9 @@ waitchecks  waits for PR <N>'s first check, then watches its checks. Polls `gh p
 
 merge   merges lanes one at a time, in the order given. First, every key must be listed under
         `ready`'s Ready to merge and nowhere else (--checkout as for `ready`, default the current
-        folder), and given once, or nothing merges; so does a failed `git fetch` there, or a
-        deny list `ready` reports under Records (one line, by line number).
+        folder), and given once, or nothing merges; so does a failed `git fetch` there, a
+        deny list `ready` reports under Records (one line, by line number), or a deny-list name
+        in a records file (one line per file, as `ready` prints it).
         Then, per key, with no wait for checks (Ready to merge already needs them all passed):
         its head still the sha Ready to merge printed; mergeStateStatus `CLEAN` (UNKNOWN, while
         GitHub recomputes after a merge, is asked again after 5, 15 and 30 seconds); `gh pr merge
@@ -407,6 +410,27 @@ def deny_patterns(records):
                              "pattern (the error is not shown: it can quote the name)") from None
         pats.append(pat)
     return pats
+
+
+def records_deny_hits(records, deny):
+    """One line per records file the coordinator commits (plan.md, plan-history.md, briefs,
+    reports, status) with a line matching a <deny> pattern, by file and line numbers, never the
+    name; [] when <deny> is empty. PR body drafts are checked per lane, by check_pr_body."""
+    regexes = [deny_regex(pat) for pat in deny or []]
+    if not regexes:
+        return []
+    paths = [records / "plan.md", records / "plan-history.md",
+             *(p for d in ("briefs", "reports", "status") for p in sorted((records / d).glob("*.md")))]
+    found = []
+    for path in paths:
+        if not path.is_file():
+            continue
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+        hits = sorted({i for i, l in enumerate(lines, 1) for rx in regexes if rx.search(l)})
+        if hits:
+            found.append(f"{path.relative_to(records).as_posix()} lines {hits}: a deny-list name "
+                         "(lines only, never the name)")
+    return found
 
 
 def pushed_head(checkout, branch):
@@ -788,6 +812,10 @@ READY_HINTS = (
     ("Records", r"^pr-bodies/", "in a PR body draft: message its worker to fix that line in the "
      "draft and write `done` again, since `ready` checks the draft before a PR opens; open no PR "
      "for that lane until `ready` no longer flags it"),
+    ("Records", r"^(reports|status)/.*a deny-list name", "a deny-list name in a worker's report or "
+     "status file: message its worker to fix that line (a status: rerun its last `relay.py "
+     "status` with a `--doing` that leaves the name out); commit the records only once `ready` "
+     "no longer flags it"),
     ("Records", r"^plan\.md line \d+: Main checkout names lane ", "a Main checkout holder not "
      "in Now: release it (`none`), or name the lane in Now that holds it"),
     ("Records", r"^plan\.md line \d+: Now kind ", "set that Now row's Kind to one of pr, run, "
@@ -822,7 +850,8 @@ EXIT_HINTS = {
         0: "read the default branch's run for the last merge commit instead of rerunning checks "
            "locally; tell the user which lanes merged",
         1: "it stopped at one lane, on the line saying why, and merged no lane after it. A key "
-           "not under Ready to merge (nothing merged): fix what `ready` says. Any other stop (a "
+           "not under Ready to merge (nothing merged): fix what `ready` says, as for a deny-list "
+           "name in a records file. Any other stop (a "
            "moved head, a merge state other than CLEAN, a failed lookup or `gh pr merge`): give "
            "the user that line. Tell the user which lanes merged and where it stopped",
         2: "a usage error, nothing merged: fix what its error line names and rerun",
@@ -931,6 +960,10 @@ def ready_report(a, budget):
     except LOOKUP_ERRORS as e:
         out["Records"].append(str(e))
         deny = None
+    try:
+        out["Records"] += records_deny_hits(records, deny)
+    except LOOKUP_ERRORS as e:
+        out["Records"].append(f"records deny-list check failed: {e}")
     lookups = ReadyLookups(a.checkout, fetched, len(have))
     print_section("Plan", out["Plan"])
     print("Lanes:")
@@ -1683,6 +1716,11 @@ def cmd_merge(a):
         deny = deny_patterns(records)
     except LOOKUP_ERRORS as e:
         return fail(f"{e}; nothing merged")
+    hits = records_deny_hits(records, deny)
+    for hit in hits:
+        print(f"{hit}; nothing merged", file=sys.stderr)
+    if hits:
+        return 1
     lanes = []
     for key in a.keys:
         found = ready_to_merge(records, key, repo, a.checkout, deny)
