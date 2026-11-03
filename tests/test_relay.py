@@ -1480,6 +1480,183 @@ class OwnerNoteTests(Base):
         self.assertIn("2: send `GO #2`", out)
 
 
+class HintTests(Base):
+    """ready, roadmap, waitchecks and merge print the coordinator's next step beside the output it
+    applies to (#131); one test per batch-H row of the #110 inventory."""
+
+    QUEUED, FAILED, OK = WaitchecksTests.QUEUED, WaitchecksTests.FAILED, MergeTests.OK
+    waitchecks = WaitchecksTests.waitchecks
+    merge, merges = MergeTests.merge, MergeTests.merges
+    lanes = SafeExitTests.lanes
+    parent = OwnerNoteTests.parent
+
+    def hints(self, section, *items):
+        return " | ".join(relay.section_hints(section, list(items)))
+
+    def test_c18_roadmap_ends_with_how_to_fill_an_empty_roadmap(self):
+        self.gh({"issues": {"3": ["OPEN", None]}, "bodies": {"3": "## Files\n- a.py\n"}})
+        code, out, err = self.call("roadmap", "--repo", "o/r")
+        self.assertEqual(code, 0, err)
+        self.assertTrue(out.rstrip().endswith(
+            "hint: an empty Roadmap: fill Issue, Blocked by and Files it owns from these rows, "
+            "then Order and Kind, and replace every placeholder"), out)
+        self.gh({})
+        code, out, err = self.call("roadmap", "--repo", "o/r")
+        self.assertNotIn("hint:", out)  # no rows to fill from
+
+    def test_c22_owner_notes_say_where_they_go(self):
+        self.parent(body=f"{OwnerNoteTests.MARK} book the GPU")
+        self.assertIn("    **Owner action after this set:** book the GPU\n  hint: copy each one "
+                      "plan.md's *Waiting for the user's decision* lacks into it, with its link; "
+                      "owner-only work stays an owner note on its parent: it gets no lane and no "
+                      "Roadmap row\n", self.ready())
+        self.assertEqual(self.hints("Owner notes", "#1: comments lookup failed: HTTP 502"), "")
+
+    def test_c61_parents_get_one_row_and_closing_asks_the_user(self):
+        self.gh({"issues": {"1": ["OPEN", None], "2": ["CLOSED", "COMPLETED"]},
+                 "children": {"1": ["2"]}})
+        out = self.ready()
+        self.assertIn("  hint: a parent gets one Roadmap row with Kind `parent` and no brief or "
+                      "worker; its children are the lanes\n", out)
+        self.assertIn("  hint: every child closed as completed: ask the user before closing the "
+                      "parent (*Consent*)\n", out)
+        self.assertNotIn("ask the user before closing",
+                         self.hints("Parents", "#1 t: 1 open, 0 closed children"))
+        self.assertEqual(self.hints("Parents", "lookup failed: HTTP 502"), "")
+
+    def test_c90_each_ready_section_has_its_handler(self):
+        cases = {
+            ("Ready for GO", "13: send `GO #13`"): "hold it",
+            ("Ready for PR", "12: lane-12 @ abc1234"): "*Finishing a lane* step 1",
+            ("Ready to merge", "12: PR #5 --match-head-commit " + "a" * 40): "step 4, **Merge**",
+            ("Waiting", "12: blocked: which name?"): "options with your recommendation",
+            ("Waiting", "12: lookup failed: HTTP 502"): "rerun `ready`",
+            ("Waiting", "12: PR #5 check failed: test"): "goes to the user with the watch output",
+            ("Waiting", "12: PR #5 no checks reported"): "a CI fallback",
+            ("Waiting", "12: PR #5 checks pending"): "need nothing",
+            ("Waiting", "13: parked on #12 open"): "need nothing",
+            ("Waiting", "12: deny-list check not run (see Records)"): "rerun `ready` only after",
+            ("No status yet", "4: a brief but no status file"): "stays `started`",
+            ("Merged", "12: PR #5"): "*Finishing a lane* step 6",
+            ("Inconsistent", "12: done with no report file"): "fix the plan line",
+        }
+        for (section, item), words in cases.items():
+            self.assertIn(words, self.hints(section, item), (section, item))
+        # only the kinds present get a hint
+        self.assertEqual(self.hints("Waiting", "12: blocked: which name?").count("|"), 0)
+        # a blocked lane's own words never pick another kind's hint
+        self.assertEqual(self.hints("Waiting", "12: blocked: conflict, lookup failed, check failed, "
+                                               "checks pending or parked on #3?").count("|"), 0)
+        self.call("status", str(self.records), "12", "--state", "blocked", "--doing", "pick one")
+        self.assertIn("Waiting:\n  12: blocked: pick one\n  hint: a blocked lane's question",
+                      self.ready())
+
+    def test_c91_could_not_parse_never_edits_by_hand(self):
+        (self.records / "status" / "12.md").write_bytes(b"- state: working\n- doing: \xff\n")
+        self.assertIn("Could not parse:\n  12: invalid UTF-8\n  hint: message its worker to rerun "
+                      "its last `relay.py status`; never edit a status file by hand\n", self.ready())
+
+    def test_c94_conflict_or_pr_body_problem_goes_back_to_the_worker(self):
+        self.assertIn("message its worker to catch up, push, and write `done` again",
+                      self.hints("Waiting", "12: conflicts with the default branch: a.txt"))
+        self.assertIn("message its worker to catch up",
+                      self.hints("Waiting", "12: PR #5 has a merge conflict"))
+        head = self.branch("lane-12")
+        self.done("12", "lane-12", head, body="# Title\n\nCloses #12\n")
+        self.assertIn("  hint: a PR body problem: message its worker to fix the draft, push, and "
+                      "write `done` again\n", self.ready())
+
+    def test_c99_waitchecks_prints_the_next_step_for_each_exit(self):
+        code, out, _ = self.waitchecks()
+        self.assertEqual(code, 0)
+        self.assertTrue(out.rstrip().endswith("hint (exit 0): the checks passed: merge "
+                                              "(coordinate's *Finishing a lane* step 4, **Merge**)"))
+        code, out, _ = self.waitchecks(watch=(1, "X test fail"), rollup=self.FAILED,
+                                       checks={"5": "test\tfail"})
+        self.assertEqual(code, 1)
+        self.assertIn("hint (exit 1): a failed check goes to the user with the watch output", out)
+        code, out, _ = self.waitchecks(project="- **CI start wait:** soon\n")
+        self.assertEqual(code, 2)
+        self.assertIn("hint (exit 2): a usage error: fix what its error line names and rerun", out)
+        code, out, _ = self.waitchecks(after=99, project="")
+        self.assertEqual(code, 3)
+        self.assertIn("hint (exit 3): no checks appeared: a CI fallback", out)
+        code, out, _ = self.waitchecks(after=99, broken=["statusCheckRollup"])
+        self.assertEqual(code, 4)
+        self.assertIn("hint (exit 4): a lookup failed or an unexpected error: rerun it once; if it "
+                      "exits 4 again, give the user its line", out)
+
+    def test_c102_merge_says_read_the_push_run(self):
+        self.lanes()
+        code, out, err = self.merge("12")
+        self.assertEqual(code, 0, err)
+        self.assertTrue(out.rstrip().endswith(
+            "hint (exit 0): read the default branch's run for the last merge commit instead of "
+            "rerunning checks locally; tell the user which lanes merged"), out)
+
+    def test_c103_merge_prints_the_next_step_for_each_stop(self):
+        self.lanes()
+        code, out, _ = self.merge("12", "13", view={"5": {"mergeStateStatus": "BLOCKED"}})
+        self.assertEqual(code, 1)
+        self.assertIn("hint (exit 1): it stopped at one lane", out)
+        self.assertIn("A key not under Ready to merge (nothing merged): fix what `ready` says", out)
+        code, out, _ = self.merge("12", "12")
+        self.assertEqual(code, 2)
+        self.assertIn("hint (exit 2): a usage error, nothing merged", out)
+
+        def boom(*args, **kw):
+            raise ZeroDivisionError("bad")
+        with mock.patch.object(relay, "ready_to_merge", boom):
+            code, out, _ = self.call("merge", str(self.records), "12", "--repo", "o/r")
+        self.assertEqual(code, 4)
+        self.assertIn("hint (exit 4): an unexpected error, which may come after some merges; "
+                      "exit 4: do not rerun; give the user its line, and run `ready` to see which "
+                      "lanes merged", out)
+
+    def test_c121_plan_warning_asks_for_one_pruning_pass(self):
+        (self.records / "plan.md").write_bytes(b"x" * 20000)
+        out = self.ready()
+        self.assertTrue(out.startswith("Plan:\n  plan.md is 20000 bytes"), out)
+        self.assertIn("\n  hint: do one pruning pass of everything else: move each entry that is "
+                      "DONE or CONFIRMED", out)
+        self.assertLess(out.index("hint: do one pruning pass"), out.index("Lanes:"))
+
+    def test_c125_bad_bytes_in_plan_files_say_keep_utf8_and_lf(self):
+        (self.records / "plan.md").write_bytes(b"# Plan\r\nrelease\r-0.3.0\n")
+        self.assertIn("  hint: whatever edits plan.md, plan-history.md or a brief keeps its "
+                      "encoding (UTF-8) and its line endings (LF", self.ready())
+        self.assertNotIn("keeps its encoding",
+                         self.hints("Records", "pr-bodies/4.md line 3: control character U+001B"))
+
+    def test_c127_records_warnings_get_the_handler_for_their_file(self):
+        self.assertIn("fix that line with the Edit tool",
+                      self.hints("Records", "briefs/4.md line 2: control character U+0007"))
+        self.assertIn("since `ready` checks the draft before a PR opens; open no PR for that lane "
+                      "until `ready` no longer flags it",
+                      self.hints("Records", "pr-bodies/4.md line 3: control character U+001B"))
+        project = self.hints("Records", "project.md line 2: invalid UTF-8 (byte 0xff)")
+        self.assertIn("in project.md, the user's settings: give the user the line", project)
+        self.assertNotIn("Edit tool", project)
+        self.assertEqual(self.hints("Records", ".gitattributes missing, so ..."), "")
+
+    def test_c128_deny_list_warning_never_reads_the_file(self):
+        (self.records / "deny.txt").write_text("\\b\n")
+        (self.records / "project.md").write_text("- **Deny list:** `deny.txt`\n")
+        out = self.ready()
+        self.assertIn("  hint: a deny-list line: give the user the line and wait for them to fix "
+                      "it; never open, read or print the deny file", out)
+        self.assertNotIn("the user's settings", out)
+
+    def test_c129_relay_py_behind_runs_the_command_only_on_yes(self):
+        hint = self.hints("relay.py", "D:/r is 2 commits behind origin/main: git -C D:/r merge "
+                                      "--ff-only origin/main")
+        self.assertIn("only on the user's yes", hint)
+        self.assertIn("a standing instruction to keep it current", hint)
+        hint = self.hints("relay.py", "D:/r is 2 commits behind origin/main, but it is on branch "
+                                      "x, not main: update it by hand once its work is safe")
+        self.assertEqual(hint, "tell the user, and give them the line to settle by hand")
+
+
 class ResumeTests(unittest.TestCase):
     """resume.py, the SessionStart (compact) hook, run the way the hook runs it."""
     RESUME = HERE.parent / "plugin" / "tools" / "resume.py"
