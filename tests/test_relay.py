@@ -1141,6 +1141,66 @@ class UncoveredPathsTests(Base):
         calls = pathlib.Path(str(self.fake) + ".calls").read_text(encoding="utf-8")
         self.assertNotIn("/files", calls)
 
+    def lanes_with_no_checks(self, extra):
+        """#169: lanes 12, 13 and 14 done with PRs 5, 6 and 7 open, no checks, under FILTERED."""
+        prs, heads = {}, {}
+        for n, k in enumerate(("12", "13", "14"), 5):
+            heads[k] = self.branch(f"lane-{k}", content=f"{k}\n")
+            self.done(k, f"lane-{k}", heads[k])
+            prs[f"lane-{k}"] = [{"number": n, "state": "OPEN", "headRefOid": heads[k],
+                                 "mergeable": "MERGEABLE", "statusCheckRollup": []}]
+        self.gh({"prs": prs, "workflow_files": self.FILTERED,
+                 "pr_files": {"5": ["docs/a.png"], "6": ["README.md"], "7": ["plugin/x.py"]},
+                 **extra})
+        pathlib.Path(str(self.fake) + ".calls").unlink(missing_ok=True)
+        return heads
+
+    def test_ready_reads_the_workflows_once_for_all_lanes(self):
+        heads = self.lanes_with_no_checks({})
+        out = self.ready()
+        self.assertIn(f"12: PR #5 --match-head-commit {heads['12']} (CI does not cover", out)
+        self.assertIn(f"13: PR #6 --match-head-commit {heads['13']} (CI does not cover", out)
+        self.assertIn("14: PR #7 no checks reported", out)
+        calls = pathlib.Path(str(self.fake) + ".calls").read_text(encoding="utf-8").splitlines()
+        for path in ("/actions/workflows", "/contents/.github/workflows",
+                     "/contents/.github/workflows/test.yml",
+                     "/contents/.github/workflows/lint.yml"):
+            self.assertEqual(sum(c.endswith(path) for c in calls), 1, (path, calls))
+        self.assertEqual(sum("/files " in c for c in calls), 3, calls)
+
+    def test_ready_asks_no_ci_once_for_all_lanes(self):
+        self.lanes_with_no_checks({"workflows": 0, "workflow_files": {}})
+        out = self.ready()
+        for k, n in (("12", 5), ("13", 6), ("14", 7)):
+            self.assertIn(f"{k}: PR #{n} no CI configured", out)
+        calls = pathlib.Path(str(self.fake) + ".calls").read_text(encoding="utf-8").splitlines()
+        for path in ("/actions/workflows", "/commits/HEAD/status", "/commits/HEAD/check-runs"):
+            self.assertEqual(sum(c.endswith(path) for c in calls), 1, (path, calls))
+
+    def test_ready_keeps_a_failed_workflow_read(self):
+        # a failed read is kept: the later lanes stay at `no checks reported` without asking again
+        self.lanes_with_no_checks({"broken": ["lint.yml"]})
+        out = self.ready()
+        for k, n in (("12", 5), ("13", 6), ("14", 7)):
+            self.assertIn(f"{k}: PR #{n} no checks reported", out)
+        calls = pathlib.Path(str(self.fake) + ".calls").read_text(encoding="utf-8").splitlines()
+        self.assertEqual(sum(c.endswith("/lint.yml") for c in calls), 1, calls)
+
+    def test_a_timed_out_workflow_read_is_asked_for_again(self):
+        asked = []
+
+        def texts(repo):
+            asked.append(repo)
+            relay.timed_out.append(["gh", "api"])
+            raise RuntimeError("timed out")
+
+        self.addCleanup(relay.timed_out.clear)
+        lookups = relay.ReadyLookups(None, False, 1)
+        with mock.patch.object(relay, "workflow_texts", texts):
+            for _ in range(2):
+                self.assertIsNone(relay.uncovered_line(5, "o/r", lookups.workflow_texts))
+        self.assertEqual(asked, ["o/r", "o/r"])
+
     def test_merge_takes_an_uncovered_pr(self):
         head = self.uncovered_lane(["docs/a.png", "README.md"])
         with mock.patch.object(relay.time, "sleep", lambda s: None):
