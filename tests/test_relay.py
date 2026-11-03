@@ -1606,7 +1606,7 @@ class HintTests(Base):
         self.assertIn("hint (exit 2): a usage error: fix what its error line names and rerun", out)
         code, out, _ = self.waitchecks(after=99, project="")
         self.assertEqual(code, 3)
-        self.assertIn("hint (exit 3): no checks appeared: a CI fallback", out)
+        self.assertIn("hint (exit 3): no checks appeared: take the `ci-fallbacks.md` case", out)
         code, out, _ = self.waitchecks(after=99, broken=["statusCheckRollup"])
         self.assertEqual(code, 4)
         self.assertIn("hint (exit 4): a lookup failed or an unexpected error: rerun it once; if it "
@@ -1814,6 +1814,88 @@ class ResumeTests(unittest.TestCase):
     def test_no_records_prints_nothing(self):
         (self.records / "project.md").unlink()
         self.assertEqual(self.resume(self.coord), "")
+
+
+class Lane130Tests(Base):
+    """#130: ready flags a draft that differs from the open PR's body; waitchecks exit 3 names the
+    ci-fallbacks.md case; an argparse usage error still prints waitchecks' and merge's hint."""
+
+    waitchecks, QUEUED = WaitchecksTests.waitchecks, WaitchecksTests.QUEUED
+    OK = [{"name": "ci", "status": "COMPLETED", "conclusion": "SUCCESS"}]
+
+    def open_pr(self, body):
+        if not (self.records / "status" / "12.md").exists():
+            self.head = self.branch("lane-12")
+            self.done("12", "lane-12", self.head)
+        self.gh({"prs": {"lane-12": [{"number": 5, "state": "OPEN", "headRefOid": self.head,
+                                      "mergeable": "MERGEABLE", "statusCheckRollup": self.OK,
+                                      "body": body}]}})
+
+    def test_ready_flags_a_draft_that_differs_from_the_open_pr(self):
+        self.open_pr("Closes #12\r\n\r\nBody.")
+        self.assertIn(f"12: PR #5 --match-head-commit {self.head}", self.ready())
+        self.open_pr("Closes #12\n\nOld body.\n")
+        out = self.ready()
+        draft = (self.records / "pr-bodies" / "12.md").as_posix()
+        self.assertIn(f"Waiting:\n  12: PR #5 body differs from its draft: gh pr edit 5 "
+                      f"--body-file {draft}", out)
+        self.assertNotIn("Ready to merge", out)
+        self.assertIn("hint: the draft changed after the PR opened", out)
+
+    def test_runs_on_pull_request(self):
+        yes = ["on: pull_request\n", "on: [push, pull_request]\n", "'on': pull_request\n",
+               "on:\n  push:\n    branches: [main]\n  pull_request:\n    types: [opened]\n",
+               "on:\n  - push\n  - pull_request\n", "name: ci\non:\n- pull_request\njobs: {}\n",
+               "on:  # triggers\n  # a comment\n  pull_request: {}\n"]
+        no = ["on: push\n", "on: pull_request_target\n", "on: [push, workflow_dispatch]\n",
+              "on:\n  push:\n    paths: [pull_request]\n  pull_request_target:\n",
+              "on:\n  workflow_dispatch:\njobs:\n  pull_request:\n", "jobs: {}\n"]
+        for text in yes:
+            self.assertTrue(relay.runs_on_pull_request(text), text)
+        for text in no:
+            self.assertFalse(relay.runs_on_pull_request(text), text)
+
+    def test_waitchecks_exit_3_names_the_ci_case(self):
+        cases = (
+            ({"workflow_files": {"ci.yml": "on: push\n", "pr.yaml": "on:\n  pull_request:\n"}},
+             "a workflow on the default branch runs on pull_request (.github/workflows/pr.yaml): "
+             "take *Checks not started*"),
+            ({"workflow_files": {"ci.yml": "on: push\n", "notes.md": "on: pull_request\n"}},
+             "no workflow on the default branch runs on pull_request (.github/workflows/ci.yml): "
+             "take *CI cannot run*"),
+            ({"workflows": 0, "head_statuses": 1},
+             "no workflow file on the default branch (CI outside Actions): take *Checks not "
+             "started*"),
+            ({"workflows": 0}, "no CI configured: no Actions workflow and nothing reported on the "
+             "default branch head: take *CI cannot run*"),
+            ({"workflow_files": {"ci.yml": "on: pull_request"}, "broken": ["ci.yml"]},
+             "workflow lookup failed"),
+        )
+        for data, line in cases:
+            code, out, err = self.waitchecks(after=99, **data)
+            self.assertEqual(code, 3, err)
+            self.assertIn(f"no checks appeared on PR #5 within 6 minutes\n{line}", out)
+            self.assertTrue(out.rstrip().endswith("hint (exit 3): no checks appeared: take the "
+                                                  "`ci-fallbacks.md` case the line above names"))
+
+    def usage(self, *argv):
+        out, err = io.StringIO(), io.StringIO()
+        with redirect_stdout(out), redirect_stderr(err), self.assertRaises(SystemExit) as e:
+            relay.main(list(argv))
+        return e.exception.code, out.getvalue(), err.getvalue()
+
+    def test_usage_errors_print_the_exit_2_hint(self):
+        for argv in (("waitchecks", str(self.records), "five"),
+                     ("waitchecks", str(self.records), "5", "--bogus"),
+                     ("merge", str(self.records))):
+            code, out, err = self.usage(*argv)
+            self.assertEqual(code, 2)
+            self.assertIn("usage:", err)
+            self.assertEqual(out, f"hint (exit 2): {relay.EXIT_HINTS[argv[0]][2]}\n")
+        self.assertEqual(self.usage("ready")[:2], (2, ""))
+        code, out, _ = self.usage("waitchecks", "--help")
+        self.assertEqual(code, 0)
+        self.assertNotIn("hint (exit", out)
 
 
 if __name__ == "__main__":

@@ -39,8 +39,9 @@ ready   read-only. Prints what the coordinator can do next, the Plan warning fir
           - Ready to merge: done lanes whose open PR head is the status head, checks all passed
             (at least one, none pending) and no conflict.
           - Waiting: parked lanes with an open dependency; blocked lanes, with their `doing` line;
-            done lanes with a conflict, pending or failed checks, a failed lookup, or a deny list
-            Records reports (`deny-list check not run`). A failed
+            done lanes with a conflict, pending or failed checks, a failed lookup, an open PR whose
+            body differs from the PR body draft (ends trimmed; the line gives the `gh pr edit`
+            command), or a deny list Records reports (`deny-list check not run`). A failed
             check whose job never started (no steps, or an annotation saying it was not started:
             billing, a spending limit) shows as `checks could not run (billing)`, not `check failed`.
             A PR with no checks shows as `no CI configured` when the repo has no Actions workflow
@@ -126,9 +127,11 @@ waitchecks  waits for PR <N>'s first check, then watches its checks. Polls `gh p
         or pending counts), runs `gh pr checks <N> --watch`, keeping only its errors (with no
         terminal it reprints the table every 10 s, to stdout), then prints `gh pr checks <N>`
         once; both calls' errors go to stderr. None by the last poll: prints `no checks
-        appeared`, plus `no CI configured` when the repo has no Actions workflow and nothing
-        reported on the default branch head (as `ready` decides). A failed poll is retried at the
-        next one. No overall timeout once watching.
+        appeared`, then one line naming the `ci-fallbacks.md` case: `no CI configured` (as `ready`
+        decides) or no workflow under the default branch's .github/workflows/ runs on
+        `pull_request` (read from each file's top-level `on:`): *CI cannot run*; one does, there
+        is no workflow file (CI outside Actions), or the lookup failed: *Checks not started*. A
+        failed poll is retried at the next one. No overall timeout once watching.
 
 merge   merges lanes one at a time, in the order given. First, every key must be listed under
         `ready`'s Ready to merge and nowhere else (--checkout as for `ready`, default the current
@@ -148,7 +151,8 @@ merge, a lookup or the comment failed); waitchecks 0 when the checks passed, 1 w
 3 when no check appeared, 4 when a lookup failed (the last poll's, or a watch that failed with
 no failed check behind it, a gh error say); merge 0 when every key merged, 1 when it stopped
 (a key not ready, or a fetch, lookup, merge state or `gh pr merge` that failed);
-2 on a usage error (waitchecks: a CI start wait that is not a number of minutes, or a
+2 on a usage error (argparse's too, after which waitchecks and merge still print their hint;
+waitchecks: a CI start wait that is not a number of minutes, or a
 project.md that is not UTF-8; merge: a key given twice, or a --checkout that is not a git
 checkout; localcheck: a project.md that is not UTF-8, or a checks line with more than one
 command, or only a Windows override, in one item) or a missing
@@ -369,7 +373,7 @@ def pushed_head(checkout, branch):
     return ls.split()[0] if ls.strip() else ""
 
 
-PR_FIELDS = "number,state,headRefOid,mergeable,statusCheckRollup"
+PR_FIELDS = "number,state,headRefOid,mergeable,statusCheckRollup,body"
 PR_LIST_MIN, PR_LIST_PER_LANE = 100, 3  # `ready`'s one PR list: --limit max(MIN, PER_LANE * lanes)
 
 
@@ -489,6 +493,63 @@ def no_ci(repo):
         return False
 
 
+ON_LINE = re.compile(r"""^["']?on["']?\s*:(.*)$""")
+PULL_REQUEST = re.compile(r"""^\s*(?:-\s*)?["']?pull_request["']?\s*(?::|$)""")
+
+
+def runs_on_pull_request(text):
+    """True when workflow text's top-level `on:` names the `pull_request` event: inline
+    (`on: pull_request`, `on: [push, pull_request]`) or as a child key or list item."""
+    lines = [ln.split(" #")[0].rstrip() for ln in text.splitlines()]
+    for i, line in enumerate(lines):
+        m = ON_LINE.match(line)
+        if not m:
+            continue
+        if m.group(1).strip():
+            return bool(re.search(r"\bpull_request\b(?!_)", m.group(1)))
+        block = []
+        for child in lines[i + 1:]:
+            if child.strip() and not child.lstrip().startswith("#"):
+                if not child[0].isspace() and not child.startswith("-"):
+                    break
+                block.append(child)
+        if not block:
+            return False
+        indent = min(len(c) - len(c.lstrip()) for c in block)
+        return any(PULL_REQUEST.match(c) for c in block if len(c) - len(c.lstrip()) == indent)
+    return False
+
+
+def ci_case(repo):
+    """Which ci-fallbacks.md case a PR with no checks is, from the default branch's workflow
+    files (their `on:` lines) and no_ci: one line naming the case."""
+    if no_ci(repo):
+        return ("no CI configured: no Actions workflow and nothing reported on the default branch "
+                "head: take *CI cannot run*")
+    try:
+        try:
+            listed = gh("api", f"repos/{repo}/contents/.github/workflows") or []
+        except RuntimeError as e:
+            if "404" not in str(e):
+                raise
+            listed = []
+        files = [f["path"] for f in listed if f.get("type") == "file"
+                 and f["name"].endswith((".yml", ".yaml"))]
+        on_pr = [f for f in files if runs_on_pull_request(
+            gh_raw("api", "-H", "Accept: application/vnd.github.raw+json",
+                   f"repos/{repo}/contents/{f}"))]
+    except LOOKUP_ERRORS as e:
+        return f"workflow lookup failed ({e}): take *Checks not started*"
+    if not files:
+        return ("no workflow file on the default branch (CI outside Actions): take *Checks not "
+                "started*")
+    if not on_pr:
+        return (f"no workflow on the default branch runs on pull_request ({', '.join(files)}): "
+                "take *CI cannot run*")
+    return (f"a workflow on the default branch runs on pull_request ({', '.join(on_pr)}): take "
+            "*Checks not started*")
+
+
 def checks_state(rollup, repo=None):
     if not rollup:
         return "no CI configured" if no_ci(repo) else "no checks reported"
@@ -590,6 +651,8 @@ READY_HINTS = (
      "a CI fallback: follow `ci-fallbacks.md`; its *Which case* says which applies"),
     ("Waiting", r"^\S+: (PR #\d+ checks pending|parked on )", "`checks pending` and a parked "
      "lane's open dependency need nothing"),
+    ("Waiting", r"body differs from its draft", "the draft changed after the PR opened: once "
+     "`ready` flags nothing else for that lane, run the line's `gh pr edit`"),
     ("Waiting", r"^\S+: deny-list check not run", "deny-list check not run: follow the deny-list "
      "line under Records, and rerun `ready` only after the user says the deny list is fixed"),
     ("No status yet", "", "a lane in Now stays `started` until its worker writes one; a brief "
@@ -637,7 +700,7 @@ EXIT_HINTS = {
         1: "a failed check goes to the user with the watch output; checks that could not run "
            "(as `ready` then says) are a CI fallback (`ci-fallbacks.md`, its *Which case*)",
         2: "a usage error: fix what its error line names and rerun",
-        3: "no checks appeared: a CI fallback (`ci-fallbacks.md`, its *Which case*)",
+        3: "no checks appeared: take the `ci-fallbacks.md` case the line above names",
         4: "a lookup failed or an unexpected error: rerun it once; if it exits 4 again, give the "
            "user its line",
     },
@@ -957,6 +1020,12 @@ def ready_done(records, key, st, repo, checkout, out, deny, lookups=None, fetche
     if not pr["headRefOid"].startswith(head):
         out["Inconsistent"].append(f"{key}: PR #{pr['number']} head {pr['headRefOid'][:12]} "
                                    f"is not the status head {head}")
+        return
+    draft = pathlib.Path(st.get("PR body draft", ""))
+    if pr.get("body") is not None and draft.is_file() and (  # gh may return CRLF
+            pr["body"].replace("\r\n", "\n").strip() != draft.read_text(encoding="utf-8").strip()):
+        out["Waiting"].append(f"{key}: PR #{pr['number']} body differs from its draft: "
+                              f"gh pr edit {pr['number']} --body-file {draft.as_posix()}")
         return
     checks = checks_state(pr.get("statusCheckRollup"), repo)
     if pr.get("mergeable", "").upper() == "CONFLICTING":
@@ -1285,8 +1354,7 @@ def wait_checks(pr, repo, schedule):
     if error is not None:
         return LOOKUP_FAILED
     print(f"no checks appeared on PR #{pr} within {schedule[-1] / 60:g} minutes")
-    if no_ci(repo):
-        print("no CI configured: no Actions workflow and nothing reported on the default branch head")
+    print(ci_case(repo))
     return NO_CHECKS
 
 
@@ -1476,7 +1544,14 @@ def main(argv=None):
     g.add_argument("--checkout", default=".")
     m = sub.add_parser("roadmap", help="print each open issue's blocked-by and `## Files`")
     m.add_argument("--repo")
-    a = p.parse_args(argv)
+    try:
+        a = p.parse_args(argv)
+    except SystemExit as e:  # argparse's usage error exits 2 before the command runs
+        cmd = next((t for t in (sys.argv[1:] if argv is None else argv)
+                    if not t.startswith("-")), None)
+        if e.code == 2 and cmd in EXIT_HINTS:
+            print(f"hint (exit 2): {EXIT_HINTS[cmd][2]}", flush=True)
+        raise
     command = {"status": cmd_status, "ready": cmd_ready, "roadmap": cmd_roadmap,
                "localcheck": cmd_localcheck, "waitchecks": cmd_waitchecks,
                "merge": cmd_merge}[a.cmd]
