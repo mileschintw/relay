@@ -29,6 +29,7 @@ Every open issue, once. "Order" is the wave (1 = can start now). "Kind" is `free
 
 | Issue | Order | Blocked by (GitHub) | Same-section wait | Files it owns | Kind |
 |---|---|---|---|---|---|
+| #159 CI: tier jobs by changed paths; waitchecks passes a PR that CI does not cover | 2 | none | after #151, relay.py wait_checks, cmd_waitchecks | .github/workflows/test.yml; relay.py (wait_checks, cmd_waitchecks, ci_case); tests; setup/SKILL.md step 9 | needs-triage |
 
 Filled 2026-11-02 from `relay.py roadmap`. #112, #115, #116, #117 list several paths on one bullet, which `parse_files` reads as one path; the paths above are from the issue text.
 
