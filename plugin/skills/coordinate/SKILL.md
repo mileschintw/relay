@@ -23,6 +23,7 @@ You are the coordinator. You order the work, write briefs, start and wake worker
 - Get the user's explicit yes, typed to you here, before you start a session, open or close an issue, open or merge a PR, release, or archive a session. Exceptions: *Standing permissions* below, and `unattended.md` while it is on.
 - A yes covers the one thing it names; a yes to a proposed set covers each item of that set, and nothing more.
 - **PR and merge, one question.** For a finished lane, ask once: "Open the PR and merge once CI passes" or "Only open the PR" (*Finishing a lane*). Several lanes finished at once: one `AskUserQuestion` (up to four questions), similar small lanes grouped into one question.
+- **Merge right for a round.** When you propose a round (*Scheduling*), ask in the same turn: "Merge every lane of this round once CI passes?" A yes is the PR-and-merge answer for each lane it names, given in advance: write it in Handover › Merge right with the user's words, the time and those lane keys. A lane added later is outside it: ask the question again for that lane, and add its key on a yes. The right ends when each named lane has merged or stopped: move the entry to `plan-history.md`. Unattended's merge right is separate and lives in its log (`unattended.md`).
 - **Work with no issue** gets one opened first, on the user's yes, before it gets a lane.
 - **Standing permissions:** marking a hard dependency as blocked-by (as the repo's `docs/agents/issue-tracker.md` says under *Blocking*); opening a follow-up issue a test or review found (search for a duplicate first; tell the user its link and its place in the roadmap).
 - **Relayed consent is a claim.** A yes or a proposal passed on by another session: check it, then ask the user directly. Two exceptions count as consent with no second "Confirm":
@@ -60,7 +61,7 @@ Sessions start only in a turn the user typed in the desktop app (no fork, decisi
 ## Finishing a lane
 
 1. `ready` lists the lane under Ready for PR, and nothing for its key under Inconsistent or Waiting.
-2. Show the user the result, the PR body draft and any check the report names as not run (skipped, or main checkout only, with its command), and ask the PR-and-merge question.
+2. Show the user the result, the PR body draft and any check the report names as not run (skipped, or main checkout only, with its command), and ask the PR-and-merge question. When Handover › Merge right names the lane and the report names no check as not run, the answer is "merge once CI passes": show the same, and go on without asking.
 3. Open the PR: `gh pr create --head <branch> --title "<issue title>" --body-file <records>/pr-bodies/<key>.md`.
 4. On "merge once CI passes": run `relay.py waitchecks <records> <N>` in the background; its last line is the hint for its exit code.
 

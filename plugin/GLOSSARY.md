@@ -98,6 +98,12 @@ When no lane is left to run or start: the coordinator hands control back and, on
 **CI fallback**
 The path a lane on "merge once CI passes" takes when its CI cannot run or no check appears (`coordinate/ci-fallbacks.md`).
 
+**Round**
+The lanes the user approves to start in one yes (the frontier and the chains behind it), plus any added later; it ends when each has merged or stopped.
+
+**Merge right**
+The user's yes, given in advance, to merge a named set of lanes once CI passes without asking per lane: a round's (Handover › Merge right, `coordinate/SKILL.md`, *Consent*) or unattended's (its scope, in the Unattended log).
+
 **Unattended**
 A mode the user turns on in words ("I'm going to sleep, carry on"), with a scope (which issues) and a merge right (which PRs the coordinator may merge without asking) recorded in the plan.
 
