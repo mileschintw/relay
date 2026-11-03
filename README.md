@@ -29,7 +29,7 @@ flowchart LR
 The records branch is an orphan branch, `coord`, checked out beside the repo as the records folder `<repo>-coord/` and never merged:
 
 ```
-project.md      settings: language, checks, test bar, off-limits paths
+project.md      settings: language, checks, test bar, off-limits paths, alarm, deny list
 plan.md         current state only (done work moves to plan-history.md)
 briefs/<key>.md ~10-line briefs, one per lane
 status/<key>.md written by relay.py status
