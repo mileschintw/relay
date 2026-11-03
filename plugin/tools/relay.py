@@ -178,16 +178,17 @@ merge   merges lanes one at a time, in the order given. First, every key must be
         prints the default branch's push run for the merge commit (`gh run list --event push
         --commit`), or that none has appeared yet.
 
-Exit: status 0 when written, 1 when a check fails; ready 0 after printing; roadmap 0 after
-printing, 1 when a lookup fails; localcheck 0 when every command passed, else 1 (a command, the
-merge, a lookup or the comment failed); waitchecks 0 when the checks passed (or CI does not
-cover the PR's paths), 1 when one failed, 3 when no check appeared, 4 when a lookup failed
-(the last poll's, or a watch that failed with no failed check behind it, a gh error say), 5
-when the watch timed out; merge 0 when every
+Exit: status 0 when written, 1 when a check fails; ready 0 after printing, 2 on a bad
+$RELAY_READY_SECONDS; roadmap 0 after printing, 1 when a lookup fails; localcheck 0
+when every command passed, else 1 (a command, the merge, a lookup or the comment failed);
+waitchecks 0 when the checks passed (or CI does not cover the PR's paths), 1 when one failed,
+3 when no check appeared, 4 when a lookup failed (the last poll's, or a watch that failed with
+no failed check behind it, a gh error say), 5 when the watch timed out; merge 0 when every
 key merged, 1 when it stopped (a key not ready, or a fetch, lookup, merge state or `gh pr merge`
 that failed);
 2 on a usage error (argparse's too, after which waitchecks and merge still print their hint;
-waitchecks: a CI start wait that is not a number of minutes, or a project.md that is not UTF-8;
+ready: a $RELAY_READY_SECONDS that is not a number of seconds; waitchecks: a CI start wait that
+is not a number of minutes, or a project.md that is not UTF-8;
 merge: a key given twice, or a --checkout that is not a git checkout; localcheck: a project.md
 that is not UTF-8, or a checks line with more than one command, or only a Windows override, in
 one item) or a missing records folder (status too: it creates only status/ inside it).
