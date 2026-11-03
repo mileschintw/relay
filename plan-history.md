@@ -316,3 +316,10 @@ Windows tests now run only on push to main; releasing.md step 2 gates on main's 
 | #166 coordinate: name the Unattended log for the unattended merge right | 1 | none | none | coordinate/SKILL.md (Consent › The user's words); coordinate/unattended.md (first paragraph) | free |
 
 The unattended merge right is named as living in Handover › Unattended log (SKILL.md › The user's words; unattended.md first paragraph). Its README word-count edit was reverted on the coordinator's ask (line owned by 168). Report: `reports/166.md`.
+
+## Lane 167 (#167, PR #175), merged 2026-11-03
+
+| 167 | #167 | local_fd3f00e0-d3cd-4f11-be7e-583a45c88adb | started | — |
+| #167 setup: say CI start wait also caps the checks watch | 1 | none | none | setup/templates/project.md (CI start wait line); GLOSSARY.md (if it defines CI start wait) | free |
+
+Setup's project.md template says CI start wait also caps the checks watch at 20× (2 hours at 6). Report: `reports/167.md`.
