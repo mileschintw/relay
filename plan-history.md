@@ -309,3 +309,10 @@ Merged 2026-11-03 11:42 UTC (PR #171, 5373249) on the user's 「開 PR，CI 過�
 | #173 CI: run windows tests only on push to main, not on PRs | 1 | none | none | .github/workflows/test.yml (test job matrix); setup/SKILL.md (CI step, one clause); docs/releasing.md (step 2) | free |
 
 Windows tests now run only on push to main; releasing.md step 2 gates on main's push run. PR checks list confirmed before merge: changes, test (ubuntu-latest), validate, no windows. User picked "開 PR，CI 通過後合併" (2026-11-03) with the two not-run checks named. Report: `reports/173.md`.
+
+## Lane 166 (#166, PR #177), merged 2026-11-03 22:36 UTC
+
+| 166 | #166 | local_8d166ad5-3471-4f24-80d0-65a34b24df22 (landed in archived lane 133's folder D:/Repos/relay/.claude/worktrees/lane-133-1fd07d, on its own branch claude/lane-166-cf62d1) | started | — |
+| #166 coordinate: name the Unattended log for the unattended merge right | 1 | none | none | coordinate/SKILL.md (Consent › The user's words); coordinate/unattended.md (first paragraph) | free |
+
+The unattended merge right is named as living in Handover › Unattended log (SKILL.md › The user's words; unattended.md first paragraph). Its README word-count edit was reverted on the coordinator's ask (line owned by 168). Report: `reports/166.md`.
