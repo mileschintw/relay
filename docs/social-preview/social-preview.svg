@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640">
+<rect width="1280" height="640" fill="#0d1117"/>
+<rect x="80" y="64" width="1120" height="512" rx="16" fill="#161b22" stroke="#30363d" stroke-width="2"/>
+<defs><marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0 L10 5 L0 10 z" fill="#bc8cff"/></marker></defs>
+<g font-family="Menlo, Consolas, monospace">
+<rect x="120" y="232" width="210" height="136" rx="12" fill="#0d1117" stroke="#58a6ff" stroke-width="3"/>
+<text x="225.0" y="268" font-size="23" fill="#58a6ff" text-anchor="middle">coordinator</text>
+<rect x="134" y="288" width="88" height="30" rx="15" fill="#161b22" stroke="#30363d" stroke-width="2"/><text x="178" y="309" font-size="15" fill="#8b949e" text-anchor="middle">plan</text>
+<rect x="227" y="288" width="88" height="30" rx="15" fill="#161b22" stroke="#30363d" stroke-width="2"/><text x="271" y="309" font-size="15" fill="#8b949e" text-anchor="middle">briefs</text>
+<rect x="134" y="326" width="88" height="30" rx="15" fill="#161b22" stroke="#30363d" stroke-width="2"/><text x="178" y="347" font-size="15" fill="#8b949e" text-anchor="middle">status</text>
+<rect x="227" y="326" width="88" height="30" rx="15" fill="#161b22" stroke="#30363d" stroke-width="2"/><text x="271" y="347" font-size="15" fill="#8b949e" text-anchor="middle">reports</text>
+<line x1="330" y1="300" x2="1160" y2="300" stroke="#8b949e" stroke-width="4"/>
+<text x="1160" y="286" font-size="16" fill="#8b949e" text-anchor="end">main</text>
+<path d="M330 300 C385 300 385 190 440 190 L716 190 C768.2 190 768.2 300 820.5 300" fill="none" stroke="#e3b341" stroke-width="4"/>
+<circle cx="554" cy="190" r="7" fill="#161b22" stroke="#e3b341" stroke-width="3"/><circle cx="598" cy="190" r="7" fill="#161b22" stroke="#e3b341" stroke-width="3"/><circle cx="642" cy="190" r="7" fill="#161b22" stroke="#e3b341" stroke-width="3"/><rect x="662" y="173" width="54" height="34" rx="17" fill="#238636"/><text x="689" y="197" font-size="19" fill="#f0f6fc" text-anchor="middle">PR</text>
+<path d="M330 300 C385 300 385 248 440 248 L996.5 248 C1021.2 248 1021.2 300 1045.9 300" fill="none" stroke="#58a6ff" stroke-width="4"/>
+<circle cx="834.5" cy="248" r="7" fill="#161b22" stroke="#58a6ff" stroke-width="3"/><circle cx="878.5" cy="248" r="7" fill="#161b22" stroke="#58a6ff" stroke-width="3"/><circle cx="922.5" cy="248" r="7" fill="#161b22" stroke="#58a6ff" stroke-width="3"/><rect x="942.5" y="231" width="54" height="34" rx="17" fill="#238636"/><text x="969.5" y="255" font-size="19" fill="#f0f6fc" text-anchor="middle">PR</text>
+<path d="M330 300 C385 300 385 372 440 372 L852.5 372" fill="none" stroke="#30363d" stroke-width="4" stroke-dasharray="12 10"/>
+<circle cx="438" cy="372" r="8" fill="#bc8cff"/>
+<path d="M852.5 372 L1036.5 372 C1070.7 372 1070.7 300 1104.9 300" fill="none" stroke="#bc8cff" stroke-width="4"/>
+<circle cx="874.5" cy="372" r="7" fill="#161b22" stroke="#bc8cff" stroke-width="3"/><circle cx="918.5" cy="372" r="7" fill="#161b22" stroke="#bc8cff" stroke-width="3"/><circle cx="962.5" cy="372" r="7" fill="#161b22" stroke="#bc8cff" stroke-width="3"/><rect x="982.5" y="355" width="54" height="34" rx="17" fill="#238636"/><text x="1009.5" y="379" font-size="19" fill="#f0f6fc" text-anchor="middle">PR</text>
+<path d="M820.5 312 C820.5 342 812.5 372 846.5 372" fill="none" stroke="#bc8cff" stroke-width="2.5" stroke-dasharray="4 5" marker-end="url(#arr)"/>
+<text x="454" y="174" font-size="20" fill="#e3b341">lane #12</text>
+<text x="454" y="232" font-size="20" fill="#58a6ff">lane #14</text>
+<text x="454" y="406" font-size="19" fill="#bc8cff">lane #15 · parked, waits for GO</text>
+<text x="810.5" y="334" font-size="16" fill="#bc8cff" text-anchor="end">GO</text>
+<circle cx="820.5" cy="300" r="9" fill="#e3b341"/><circle cx="1045.9" cy="300" r="9" fill="#58a6ff"/><circle cx="1104.9" cy="300" r="9" fill="#bc8cff"/>
+</g>
+<text x="116" y="505" font-family="Helvetica, Arial, sans-serif" font-size="64" font-weight="700" fill="#f0f6fc">relay</text>
+<text x="120" y="551" font-family="Helvetica, Arial, sans-serif" font-size="28" fill="#8b949e">One Claude Code session coordinates many worker sessions.</text>
+</svg>
