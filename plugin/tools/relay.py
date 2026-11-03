@@ -474,12 +474,36 @@ class ReadyLookups:
     fetch or the ref read failed), and every PR from one `gh pr list --state all`. In a full
     list, a branch with no merged PR there gets its own lookup, since older PRs may be cut off.
     A failed list fails each lane that asks for it; one that timed out is asked for again, so
-    each such lane times out too and `ready` lists it as skipped."""
+    each such lane times out too and `ready` lists it as skipped. The default branch's workflow
+    texts and no_ci's answer, for PRs with no checks, are kept the same way (#169)."""
 
     def __init__(self, checkout, fetched, lanes):
         self.checkout, self.limit = checkout, max(PR_LIST_MIN, PR_LIST_PER_LANE * lanes)
         self.use_refs, self.heads = bool(checkout and fetched), None
         self.index, self.full, self.error = None, False, None
+        self.kept = {}
+
+    def once(self, fn, repo):
+        """fn(repo), or what it returned or raised earlier this run; a call that timed out is not
+        kept."""
+        value = self.kept.get(fn)
+        if fn not in self.kept:
+            before = len(timed_out)
+            try:
+                value = fn(repo)
+            except LOOKUP_ERRORS as e:
+                value = e
+            if len(timed_out) == before:
+                self.kept[fn] = value
+        if isinstance(value, Exception):
+            raise value
+        return value
+
+    def no_ci(self, repo):
+        return self.once(no_ci, repo)
+
+    def workflow_texts(self, repo):
+        return self.once(workflow_texts, repo)
 
     def pushed(self, branch):
         if self.use_refs and self.heads is None:
@@ -716,15 +740,17 @@ def path_filter_matches(patterns, path):
 PR_FILES_LIMIT = 300  # GitHub's paths filters see only this many changed files
 
 
-def uncovered_line(pr, repo):
+def uncovered_line(pr, repo, texts_of=None):
     """The line saying CI does not cover PR <pr>: every default-branch workflow that runs on
     pull_request has a paths filter that none of its changed paths (renames' old paths too)
     passes. None when one may run: no such workflow, one with no filter, a changed path under
     .github/workflows/ (the PR may change a filter), PR_FILES_LIMIT changed paths or more, no
-    changed path, or a failed lookup."""
+    changed path, or a failed lookup. `texts_of`: what reads the workflow texts, workflow_texts
+    by default (ReadyLookups keeps them for the whole `ready` run)."""
     try:
-        filters = {f: fs for f, fs in ((f, pull_request_filters(t))
-                                       for f, t in workflow_texts(repo).items()) if fs}
+        texts = (texts_of or workflow_texts)(repo)
+        filters = {f: fs for f, fs in ((f, pull_request_filters(t)) for f, t in texts.items())
+                   if fs}
         each = [f for fs in filters.values() for f in fs]
         if not each or None in each:  # no PR workflow, or one with no filter: skip the PR lookup
             return None
@@ -782,9 +808,9 @@ def ci_case(repo):
             "take *Checks not started*")
 
 
-def checks_state(rollup, repo=None):
+def checks_state(rollup, repo=None, no_ci_of=no_ci):
     if not rollup:
-        return "no CI configured" if no_ci(repo) else "no checks reported"
+        return "no CI configured" if no_ci_of(repo) else "no checks reported"
     billing = []
     for c in rollup:
         status = (c.get("status") or "COMPLETED").upper()
@@ -1359,13 +1385,14 @@ def ready_finished(records, key, kind, out):
 
 def ready_done(records, key, st, repo, checkout, out, deny, lookups=None, fetched=True,
                moved=False):
-    """Sort done lane <key> into out's sections. `lookups` (a ReadyLookups) shares one PR list and
-    one ref read across lanes; without it, one ls-remote and one PR list for this lane. When the
-    checkout's fetch failed (`fetched` false), its origin/* refs may be stale or missing: the
-    conflict check is skipped and the lane's line says so. `deny`: the deny_patterns the caller
-    loaded once, None when they failed to load (the lane then waits; the caller reports why).
-    `moved`: the lane is outside plan.md's Now table, so its kind is unknown; one never pushed,
-    with no PR and a report, is taken as a run, audit or spare moved to plan-history.md."""
+    """Sort done lane <key> into out's sections. `lookups` (a ReadyLookups) shares one PR list,
+    one ref read and one workflow read across lanes; without it, each is looked up for this
+    lane. When the checkout's fetch failed (`fetched` false), its origin/* refs may be stale or
+    missing: the conflict check is skipped and the lane's line says so. `deny`: the deny_patterns
+    the caller loaded once, None when they failed to load (the lane then waits; the caller
+    reports why). `moved`: the lane is outside plan.md's Now table, so its kind is unknown; one
+    never pushed, with no PR and a report, is taken as a run, audit or spare moved to
+    plan-history.md."""
     branch, head = st["branch"], st["head"]
     pushed_of = lookups.pushed if lookups else (lambda b: pushed_head(checkout, b))
     prs_of = lookups.prs if lookups else branch_prs
@@ -1416,9 +1443,10 @@ def ready_done(records, key, st, repo, checkout, out, deny, lookups=None, fetche
     if stale:
         out["Waiting"].append(f"{key}: PR #{pr['number']} body differs from its draft: "
                               f'gh pr edit {pr["number"]} --body-file "{draft.as_posix()}"')
-    checks, uncovered = checks_state(pr.get("statusCheckRollup"), repo), ""
+    checks, uncovered = checks_state(pr.get("statusCheckRollup"), repo,
+                                     lookups.no_ci if lookups else no_ci), ""
     if checks == "no checks reported":  # as waitchecks: no workflow runs on these paths (#165)
-        line = uncovered_line(pr["number"], repo)
+        line = uncovered_line(pr["number"], repo, lookups and lookups.workflow_texts)
         if line:
             checks, uncovered = "passed", f" ({line})"
     if pr.get("mergeable", "").upper() == "CONFLICTING":
