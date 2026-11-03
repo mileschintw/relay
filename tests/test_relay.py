@@ -1872,6 +1872,21 @@ class ReadyTimeoutTests(Base):
         self.assertNotIn("Skipped", out)
         self.assertIn("Ready for PR:\n  12: lane-12", out)
 
+    def test_a_grandchild_holding_the_pipes_does_not_hold_run(self):
+        # as git-remote-https outlives a killed `git fetch`; run waits 2 s for the pipes, no more
+        child = self.tmp / "child.py"
+        child.write_text("import subprocess, sys, time\n"
+                         "subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(40)'])\n"
+                         "time.sleep(40)\n")
+        driver = ("import sys, time; sys.path.insert(0, sys.argv[1]); import relay; "
+                  "relay.deadline = time.monotonic() + 2; "
+                  "print(relay.run([sys.executable, sys.argv[2]])[0])")
+        start = time.monotonic()
+        p = subprocess.run([sys.executable, "-c", driver, str(HERE.parent / "plugin" / "tools"),
+                            str(child)], capture_output=True, text=True, timeout=60)
+        self.assertEqual(p.stdout.strip(), str(relay.TIMED_OUT), p.stderr)
+        self.assertLess(time.monotonic() - start, 20)
+
     def test_other_commands_have_no_budget(self):
         os.environ["RELAY_READY_SECONDS"] = "0"
         self.assertEqual(relay.run(["git", "--version"])[0], 0)
