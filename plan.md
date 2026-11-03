@@ -20,6 +20,7 @@ none (ruling 2, no new features during the slimming, ended when #112 closed 2026
 |---|---|---|---|---|
 | 145 | #145 | local_1ac00200-a9a1-4a09-92ab-6fb646392a2f (folder lane-134-eb4fc2, an archived lane's, on its own branch claude/lane-145-6a04eb) | done, PR #148, waitchecks running | — |
 | #146 Point the coordinator's round steps at the round merge right (from lane 114's review) | — | none | none | coordinate/SKILL.md (Scheduling, First turn step 5, Finishing step 6, Consent: The user's words, term list) | needs-triage |
+| #151 waitchecks: overall timeout on the checks watch (from lane 140's review) | — | none | none | relay.py (wait_checks, cmd_waitchecks); tests | needs-triage |
 | 140 | #140 | local_9ddbb370-6eb0-4ec5-8755-a4c2d0340c77 (folder lane-133-1fd07d, an archived lane's, on its own branch claude/lane-140-4d9a51) | done, PR #149, waitchecks running | — |
 | 139 | #139 | local_910e2d1e-d6e1-4dcb-9637-b3d4fc1f2c69 (folder lane-132-1ec78c, an archived lane's, on its own branch claude/lane-139-e5e149) | review | — |
 | 118 | #118 | local_7d884ee0-a5da-43f1-afe3-c9263d614127 | working (review and checks by 22:30) | — |
@@ -59,7 +60,7 @@ none
 
 ## Waiting for the user's decision
 
-- Since 2026-11-02 21:19 -0800: triage #146 (lane 114's follow-up) and the new waitchecks-timeout issue.
+- Since 2026-11-02 21:19 -0800: triage #146 (lane 114's follow-up) and #151 (waitchecks timeout, opened on the user's yes).
 
 - Owner note (#112, from lane 133, C126): for the user's own CLAUDE.md: "On Windows, write a commit message with a double quote in it to a file and use `git commit -F`." (`reports/133.md`)
 - Owner note (#112, from lane 132, W33): add to the one project that uses it, in its `project.md` checks or brief template: "A test that needs a pull request (a CI trigger, say): open none; write in the report how to confirm it after the merge." (`reports/132.md`)
