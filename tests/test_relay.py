@@ -1104,6 +1104,52 @@ class UncoveredPathsTests(Base):
             self.assertEqual(code, 3, (data, out, err))
             self.assertNotIn("CI does not cover these paths", out)
 
+    def uncovered_lane(self, files, rollup=()):
+        """#165: lane 12 done with PR #5 open, changing `files`, under FILTERED."""
+        head = self.branch("lane-12")
+        self.done("12", "lane-12", head)
+        pr = {"number": 5, "state": "OPEN", "headRefOid": head, "mergeable": "MERGEABLE",
+              "statusCheckRollup": list(rollup)}
+        self.gh({"prs": {"lane-12": [pr]}, "workflow_files": self.FILTERED,
+                 "pr_files": {"5": files},
+                 "pr_view": {"5": {"headRefOid": head, "mergeStateStatus": "CLEAN",
+                                   "baseRefName": "main", "mergedAt": "2026-11-03T07:00:00Z",
+                                   "mergeCommit": {"oid": "m5" * 8}}}})
+        return head
+
+    def test_ready_lists_an_uncovered_pr_under_ready_to_merge(self):
+        head = self.uncovered_lane(["docs/a.png", "README.md"])
+        out = self.ready()
+        self.assertIn(f"Ready to merge:\n  12: PR #5 --match-head-commit {head} (CI does not "
+                      "cover these paths: the 2 changed path(s) are outside the paths filters "
+                      "of .github/workflows/test.yml, .github/workflows/lint.yml; no checks to "
+                      "wait for)", out)
+        self.assertNotIn("no checks reported", out)
+
+    def test_ready_keeps_a_covered_pr_with_no_checks_waiting(self):
+        self.uncovered_lane(["docs/a.png", "plugin/tools/relay.py"])
+        out = self.ready()
+        self.assertIn("12: PR #5 no checks reported", out)
+        self.assertNotIn("Ready to merge", out)
+        self.assertNotIn("CI does not cover these paths", out)
+
+    def test_ready_reads_paths_only_when_no_check_reported(self):
+        ok = [{"name": "ci", "status": "COMPLETED", "conclusion": "SUCCESS"}]
+        head = self.uncovered_lane(["docs/a.png"], rollup=ok)
+        out = self.ready()
+        self.assertIn(f"12: PR #5 --match-head-commit {head}\n", out)
+        calls = pathlib.Path(str(self.fake) + ".calls").read_text(encoding="utf-8")
+        self.assertNotIn("/files", calls)
+
+    def test_merge_takes_an_uncovered_pr(self):
+        head = self.uncovered_lane(["docs/a.png", "README.md"])
+        with mock.patch.object(relay.time, "sleep", lambda s: None):
+            code, out, err = self.call("merge", str(self.records), "12", "--repo", "o/r")
+        self.assertEqual(code, 0, err)
+        self.assertIn("12: merged PR #5", out)
+        calls = pathlib.Path(str(self.fake) + ".calls").read_text(encoding="utf-8")
+        self.assertIn(f"pr merge 5 --repo o/r --merge --match-head-commit {head}", calls)
+
     def test_pull_request_filters(self):
         cases = {
             "on: pull_request\n": [None],

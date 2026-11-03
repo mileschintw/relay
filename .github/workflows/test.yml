@@ -31,7 +31,7 @@ jobs:
           # HEAD is the PR's merge commit; its first parent is the base branch tip
           files=$(git diff --name-only --no-renames HEAD^1 HEAD)
           echo "$files"
-          if grep -qE '^(plugin/tools/|tests/|\.github/workflows/)' <<< "$files"; then
+          if grep -qE '^(plugin/tools/|plugin/skills/setup/templates/|tests/|\.github/workflows/)' <<< "$files"; then
             echo "test=true" >> "$GITHUB_OUTPUT"
           fi
           if grep -qE '^(plugin/|\.claude-plugin/|\.github/workflows/)' <<< "$files"; then
