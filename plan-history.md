@@ -274,3 +274,7 @@ Merged 2026-11-03 06:13 UTC (PR #155, body updated after two catch-ups) on the u
 ## Lane 146 merged (2026-11-03)
 
 - #146 (coordinate/SKILL.md's round steps point at Consent › Merge right for a round; +98 words): PR #162 merged after CI (user picked "open the PR and merge once CI passes" 2026-11-03 00:20 -0800). Opened #161 (cp950 print crash).
+
+## Lane 161 merged (2026-11-03 00:45 -0800)
+
+- #161 (relay.py writes stdout and stderr as UTF-8, errors=replace, so a cp950 pipe no longer crashes it): PR #163 merged at c76b934 after CI, under the round merge right (Handover › Merge right, 2026-11-03 00:28 -0800).
