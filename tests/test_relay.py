@@ -1859,6 +1859,14 @@ class ReadyTimeoutTests(Base):
         for what in ("fetch", "Parents", "lanes 12, 13"):
             self.assertIn(what, skipped)
 
+    def test_skipped_done_lanes_outside_now_are_counted_not_listed(self):
+        (self.records / "plan.md").write_text(
+            "# Plan\n\n## Now\n\n| Key | Issues |\n|---|---|\n| `12` | #12 |\n")
+        out, _ = self.timed_ready(0)
+        self.assertIn("  12: done, lane-12 @", out)
+        self.assertNotIn("  13: done", out)
+        self.assertIn("lane 12, 1 done lane not in plan.md's Now table", out)
+
     def test_within_budget_nothing_is_skipped(self):
         out, _ = self.timed_ready(60)
         self.assertNotIn("Skipped", out)

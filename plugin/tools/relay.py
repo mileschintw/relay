@@ -88,9 +88,10 @@ ready   read-only. Prints what the coordinator can do next, the Plan warning fir
             backticked span, else its text before a trailing `(...)` note. No such line, a
             project.md that is not UTF-8 (a Records warning), a missing folder, or a path outside
             a checkout: no check.
-          - Skipped: what ran past ready's time budget ($RELAY_READY_SECONDS, default 90 s, under
-            an agent's 2-minute command limit): the fetch, the relay.py check, Parents, and each
-            lane by key. Past the budget a running lookup is killed and none starts, so ready
+          - Skipped: what ran past ready's time budget ($RELAY_READY_SECONDS, default 75 s, well
+            under an agent's 2-minute command limit): the fetch, the relay.py check, Parents, each
+            lane by key, and a count of done lanes outside plan.md's Now table (no line printed
+            for those, as they are most likely merged). Past the budget a running lookup is killed and none starts, so ready
             still prints every lane's line and the sections it sorted in time; a skipped lane's
             partial findings are dropped (they may be wrong), and a skipped fetch skips the
             conflict check as a failed one does.
@@ -187,7 +188,7 @@ CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]|\r(?!\n)")
 LOOKUP_ERRORS = (RuntimeError, ValueError, KeyError, TypeError, OSError, re.error)
 
 
-READY_SECONDS = 90  # ready's default time budget: under an agent's 2-minute command limit
+READY_SECONDS = 75  # ready's default time budget: well under an agent's 2-minute command limit
 TIMED_OUT = 124  # run's exit code for a command killed, or never started, past `deadline`
 deadline = None  # the time.monotonic() ready's lookups must end by; None outside ready
 timed_out = []  # the commands run killed or skipped past `deadline`, in order
@@ -207,7 +208,7 @@ def run(cmd, cwd=None):
     except subprocess.TimeoutExpired:
         p.kill()
         try:  # a grandchild holding the pipes open must not hold ready past its budget
-            p.communicate(timeout=5)
+            p.communicate(timeout=2)
         except subprocess.TimeoutExpired:
             pass
         timed_out.append(cmd)
@@ -774,7 +775,7 @@ def ready_report(a, budget):
     left_out = 0
     repo = a.repo
     fetched = False
-    skipped, skipped_lanes = [], []
+    skipped, skipped_lanes, skipped_moved = [], [], 0
     if a.checkout:
         fetched = not timed_step("fetch", out, skipped, run,
                                  ["git", "fetch", "-q", "--prune", "origin"], a.checkout)[0]
@@ -823,9 +824,10 @@ def ready_report(a, budget):
             except LOOKUP_ERRORS as e:
                 lane["Waiting"].append(f"{key}: lookup failed: {e}")
         if len(timed_out) > n:  # what the lane found before the timeout may be wrong
-            skipped_lanes.append(key)
-            if moved:
-                print(line)
+            if moved:  # most likely merged, so counted, not listed
+                skipped_moved += 1
+            else:
+                skipped_lanes.append(key)
         elif moved and [s for s, items in lane.items() if items] == ["Merged"]:
             left_out += 1
         else:
@@ -835,6 +837,9 @@ def ready_report(a, budget):
                 out[s] += items
     if skipped_lanes:
         skipped.append(f"lane{'s' if len(skipped_lanes) > 1 else ''} {', '.join(skipped_lanes)}")
+    if skipped_moved:
+        skipped.append(f"{skipped_moved} done lane{'s' if skipped_moved > 1 else ''} not in "
+                       "plan.md's Now table")
     if skipped:
         out["Skipped"].append(f"lookups past ready's {budget:g} s budget ($RELAY_READY_SECONDS): "
                               f"{', '.join(skipped)}")
