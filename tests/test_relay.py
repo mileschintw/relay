@@ -1816,5 +1816,73 @@ class ResumeTests(unittest.TestCase):
         self.assertEqual(self.resume(self.coord), "")
 
 
+class RecordsDenyTests(Base):
+    """ready and merge check every committed records file against the deny list (#139)."""
+
+    OK = MergeTests.OK
+    merge, merges = MergeTests.merge, MergeTests.merges
+
+    def setUp(self):
+        super().setUp()
+        (self.records / "deny.txt").write_text("Acme(?:Corp)?\n")
+        (self.records / "project.md").write_text("- **Deny list:** `deny.txt`\n")
+
+    def test_each_file_kind_is_reported_by_file_and_line_never_the_name(self):
+        cases = {
+            "plan.md": "# Plan\n\nWorked on AcmeCorp.\n",
+            "plan-history.md": "# History\nacme lane merged\n",
+            "briefs/12.md": "Depends on: none\n- **Closes:** #12\n\n\nfor Acme\n",
+            "reports/12.md": "- branch\n- AcmeCorp data\n",
+            "status/12.md": "- state: working\n- doing: porting acme\n- branch: lane-12\n"
+                            "- head: abc1234\n- time: 2026-11-02 21:00 -0800\n",
+        }
+        lines = {"plan.md": 3, "plan-history.md": 2, "briefs/12.md": 5, "reports/12.md": 2,
+                 "status/12.md": 2}
+        for name, text in cases.items():
+            with self.subTest(name):
+                path = self.records / name
+                path.write_text(text)
+                out = self.ready()
+                self.assertIn(f"Records:\n  {name} lines [{lines[name]}]: a deny-list name "
+                              "(lines only, never the name)", out)
+                self.assertNotRegex(out.lower(), "acme")
+                path.unlink()
+        self.assertNotIn("deny-list name", self.ready())
+
+    def test_a_word_inside_another_is_no_hit(self):
+        (self.records / "reports" / "12.md").write_text("acmeish\nAcme.\n")
+        self.assertIn("reports/12.md lines [2]:", self.ready())
+
+    def test_deny_list_none_checks_nothing(self):
+        (self.records / "plan.md").write_text("AcmeCorp\n")
+        (self.records / "project.md").write_text("- **Deny list:** none\n")
+        self.assertNotIn("deny-list", self.ready())
+
+    def test_hints_say_who_fixes_a_hit(self):
+        for name in ("reports/12.md", "status/12.md"):
+            self.assertIn("message its worker", relay.section_hints(
+                "Records", [f"{name} lines [2]: a deny-list name (lines only, never the name)"])[0])
+        self.assertIn("fix that line with the Edit tool", relay.section_hints(
+            "Records", ["briefs/12.md lines [2]: a deny-list name (lines only, never the name)"])[0])
+
+    def test_merge_stops_on_a_hit_and_never_prints_the_name(self):
+        for key in ("12", "13"):
+            head = self.branch(f"lane-{key}", content=f"{key}\n")
+            self.done(key, f"lane-{key}", head)
+        self.heads = {"12": (5, sh("rev-parse", "origin/lane-12", cwd=self.clone)),
+                      "13": (6, sh("rev-parse", "origin/lane-13", cwd=self.clone))}
+        (self.records / "plan-history.md").write_text("x\nAcmeCorp moved\n")
+        code, out, err = self.merge("12", "13")
+        self.assertEqual((code, self.merges()), (1, []))
+        self.assertEqual(err.strip().splitlines(), [
+            "plan-history.md lines [2]: a deny-list name (lines only, never the name); "
+            "nothing merged"])
+        self.assertNotRegex((out + err).lower(), "acme")
+        (self.records / "plan-history.md").write_text("x\n")
+        code, out, err = self.merge("12", "13")
+        self.assertEqual(code, 0, err)
+        self.assertEqual(len(self.merges()), 2)
+
+
 if __name__ == "__main__":
     unittest.main()
