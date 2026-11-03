@@ -5,9 +5,9 @@
 
 Finds the records folder (the repo's AGENTS.md/CLAUDE.md pointer line, else the worktree
 `git worktree list` shows on branch coord). When this session's worktree is the coordinator's in
-plan.md's Handover, prints the user's language line and what to reread; when its branch is a
-lane's in status/<key>.md, prints the language line and that lane's brief, status and report
-paths. Anything else, or any failure, prints nothing: the hook never blocks a session.
+plan.md's Handover (its Coordinator line in the template's shape, as relay.parse_coordinator reads
+it), prints the user's language line and what to reread; when its branch is a lane's in
+status/<key>.md, prints the language line and that lane's brief, status and report paths. Anything else, or any failure, prints nothing: the hook never blocks a session.
 """
 import json
 import os
@@ -57,11 +57,6 @@ def find_records(top, trees):
     return next((pathlib.Path(p) for p, b in trees if b == "coord"), None)
 
 
-def field(text, label):
-    m = re.search(rf"^- \*\*{re.escape(label)}:\*\*(.*)$", text, re.M)
-    return m.group(1).strip() if m else ""
-
-
 def resume(cwd):
     top = git(cwd, "rev-parse", "--show-toplevel").strip()
     if not top:
@@ -77,14 +72,13 @@ def resume(cwd):
                 else pathlib.Path(relay.__file__).resolve())
     plan = records / "plan.md"
     text = plan.read_text(encoding="utf-8", errors="replace") if plan.is_file() else ""
-    coordinator = field(text, "Coordinator")
-    m = re.search(r"worktree (.+?), id ", coordinator)
-    if m and same(m.group(1), top):
-        mode = re.search(r"\bmode (\w+)", coordinator)
+    field = relay.coordinator_field(text)
+    coordinator = relay.parse_coordinator(field[1]) if field else None
+    if coordinator and same(coordinator["worktree"], top):
         return "\n".join(filter(None, [
             f"relay: you are the relay coordinator; records at {records}. Files beat the compact summary.",
             lang,
-            mode and f"- Mode {mode.group(1)}, as Handover records it: a compact is not the user "
+            f"- Mode {coordinator['mode']}, as Handover records it: a compact is not the user "
                      "speaking, so it neither starts nor ends unattended mode. Carry on from "
                      "Handover › Next when the authorization recorded there covers it.",
             f"- Reread {plan}: Handover (with Next), Now, and both Waiting for the user sections.",
