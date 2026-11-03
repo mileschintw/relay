@@ -27,8 +27,8 @@ status  writes <records>/status/<key>.md, a worker's status file, then reads it 
 
 ready   read-only. Prints what the coordinator can do next, the Plan warning first, then one line
         per lane. When plan.md has a `## Now` table, a done lane whose key is not in its first
-        column and whose only line would be under Merged counts as moved to plan-history.md: it
-        gets no line, and one line gives their count. Any other line it has (a PR still open, an
+        column and whose only line would be under Merged or Finished counts as moved to
+        plan-history.md: it gets no line, and one line per section gives their count. Any other line it has (a PR still open, an
         Inconsistent) lists it as usual. The sections:
           - Ready for GO: parked lanes whose every dependency is closed as completed. The
             dependencies are the GitHub blocked-by lists of every issue on the brief's `Closes:`
@@ -54,8 +54,11 @@ ready   read-only. Prints what the coordinator can do next, the Plan warning fir
             them to plan-history.md).
           - Finished: done lanes whose Now-table Kind is `run`, `audit` or `spare` (GLOSSARY.md,
             **Kind**), with a report file; they get no branch, PR or PR body check, so a missing
-            PR or issue is never flagged (without a report: Inconsistent). A lane outside the Now
-            table, or in one with no Kind column or an empty cell, is `pr`.
+            PR or issue is never flagged (without a report: Inconsistent). A lane in a Now table
+            with no Kind column, or with an empty cell, is `pr`. A done lane outside the Now table
+            has no known kind: it is Finished when its branch was never pushed, it has no PR and
+            it has a report (a run, audit or spare moved to plan-history.md), else checked as
+            `pr`.
           - Parents: open issues with sub-issues (GitHub's sub_issues_summary), with their
             children's open and closed counts, and whether every child closed as completed. A
             parent is never a lane: a status file keyed on one is Inconsistent and gets no GO.
@@ -558,7 +561,8 @@ READY_SECTIONS = (
 # A lane's kind in plan.md's Now table (GLOSSARY.md, **Kind**); an empty cell, or no Kind column,
 # is `pr`. The others close no issue and open no PR, so `ready` never flags them for either.
 LANE_KINDS = ("pr", "run", "audit", "spare")
-MAIN_CHECKOUT = re.compile(r"[-*\s]*\**Main checkout:\**\s*(.*)$")
+NO_PR_KINDS = LANE_KINDS[1:]
+MAIN_CHECKOUT = re.compile(r"[-*\s]*Main checkout:\**\s*(.*)$")
 
 
 def now_section(plan):
@@ -582,7 +586,7 @@ def now_section(plan):
                 kind_col = next((i for i, c in enumerate(cells) if c.lower() == "kind"), None)
             elif key and not set(key) <= set("-: "):
                 kind = cells[kind_col].lower() if kind_col is not None and kind_col < len(cells) else ""
-                now["rows"].append((n, key, kind or "pr"))
+                now["rows"].append((n, key, kind or LANE_KINDS[0]))
         elif inside and (m := MAIN_CHECKOUT.match(line)):
             holder = (m.group(1).split() or ["none"])[0].strip("`*#.,;")
             now["checkout"] = (n, None if holder.lower() in ("none", "") else holder)
@@ -643,6 +647,9 @@ READY_HINTS = (
      "a CI fallback: follow `ci-fallbacks.md`; its *Which case* says which applies"),
     ("Waiting", r"^\S+: (PR #\d+ checks pending|parked on )", "`checks pending` and a parked "
      "lane's open dependency need nothing"),
+    ("Waiting", r"^\S+: spare, waits for a brief", "a spare needs nothing until a lane needs a "
+     "worker: write that lane's brief as `briefs/<the spare's key>.md`, set the spare's Now "
+     "Kind to that lane's (`pr` unless it is a run or audit), and send `GO #<the spare's key>`"),
     ("Waiting", r"^\S+: deny-list check not run", "deny-list check not run: follow the deny-list "
      "line under Records, and rerun `ready` only after the user says the deny list is fixed"),
     ("No status yet", "", "a lane in Now stays `started` until its worker writes one; a brief "
@@ -651,9 +658,6 @@ READY_HINTS = (
     ("Merged", "", "coordinate's *Finishing a lane* step 6, for a lane still in Now"),
     ("Finished", "", "a lane that closes no issue and opens no PR: read its report, tell the "
      "user, release the Main checkout if it held it, and move it from Now to plan-history.md"),
-    ("Waiting", r"^\S+: spare, waits for a brief", "a spare needs nothing until a lane needs a "
-     "worker: write that lane's brief as `briefs/<the spare's key>.md`, set the spare's Kind to "
-     "the lane's, and send `GO #<the spare's key>`"),
     ("Parents", r"^#\d+ ", "a parent gets one Roadmap row with Kind `parent` and no brief or "
      "worker; its children are the lanes"),
     ("Parents", r"every child closed as completed", "every child closed as completed: ask the "
@@ -771,7 +775,7 @@ def cmd_ready(a):
             out["Plan"].append(f"plan.md is {n} bytes (limit {a.plan_limit}): prune it "
                                "(move, never delete; the kinds the top of plan.md names stay)")
     now = now_kinds(plan)
-    left_out = 0
+    left_out = {"Merged": 0, "Finished": 0}
     repo = a.repo
     fetched = False
     if a.checkout:
@@ -798,9 +802,10 @@ def cmd_ready(a):
             out["Could not parse"].append(f"{key}: missing or bad {missing or ['state']}")
             continue
         line = f"  {key}: {st['state']}, {st['branch']} @ {st['head']}, {st['time']}"
-        # a done lane outside Now is left out when its only line is Merged (moved to plan-history.md)
+        # a done lane outside Now is left out when its only line is Merged or Finished (moved to
+        # plan-history.md); its kind is unknown there, so it is `pr`
         moved = st["state"] == "done" and now is not None and key not in now
-        kind = (now or {}).get(key, "pr")
+        kind = (now or {}).get(key, LANE_KINDS[0])
         lane = {k: [] for k in READY_SECTIONS} if moved else out
         if not moved:
             print(line)
@@ -816,25 +821,28 @@ def cmd_ready(a):
                     lane["Waiting"].append(f"{key}: spare, waits for a brief")
                 elif st["state"] == "parked":
                     ready_parked(records, key, repo, lane)
-                elif st["state"] == "done" and kind in LANE_KINDS[1:]:
+                elif st["state"] == "done" and kind in NO_PR_KINDS:
                     ready_finished(records, key, kind, lane)
                 elif st["state"] == "done":
-                    ready_done(records, key, st, repo, a.checkout, lane, deny, lookups, fetched)
+                    ready_done(records, key, st, repo, a.checkout, lane, deny, lookups, fetched,
+                               moved)
                 elif st["state"] == "blocked":
                     lane["Waiting"].append(f"{key}: blocked: {st.get('doing', '')}")
             except LOOKUP_ERRORS as e:
                 lane["Waiting"].append(f"{key}: lookup failed: {e}")
         if moved:
-            if [s for s, items in lane.items() if items] == ["Merged"]:
-                left_out += 1
+            sections = [s for s, items in lane.items() if items]
+            if sections in (["Merged"], ["Finished"]):
+                left_out[sections[0]] += 1
             else:
                 print(line)
                 for s, items in lane.items():
                     out[s] += items
     if not have:
         print("  (none)")
-    if left_out:
-        print(f"  ({left_out} merged lane{'s' if left_out > 1 else ''} not in plan.md's Now table left out)")
+    for what, n in (("merged", left_out["Merged"]), ("finished, no-PR", left_out["Finished"])):
+        if n:
+            print(f"  ({n} {what} lane{'s' if n > 1 else ''} not in plan.md's Now table left out)")
     for section, items in out.items():
         if section != "Plan":
             print_section(section, items)
@@ -989,12 +997,15 @@ def ready_finished(records, key, kind, out):
         out["Finished"].append(f"{key}: {kind} done, no PR: read reports/{key}.md")
 
 
-def ready_done(records, key, st, repo, checkout, out, deny, lookups=None, fetched=True):
+def ready_done(records, key, st, repo, checkout, out, deny, lookups=None, fetched=True,
+               moved=False):
     """Sort done lane <key> into out's sections. `lookups` (a ReadyLookups) shares one PR list and
     one ref read across lanes; without it, one ls-remote and one PR list for this lane. When the
     checkout's fetch failed (`fetched` false), its origin/* refs may be stale or missing: the
     conflict check is skipped and the lane's line says so. `deny`: the deny_patterns the caller
-    loaded once, None when they failed to load (the lane then waits; the caller reports why)."""
+    loaded once, None when they failed to load (the lane then waits; the caller reports why).
+    `moved`: the lane is outside plan.md's Now table, so its kind is unknown; one never pushed,
+    with no PR and a report, is taken as a run, audit or spare moved to plan-history.md."""
     branch, head = st["branch"], st["head"]
     pushed_of = lookups.pushed if lookups else (lambda b: pushed_head(checkout, b))
     prs_of = lookups.prs if lookups else branch_prs
@@ -1004,6 +1015,10 @@ def ready_done(records, key, st, repo, checkout, out, deny, lookups=None, fetche
     prs = None if pushed else prs_of(repo, branch)  # a branch deleted after its merge is Merged
     if not pushed.startswith(head) and not any(p["state"].upper() == "MERGED"
                                                and p["headRefOid"].startswith(head) for p in prs or []):
+        if moved and not pushed and not prs and (records / "reports" / f"{key}.md").exists():
+            out["Finished"].append(f"{key}: done outside Now, never pushed, no PR: read "
+                                   f"reports/{key}.md")
+            return
         out["Inconsistent"].append(f"{key}: status head {head} is not the pushed head "
                                    f"{pushed[:12] or '(branch not pushed)'}")
         return

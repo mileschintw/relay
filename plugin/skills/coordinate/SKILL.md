@@ -59,6 +59,8 @@ Sessions start only in a turn the user typed in the desktop app (no fork, decisi
 
 ## Finishing a lane
 
+A `run`, `audit` or `spare` lane (the Now table's Kind) opens no PR: once `ready` lists it under Finished, show the user its report and go to step 6.
+
 1. `ready` lists the lane under Ready for PR, and nothing for its key under Inconsistent or Waiting.
 2. Show the user the result, the PR body draft and any check the report names as not run (skipped, or main checkout only, with its command), and ask the PR-and-merge question.
 3. Open the PR: `gh pr create --head <branch> --title "<issue title>" --body-file <records>/pr-bodies/<key>.md`.
@@ -68,8 +70,8 @@ Sessions start only in a turn the user typed in the desktop app (no fork, decisi
 
    Exit 2 from either is a bad argument, sometimes with no hint: fix what its error line names and rerun.
 5. **A draft changed after the PR opened** (a rerun's results, say): rerun `ready`, which checks the draft, then `gh pr edit <N> --body-file <records>/pr-bodies/<key>.md`.
-6. After the merge: move the lane from Now to `plan-history.md` (the PR's `Closes` lines close its issues), recompute the frontier, copy new owner notes as in *First turn* step 5, and send `GO #<key>` to every parked worker `ready` lists under Ready for GO, unless Handover's mode is `paused` (*Consent*, **Pause**). Edit a brief before its GO if needed: the worker rereads it on GO.
-   - **A lane that stops without merging** (*Stuck* in `unattended.md`, or a lane the user stops): move it from Now to `plan-history.md` with why it stopped, and skip the rest of this step. Its Roadmap row stays, carrying that reason; propose it again only when the user asks.
+6. After the merge: move the lane from Now to `plan-history.md` (the PR's `Closes` lines close its issues), set **Main checkout** back to `none` if it held it, recompute the frontier, copy new owner notes as in *First turn* step 5, and send `GO #<key>` to every parked worker `ready` lists under Ready for GO, unless Handover's mode is `paused` (*Consent*, **Pause**). Edit a brief before its GO if needed: the worker rereads it on GO.
+   - **A lane that stops without merging** (*Stuck* in `unattended.md`, or a lane the user stops): move it from Now to `plan-history.md` with why it stopped, release **Main checkout** if it held it, and skip the rest of this step. Its Roadmap row stays, carrying that reason; propose it again only when the user asks.
 
 ## Plan
 

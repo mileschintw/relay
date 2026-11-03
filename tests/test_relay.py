@@ -1854,13 +1854,26 @@ class LaneKindTests(Base):
                 self.assertNotIn("Ready for PR:", out)
                 self.assertIn(f"Finished:\n  110: {kind} done, no PR: read reports/110.md", out)
 
-    def test_a_normal_lane_still_is(self):
+    def test_a_pr_lane_is_still_flagged_for_a_missing_pr(self):
         self.plan([("110", "pr")])
         self.done_no_pr("110")
         self.assertIn("Inconsistent:\n  110: status head 02d1f2d is not the pushed head "
                       "(branch not pushed)", self.ready())
+
+    def test_a_no_pr_lane_moved_out_of_now_is_left_out(self):
         self.plan([])  # lane 110 today: done and moved out of Now, so its kind is unknown
+        self.done_no_pr("110")
+        out = self.ready()
+        self.assertNotIn("110", out)
+        self.assertIn("  (1 finished, no-PR lane not in plan.md's Now table left out)", out)
+        (self.records / "reports" / "110.md").unlink()  # no report: still flagged
         self.assertIn("110: status head 02d1f2d is not the pushed head", self.ready())
+
+    def test_a_moved_lane_with_a_pushed_branch_is_still_flagged(self):
+        self.plan([])
+        head = self.branch("lane-12")
+        self.done("12", "lane-12", head)
+        self.assertIn("Ready for PR:\n  12: lane-12", self.ready())
 
     def test_a_no_pr_lane_still_needs_its_report(self):
         self.plan([("12", "run")])
