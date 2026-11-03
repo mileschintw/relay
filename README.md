@@ -55,7 +55,7 @@ Pick `/implement-spec` for a few tickets you want done fast with one final revie
 - **No server.** Three skills, two Python scripts (standard library only) and one `SessionStart` hook. Everything else is git, `gh` and the desktop app.
 - **One branch.** All records live on `coord` (a public repo may keep them in a separate private repo instead). On your default branch, relay adds only what you accept during setup: a pointer line in `AGENTS.md` (required only with a separate records repo), a paragraph in `docs/agents/issue-tracker.md`, and a CI workflow if the repo has none.
 - **One line always loaded.** Only `relay:work` is model-invoked, so its one-line description is the cost in every session. `/relay:setup` and `/relay:coordinate` load only when you type them.
-- **A small main skill.** `/relay:coordinate` is 96 lines and 3,000 words (117 lines and 3,857 words before the slimming in [#112](https://github.com/mileschintw/relay/issues/112)), with six sub-files read only when needed.
+- **A small main skill.** `/relay:coordinate` is 97 lines and 3,045 words (117 lines and 3,857 words before the slimming in [#112](https://github.com/mileschintw/relay/issues/112)), with six sub-files read only when needed.
 
 ## Example
 
