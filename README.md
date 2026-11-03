@@ -42,7 +42,7 @@ reports/  pr-bodies/
 |---|---|---|---|
 | Unit of work | a session you start and brief | a subagent, gone when it finishes | a desktop-app session per lane, with its own worktree and branch, that you can open and talk to |
 | Output | whatever each session does | one integration branch, at most one PR at the end | one PR per lane |
-| Your yes | in each window, if asked | once, to start the run | before each session, PR and merge, all in the coordinator |
+| Your yes | in each window, if asked | once, to start the run | before each round of sessions, and for its PRs and merges (once for the round, or per lane), all in the coordinator |
 | Review | whatever you ask for | once, over the whole integration branch | per lane, scoped to its issues and brief |
 | State | in your head | none; an interrupted run starts over | the plan, `status/` and `reports/` on the `coord` branch |
 
@@ -53,7 +53,7 @@ Pick `/implement-spec` for a few tickets you want done fast with one final revie
 - **No server.** Three skills, two Python scripts (standard library only) and one `SessionStart` hook. Everything else is git, `gh` and the desktop app.
 - **One branch.** All records live on `coord` (a public repo may keep them in a separate private repo instead). On your default branch, relay adds only what you accept during setup: a pointer line in `AGENTS.md` (required only with a separate records repo), a paragraph in `docs/agents/issue-tracker.md`, and a CI workflow if the repo has none.
 - **One line always loaded.** Only `relay:work` is model-invoked, so its one-line description is the cost in every session. `/relay:setup` and `/relay:coordinate` load only when you type them.
-- **A small main skill.** `/relay:coordinate` is 94 lines and 2,668 words (117 lines and 3,857 words before the slimming in [#112](https://github.com/mileschintw/relay/issues/112)), with six sub-files read only when needed.
+- **A small main skill.** `/relay:coordinate` is 96 lines and 2,899 words (117 lines and 3,857 words before the slimming in [#112](https://github.com/mileschintw/relay/issues/112)), with six sub-files read only when needed.
 
 ## Example
 
