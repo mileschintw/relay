@@ -100,6 +100,14 @@ ready   read-only. Prints what the coordinator can do next, the Plan warning fir
             backticked span, else its text before a trailing `(...)` note. No such line, a
             project.md that is not UTF-8 (a Records warning), a missing folder, or a path outside
             a checkout: no check.
+          - Skipped: what ran past ready's time budget ($RELAY_READY_SECONDS, default 75 s, well
+            under an agent's 2-minute command limit): the fetch, the relay.py check, Parents, each
+            lane by key, and a count of done lanes outside plan.md's Now table (no line printed
+            for those, as they are most likely merged or finished). Past the budget a running lookup is
+            killed and none starts, so ready still prints every lane's line and the sections it
+            sorted in time; a skipped step's or lane's partial findings are dropped (they may be
+            wrong), a skipped fetch skips the conflict check as a failed one does, and skipped
+            Parents hold every GO.
         After a section's items, `  hint:` lines give the coordinator's next step for the kinds
         of line it holds (READY_HINTS).
         --checkout <dir>: a local clone; `git fetch --prune` there, then `git merge-tree` each
@@ -195,9 +203,35 @@ CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]|\r(?!\n)")
 LOOKUP_ERRORS = (RuntimeError, ValueError, KeyError, TypeError, OSError, re.error)
 
 
+READY_SECONDS = 75  # ready's default time budget: well under an agent's 2-minute command limit
+TIMED_OUT = 124  # run's exit code for a command killed, or never started, past `deadline`
+deadline = None  # the time.monotonic() ready's lookups must end by; None outside ready
+timed_out = []  # the commands run killed or skipped past `deadline`, in order
+
+
 def run(cmd, cwd=None):
-    p = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, encoding="utf-8")
-    return p.returncode, p.stdout, p.stderr
+    """(exit code, stdout, stderr). Past `deadline`, a running command is killed and a new one
+    never starts: both return TIMED_OUT and are added to `timed_out`."""
+    left = None if deadline is None else deadline - time.monotonic()
+    if left is not None and left <= 0:
+        timed_out.append(cmd)
+        return TIMED_OUT, "", "skipped: ready's time budget is spent"
+    p = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                         encoding="utf-8")
+    try:
+        out, err = p.communicate(timeout=left)
+    except subprocess.TimeoutExpired:
+        p.kill()
+        try:  # a grandchild holding the pipes open must not hold ready past its budget
+            p.communicate(timeout=2)
+        except subprocess.TimeoutExpired:
+            pass
+        timed_out.append(cmd)
+        return TIMED_OUT, "", "timed out: ready's time budget is spent"
+    except BaseException:  # as subprocess.run: an interrupt leaves no child running
+        p.kill()
+        raise
+    return p.returncode, out, err
 
 
 def gh_base():
@@ -397,7 +431,8 @@ class ReadyLookups:
     checkout's just-fetched origin/* refs (ls-remote per branch without a checkout, or when the
     fetch or the ref read failed), and every PR from one `gh pr list --state all`. In a full
     list, a branch with no merged PR there gets its own lookup, since older PRs may be cut off.
-    A failed list fails each lane that asks for it."""
+    A failed list fails each lane that asks for it; one that timed out is asked for again, so
+    each such lane times out too and `ready` lists it as skipped."""
 
     def __init__(self, checkout, fetched, lanes):
         self.checkout, self.limit = checkout, max(PR_LIST_MIN, PR_LIST_PER_LANE * lanes)
@@ -418,11 +453,13 @@ class ReadyLookups:
         if self.error:
             raise RuntimeError(self.error)
         if self.index is None:
+            before = len(timed_out)
             try:
                 listed = gh("pr", "list", "--repo", repo, "--state", "all", "--limit",
                             str(self.limit), "--json", "headRefName," + PR_FIELDS) or []
             except LOOKUP_ERRORS as e:
-                self.error = str(e)
+                if len(timed_out) == before:
+                    self.error = str(e)
                 raise
             self.full, self.index = len(listed) >= self.limit, {}
             for p in listed:
@@ -612,6 +649,7 @@ READY_SECTIONS = (
     "Ready for PR",
     "Ready to merge",
     "Waiting",
+    "Skipped",
     "No status yet",
     "Merged",
     "Finished",
@@ -721,6 +759,9 @@ READY_HINTS = (
      "Kind to that lane's (`pr` unless it is a run or audit), and send `GO #<the spare's key>`"),
     ("Waiting", r"^\S+: deny-list check not run", "deny-list check not run: follow the deny-list "
      "line under Records, and rerun `ready` only after the user says the deny list is fixed"),
+    ("Skipped", "", "the machine is likely busy (builds, low memory): rerun `ready` once it is "
+     "quieter, or in the background with a larger $RELAY_READY_SECONDS; until then a skipped "
+     "lane's state is its status file, and its line above"),
     ("No status yet", "", "a lane in Now stays `started` until its worker writes one; a brief "
      "with no session is a lane not started (*Starting a lane*, on the user's yes) or one "
      "stopped (move it to plan-history.md)"),
@@ -809,6 +850,36 @@ def print_section(section, items):
 
 
 def cmd_ready(a):
+    global deadline
+    try:
+        budget = float(os.environ.get("RELAY_READY_SECONDS") or READY_SECONDS)
+    except ValueError:
+        budget = -1.0
+    if not 0 <= budget < float("inf"):
+        print("RELAY_READY_SECONDS is not a number of seconds", file=sys.stderr)
+        return 2
+    deadline = time.monotonic() + budget
+    timed_out.clear()
+    try:
+        return ready_report(a, budget)
+    finally:
+        deadline = None
+
+
+def timed_step(label, out, skipped, fallback, fn, *args):
+    """fn(*args); when one of its commands ran past ready's budget, drop what it added to out,
+    add label to skipped and return fallback instead, since what it found may be wrong."""
+    sizes, before = {k: len(v) for k, v in out.items()}, len(timed_out)
+    result = fn(*args)
+    if len(timed_out) == before:
+        return result
+    for k, size in sizes.items():
+        del out[k][size:]
+    skipped.append(label)
+    return fallback
+
+
+def ready_report(a, budget):
     records = pathlib.Path(a.records)
     status_dir = records / "status"
     if not records.is_dir():
@@ -847,10 +918,13 @@ def cmd_ready(a):
     left_out = {"Merged": 0, "Finished": 0}
     repo = a.repo
     fetched = False
+    skipped, skipped_lanes, skipped_moved = [], [], 0
     if a.checkout:
-        fetched = not run(["git", "fetch", "-q", "--prune", "origin"], cwd=a.checkout)[0]
-    out["relay.py"] += relay_py_behind(records, a.checkout)
-    repo, parents = ready_parents(repo, out)
+        fetched = not timed_step("fetch", out, skipped, (TIMED_OUT,), run,
+                                 ["git", "fetch", "-q", "--prune", "origin"], a.checkout)[0]
+    out["relay.py"] += timed_step("relay.py check", out, skipped, [], relay_py_behind, records,
+                                  a.checkout)
+    repo, parents = timed_step("Parents", out, skipped, (repo, None), ready_parents, repo, out)
     try:
         deny = deny_patterns(records)
     except LOOKUP_ERRORS as e:
@@ -875,11 +949,12 @@ def cmd_ready(a):
         # plan-history.md); its kind is unknown there, so it is `pr`
         moved = st["state"] == "done" and now is not None and key not in now
         kind = (now or {}).get(key, LANE_KINDS[0])
-        lane = {k: [] for k in READY_SECTIONS} if moved else out
+        lane, before = {k: [] for k in READY_SECTIONS}, len(timed_out)
         if not moved:
             print(line)
         if parents is None and st["state"] == "parked":
-            lane["Waiting"].append(f"{key}: parked; no GO while the Parents lookup fails")
+            why = "is skipped" if "Parents" in skipped else "fails"
+            lane["Waiting"].append(f"{key}: parked; no GO while the Parents lookup {why}")
         elif key.isdigit() and int(key) in (parents or ()):
             lane["Inconsistent"].append(f"{key}: issue #{key} is a parent, never a lane")
         else:
@@ -899,14 +974,27 @@ def cmd_ready(a):
                     lane["Waiting"].append(f"{key}: blocked: {st.get('doing', '')}")
             except LOOKUP_ERRORS as e:
                 lane["Waiting"].append(f"{key}: lookup failed: {e}")
-        if moved:
-            sections = [s for s, items in lane.items() if items]
-            if sections in (["Merged"], ["Finished"]):
-                left_out[sections[0]] += 1
+        sections = [s for s, items in lane.items() if items]
+        if len(timed_out) > before:  # what the lane found before the timeout may be wrong
+            if moved:  # most likely merged or finished, so counted, not listed
+                skipped_moved += 1
             else:
+                skipped_lanes.append(key)
+        elif moved and sections in (["Merged"], ["Finished"]):
+            left_out[sections[0]] += 1
+        else:
+            if moved:
                 print(line)
-                for s, items in lane.items():
-                    out[s] += items
+            for s, items in lane.items():
+                out[s] += items
+    if skipped_lanes:
+        skipped.append(f"lane{'s' if len(skipped_lanes) > 1 else ''} {', '.join(skipped_lanes)}")
+    if skipped_moved:
+        skipped.append(f"{skipped_moved} done lane{'s' if skipped_moved > 1 else ''} not in "
+                       "plan.md's Now table")
+    if skipped:
+        out["Skipped"].append(f"lookups past ready's {budget:g} s budget ($RELAY_READY_SECONDS): "
+                              f"{', '.join(skipped)}")
     if not have:
         print("  (none)")
     for what, n in (("merged", left_out["Merged"]), ("finished, no-PR", left_out["Finished"])):

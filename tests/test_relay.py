@@ -6,6 +6,7 @@ import pathlib
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from contextlib import redirect_stdout, redirect_stderr
 from unittest import mock
@@ -1814,6 +1815,114 @@ class ResumeTests(unittest.TestCase):
     def test_no_records_prints_nothing(self):
         (self.records / "project.md").unlink()
         self.assertEqual(self.resume(self.coord), "")
+
+
+class ReadyTimeoutTests(Base):
+    """Past its time budget ($RELAY_READY_SECONDS) ready stops looking things up, prints what it
+    has, and names what it skipped."""
+
+    def setUp(self):
+        super().setUp()
+        self.addCleanup(os.environ.pop, "RELAY_READY_SECONDS", None)
+        self.heads = {k: self.branch(f"lane-{k}", content=f"{k}\n") for k in ("12", "13")}
+        for k, head in self.heads.items():
+            self.done(k, f"lane-{k}", head)
+        (self.records / "briefs" / "20.md").write_text("Closes: #20\n")
+
+    def timed_ready(self, seconds):
+        os.environ["RELAY_READY_SECONDS"] = str(seconds)
+        start = time.monotonic()
+        out = self.ready()
+        return out, time.monotonic() - start
+
+    def test_a_lookup_that_times_out_skips_its_lanes_and_the_rest_still_prints(self):
+        self.gh({"slow": {"pr list": 30}})
+        out, took = self.timed_ready(3)
+        self.assertLess(took, 20)
+        self.assertIn("  12: done, lane-12 @", out)
+        self.assertIn("  13: done, lane-13 @", out)
+        self.assertIn("No status yet:\n  20: a brief but no status file", out)
+        self.assertIn("Skipped:\n  lookups past ready's 3 s budget ($RELAY_READY_SECONDS): "
+                      "lanes 12, 13\n  hint: the machine is likely busy", out)
+        self.assertNotIn("Ready for PR", out)
+        self.assertNotIn("lookup failed", out)
+        self.assertNotIn("Nothing to do", out)
+
+    def test_a_spent_budget_skips_every_lookup(self):
+        calls = pathlib.Path(str(self.fake) + ".calls")
+        calls.unlink(missing_ok=True)
+        out, _ = self.timed_ready(0)
+        self.assertFalse(calls.exists(), "gh was called after the budget ran out")
+        self.assertIn("  12: done, lane-12 @", out)
+        self.assertIn("No status yet:\n  20: a brief but no status file", out)
+        skipped = next(ln for ln in out.splitlines() if ln.startswith("  lookups past"))
+        for what in ("fetch", "Parents", "lanes 12, 13"):
+            self.assertIn(what, skipped)
+
+    def test_skipped_done_lanes_outside_now_are_counted_not_listed(self):
+        (self.records / "plan.md").write_text(
+            "# Plan\n\n## Now\n\n| Key | Issues |\n|---|---|\n| `12` | #12 |\n")
+        out, _ = self.timed_ready(0)
+        self.assertIn("  12: done, lane-12 @", out)
+        self.assertNotIn("  13: done", out)
+        self.assertIn("lane 12, 1 done lane not in plan.md's Now table", out)
+
+    def test_within_budget_nothing_is_skipped(self):
+        out, _ = self.timed_ready(60)
+        self.assertNotIn("Skipped", out)
+        self.assertIn("Ready for PR:\n  12: lane-12", out)
+
+    def test_a_grandchild_holding_the_pipes_does_not_hold_run(self):
+        # as git-remote-https outlives a killed `git fetch`; run waits 2 s for the pipes, no more
+        child = self.tmp / "child.py"
+        child.write_text("import subprocess, sys, time\n"
+                         "subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(40)'])\n"
+                         "time.sleep(40)\n")
+        driver = ("import sys, time; sys.path.insert(0, sys.argv[1]); import relay; "
+                  "relay.deadline = time.monotonic() + 2; "
+                  "print(relay.run([sys.executable, sys.argv[2]])[0])")
+        start = time.monotonic()
+        p = subprocess.run([sys.executable, "-c", driver, str(HERE.parent / "plugin" / "tools"),
+                            str(child)], capture_output=True, text=True, timeout=60)
+        self.assertEqual(p.stdout.strip(), str(relay.TIMED_OUT), p.stderr)
+        self.assertLess(time.monotonic() - start, 20)
+
+    def test_a_budget_that_is_not_seconds_is_a_usage_error(self):
+        for bad in ("soon", "nan", "-1", "inf"):
+            os.environ["RELAY_READY_SECONDS"] = bad
+            code, _, err = self.call("ready", str(self.records))
+            self.assertEqual(code, 2, bad)
+            self.assertIn("RELAY_READY_SECONDS", err)
+
+    def test_a_step_cut_off_midway_returns_its_fallback_and_drops_its_lines(self):
+        out, skipped = {"relay.py": ["kept"], "Records": []}, []
+
+        def step():  # one command in time, then one past the budget
+            out["Records"].append("partial")
+            relay.run(["git", "--version"])
+            relay.deadline = time.monotonic()
+            relay.run(["git", "--version"])
+            return ["a wrong warning"]
+        relay.deadline = time.monotonic() + 60
+        try:
+            got = relay.timed_step("relay.py check", out, skipped, [], step)
+        finally:
+            relay.deadline = None
+        self.assertEqual(got, [])
+        self.assertEqual(out, {"relay.py": ["kept"], "Records": []})
+        self.assertEqual(skipped, ["relay.py check"])
+
+    def test_parked_lanes_wait_while_parents_are_skipped(self):
+        code, _, err = self.call("status", str(self.records), "20", "--state", "parked",
+                                 "--doing", "waits")
+        self.assertEqual(code, 0, err)
+        out, _ = self.timed_ready(0)
+        self.assertIn("20: parked; no GO while the Parents lookup is skipped", out)
+        self.assertNotIn("Ready for GO", out)
+
+    def test_other_commands_have_no_budget(self):
+        os.environ["RELAY_READY_SECONDS"] = "0"
+        self.assertEqual(relay.run(["git", "--version"])[0], 0)
 
 
 class DraftCiCaseUsageHintTests(Base):

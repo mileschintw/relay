@@ -7,6 +7,8 @@
  "bodies": {"10": "issue body"},
  "comments": {"10": [{"body": "...", "html_url": "https://..."}]},
  "broken": ["/sub_issues"],
+ "slow": {"pr list": 30},                         # a call whose arguments, joined, contain the
+                                                  # key sleeps that many seconds first
  "prs": {"<branch>": [{"number": 5, "state": "OPEN", "headRefOid": "<sha>",
                        "mergeable": "MERGEABLE", "statusCheckRollup": [...]}]},
  "jobs": {"<job id>": {"steps": [...]}},          # a missing job ran one step
@@ -35,6 +37,7 @@ Every call appends its arguments, one line, to $RELAY_FAKE_GH.calls.
 import json
 import os
 import sys
+import time
 
 for stream in (sys.stdout, sys.stderr):
     stream.reconfigure(encoding="utf-8")  # as gh writes, whatever the console's code page
@@ -59,6 +62,9 @@ def pr_views(n, rollup):
                for c in calls)
 
 
+for slow, seconds in data.get("slow", {}).items():
+    if slow in " ".join(a):
+        time.sleep(seconds)
 if any(b in x for b in data.get("broken", []) for x in a):
     sys.exit(f"fake gh: broken {a}")
 if a[:2] == ["repo", "view"]:
