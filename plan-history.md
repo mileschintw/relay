@@ -266,3 +266,7 @@ Merged 2026-11-03 06:13 UTC (PR #155, body updated after two catch-ups) on the u
 ## Design follow-up merged (2026-11-03)
 
 - PR #158 (social preview and banner on a GitHub Dark background; three images only, no issue) merged at ff88acc after CI, on the user's "CI 過就合併" here (asked first in the design session). The user re-uploads `docs/social-preview/social-preview.png` as the repo social preview. Its 5-minute CI on an images-only PR led to #159.
+
+## Lane 147 merged (2026-11-03 00:24 -0800)
+
+- #147 (ready withholds a deny-list name in a blocked lane's Waiting line; also when the deny list is unusable, user picked "keep") and #151 (waitchecks stops a watch past 20 CI start waits, exit 5): PR #160 merged at 298be05 after CI (user picked "open the PR and merge once CI passes" 2026-11-03 00:18 -0800).
