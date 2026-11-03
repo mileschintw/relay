@@ -532,6 +532,20 @@ class ReadyTests(Base):
                   "--doing", "needs a decision on X")
         self.assertIn("Waiting:\n  12: blocked: needs a decision on X", self.ready())
 
+    def test_blocked_lane_withholds_a_deny_list_name(self):
+        (self.records / "deny.txt").write_text("Acme(?:Corp)?\n")
+        (self.records / "project.md").write_text("- **Deny list:** `deny.txt`\n")
+        self.call("status", str(self.records), "12", "--state", "blocked",
+                  "--doing", "may AcmeCorp data go in the test?")
+        out = self.ready()
+        self.assertIn("Waiting:\n  12: blocked: (doing withheld: a deny-list name)", out)
+        self.assertIn("status/12.md lines", out)
+        self.assertNotIn("AcmeCorp", out)
+        (self.records / "deny.txt").write_text("Acme\n\\b\n")  # an unusable line: no check
+        out = self.ready()
+        self.assertIn("12: blocked: (doing withheld: deny-list check not run)", out)
+        self.assertNotIn("AcmeCorp", out)
+
     def test_merged(self):
         head = self.branch("lane-12")
         self.done("12", "lane-12", head)
@@ -991,6 +1005,17 @@ class WaitchecksTests(Base):
         self.assertIn("lookup failed", err)
         code, out, err = self.waitchecks(repo=(), broken=["nameWithOwner"])
         self.assertEqual((code, self.polls), (4, []), err)
+
+    def test_a_watch_past_its_timeout_is_its_own_exit(self):
+        # a CI start wait of 0.002 minutes: the watch may run 20 times that, 2.4 s, then is killed
+        start = time.monotonic()
+        code, out, err = self.waitchecks(project="- **CI start wait:** 0.002\n",
+                                         slow={"--watch": 30}, checks={"5": "test\tpending"})
+        self.assertLess(time.monotonic() - start, 20)
+        self.assertEqual(code, 5, err)
+        self.assertIn("test\tpending", out)
+        self.assertIn("the checks watch on PR #5 ran past 0.04 minutes", out)
+        self.assertIn("hint (exit 5): the checks watch timed out", out)
 
     def test_wait_checks_takes_a_schedule(self):
         self.gh({"pr_checks": {"5": {"after": 3, "rollup": self.QUEUED}}})
@@ -1996,6 +2021,21 @@ class ReadyTimeoutTests(Base):
         out, _ = self.timed_ready(0)
         self.assertIn("20: parked; no GO while the Parents lookup is skipped", out)
         self.assertNotIn("Ready for GO", out)
+
+    def test_a_command_timeout_kills_it_and_the_deadline_still_wins(self):
+        sleeper = [sys.executable, "-c", "import time; time.sleep(30)"]
+        start, before = time.monotonic(), len(relay.timed_out)
+        self.assertEqual(relay.run(sleeper, timeout=0.5),
+                         (relay.TIMED_OUT, "", "timed out after 0.5 s"))
+        self.assertEqual(relay.timed_out[before:], [])  # not ready's budget
+        relay.deadline = time.monotonic() + 0.5
+        try:
+            code, _, err = relay.run(sleeper, timeout=60)
+        finally:
+            relay.deadline = None
+        self.assertEqual((code, relay.timed_out[before:]), (relay.TIMED_OUT, [sleeper]))
+        self.assertIn("ready's time budget", err)
+        self.assertLess(time.monotonic() - start, 15)
 
     def test_other_commands_have_no_budget(self):
         os.environ["RELAY_READY_SECONDS"] = "0"
