@@ -19,6 +19,11 @@ none (ruling 2, no new features during the slimming, ended when #112 closed 2026
 
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
+| 166 | #166 | local_8d166ad5-3471-4f24-80d0-65a34b24df22 (landed in archived lane 133's folder D:/Repos/relay/.claude/worktrees/lane-133-1fd07d, on its own branch claude/lane-166-cf62d1) | started | — |
+| 167 | #167 | local_fd3f00e0-d3cd-4f11-be7e-583a45c88adb | started | — |
+| 168 | #168 | local_2bbc926b-c6b6-4b26-b6ee-d05955e70d8c | started | — |
+| 173 | #173 | local_a3745775-d53e-4630-96c4-b7b35af8fb4e | started | — |
+| 174 | #174 | local_26577313-8008-4c8a-9a1e-27654eb46084 | started | — |
 
 Lane 169 (PR #171) merged 2026-11-03 11:42 UTC → `plan-history.md`. Lane 165 (PR #170) merged 2026-11-03 11:15 UTC → `plan-history.md`. Lane 159 (PR #164) merged 2026-11-03 → `plan-history.md`. Lane 161 (PR #163) merged 2026-11-03 08:45 UTC → `plan-history.md`. Lane 146 (PR #162) merged 2026-11-03 → `plan-history.md`. Lane 147 (#147, #151, PR #160) merged 2026-11-03 08:23 UTC → `plan-history.md`. Lane 119 (PR #157) merged 2026-11-03 08:05 UTC → `plan-history.md`. Lane 139 (PR #155) merged 2026-11-03 06:13 UTC → `plan-history.md`. Lane 115 (PR #156) merged 2026-11-03 → `plan-history.md`. Lane 118 (PR #154) merged 2026-11-03 06:00 UTC → `plan-history.md`. Lane 130 (PR #153) merged 2026-11-03 05:48 UTC → `plan-history.md`. Lane 116 (PR #152) merged 2026-11-03 05:36 UTC → `plan-history.md`. Lanes 145 (PR #148), 140 (PR #149) and 114 (PR #150) merged 2026-11-03 05:29 UTC → `plan-history.md`. Lane 141 (#141, #142, PR #143) merged → `plan-history.md`. Lanes 132 (#132, PR #135), 131 (#131, PR #136) 133 (#133, PR #137) and 134 (#134, PR #138) merged → `plan-history.md`. Lane 110 (#110, inventory, no PR) finished and #110 closed on the user's "Reviewed, go ahead" → `plan-history.md`. Lanes 109 (PR #121), 107 (PR #122), 108 (PR #124), 120 (PR #125), 111 (PR #127), 123 (PR #128) and 113 (PR #129) merged → `plan-history.md`, "Lanes 107–111". All lanes through 103 merged; 0.3.2 released → `plan-history.md` (waves 1–2, lanes 33, 42, 45–51, 60–64, 71–75, 0.3.1 and 0.3.2 rounds, close-outs).
 
