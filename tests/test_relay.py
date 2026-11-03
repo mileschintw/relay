@@ -508,6 +508,13 @@ class ReadyTests(Base):
                                                   encoding="utf-8")
             self.assertNotIn("Coordinator", self.ready())
 
+    def test_setup_plan_template_passes_coordinator_check(self):
+        template = HERE.parent / "plugin" / "skills" / "setup" / "templates" / "plan.md"
+        (self.records / "plan.md").write_bytes(template.read_bytes())
+        self.assertNotIn("Coordinator", self.ready())
+        self.assertEqual(relay.parse_coordinator(relay.coordinator_field(
+            template.read_text(encoding="utf-8"))[1]), {})
+
     def test_fresh_records_and_brief_without_status(self):
         for d in ("status", "reports", "pr-bodies"):
             (self.records / d).rmdir()

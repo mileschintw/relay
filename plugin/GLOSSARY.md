@@ -57,7 +57,7 @@ The checkout of branch `coord`: an orphan branch of this repo, checked out besid
 `plan.md` in the records folder: the current state only. Done work moves to `plan-history.md`.
 
 **Handover**
-The plan section naming the current coordinator (title, worktree, id, mode), the next step and who it waits on, the user's standing instructions and the unattended log. What a coordinator rereads to resume after a compact or a handover.
+The plan section naming the current coordinator (title, worktree, id, mode; `none` when no coordinator holds it), the next step and who it waits on, the user's standing instructions and the unattended log. What a coordinator rereads to resume after a compact or a handover.
 
 **Now table**
 The plan table of lanes with a session: key, issues, session, state, and what a parked lane waits for.
