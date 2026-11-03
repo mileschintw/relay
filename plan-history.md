@@ -228,3 +228,9 @@ Merged 2026-11-03 05:29 UTC by `relay.py merge` after CI passed, on the user's "
 | 145 | #145 | local_1ac00200-a9a1-4a09-92ab-6fb646392a2f (folder lane-134-eb4fc2, an archived lane's, on its own branch claude/lane-145-6a04eb) | done, PR #148, waitchecks running | — |
 | 140 | #140 | local_9ddbb370-6eb0-4ec5-8755-a4c2d0340c77 (folder lane-133-1fd07d, an archived lane's, on its own branch claude/lane-140-4d9a51) | done, PR #149, waitchecks running | — |
 | 114 | #114 | local_a6578565-d746-41b0-af40-71c7c25aada2 | done, PR #150, waitchecks running | — |
+
+## Lane 116 (round 2026-11-02)
+
+Merged 2026-11-03 05:36 UTC (PR #152) on the user's "open the PR and merge once CI passes" (picked). Accepted behaviour change: a done lane outside Now, never pushed, no PR, with a report, is left out as finished.
+
+| 116 | #116 | local_1298b089-e1cd-43bc-a2a2-b6afa0824412 | done, PR #152, waitchecks running | — |
