@@ -5,7 +5,7 @@
   "plugins": [
     {
       "name": "relay",
-      "source": { "source": "git-subdir", "url": "mileschintw/relay", "path": "plugin", "ref": "release" },
+      "source": { "source": "git-subdir", "url": "https://github.com/mileschintw/relay.git", "path": "plugin", "ref": "release" },
       "description": "Lightweight multi-session coordination for Claude Code"
     }
   ]
