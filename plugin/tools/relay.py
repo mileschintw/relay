@@ -1768,6 +1768,11 @@ def fail(msg):
 
 
 def main(argv=None):
+    # records text holds non-ASCII (`›`, the user's words); a piped Windows stdout defaults to
+    # the locale code page (cp950), and -I ignores PYTHONIOENCODING (#161)
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="cmd", required=True)
     s = sub.add_parser("status", help="write a worker's status file")
@@ -1811,10 +1816,6 @@ def main(argv=None):
     command = {"status": cmd_status, "ready": cmd_ready, "roadmap": cmd_roadmap,
                "localcheck": cmd_localcheck, "waitchecks": cmd_waitchecks,
                "merge": cmd_merge}[a.cmd]
-    if a.cmd in ("localcheck", "waitchecks", "merge"):
-        for stream in (sys.stdout, sys.stderr):
-            if hasattr(stream, "reconfigure"):
-                stream.reconfigure(errors="replace")  # output the console cannot hold
     if a.cmd not in ("waitchecks", "merge"):
         return command(a)
     # their exit 1 means a check failed or a merge stopped: never let an error say that

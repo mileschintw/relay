@@ -115,6 +115,33 @@ class StatusTests(Base):
         self.assertEqual(code, 1)
         self.assertIn("records branch", err)
 
+    def cp950(self, *argv):
+        """Run relay.py under -I with a cp950 stdout and stderr, as a piped Windows console."""
+        driver = ("import io, sys\n"
+                  "for name in ('stdout', 'stderr'):\n"
+                  "    setattr(sys, name, io.TextIOWrapper(getattr(sys, name).buffer,"
+                  " encoding='cp950'))\n"
+                  "sys.path.insert(0, sys.argv[1])\n"
+                  "import relay\n"
+                  "sys.exit(relay.main(sys.argv[2:]))\n")
+        r = subprocess.run([sys.executable, "-I", "-c", driver,
+                            str(HERE.parent / "plugin" / "tools"), *argv],
+                           cwd=self.clone, capture_output=True)
+        self.assertNotIn(b"Traceback", r.stderr)
+        return r.returncode, r.stdout.decode("utf-8"), r.stderr.decode("utf-8")
+
+    def test_non_ascii_on_a_cp950_console(self):
+        doing = "Consent › Merge right，完成"
+        code, out, err = self.cp950("status", str(self.records), "12", "--state", "done",
+                                    "--doing", doing)
+        self.assertEqual(code, 0, err)
+        self.assertIn(doing, out)
+        self.assertIn(doing, (self.records / "status" / "12.md").read_text(encoding="utf-8"))
+        code, _, err = self.cp950("status", str(self.records), "12", "--state", "完成",
+                                  "--doing", "x")
+        self.assertEqual(code, 2)
+        self.assertIn("'完成'", err)
+
     def test_missing_records_folder_exits_2_and_writes_nothing(self):
         gone = self.tmp / "no-such-records"
         code, _, err = self.call("status", str(gone), "12", "--state", "working", "--doing", "x")
@@ -1204,7 +1231,7 @@ class SafeExitTests(Base):
             self.heads[key] = (pr, head)
 
     def call_cp1252(self, *argv):
-        """Base.call with stdout and stderr encoding as a piped Windows console does."""
+        """Base.call with stdout and stderr starting as a piped Windows console's cp1252."""
         out, err = (io.TextIOWrapper(io.BytesIO(), encoding="cp1252") for _ in range(2))
         cwd = os.getcwd()
         os.chdir(self.clone)
@@ -1216,7 +1243,7 @@ class SafeExitTests(Base):
         texts = []
         for s in (out, err):
             s.flush()
-            texts.append(s.buffer.getvalue().decode("cp1252"))
+            texts.append(s.buffer.getvalue().decode("utf-8"))  # main() switches to UTF-8 (#161)
         return code, *texts
 
     def test_non_ascii_check_name_on_a_cp1252_stdout_exits_by_the_checks(self):
@@ -1224,8 +1251,8 @@ class SafeExitTests(Base):
         with mock.patch.object(self, "call", self.call_cp1252):
             code, out, err = self.waitchecks(watch=(0, table, "\u8b66\u544a"), checks={"5": table})
             self.assertEqual(code, 0, err)
-            self.assertIn("?? ?\tpass", out)
-            self.assertIn("??", err)
+            self.assertIn(table, out)
+            self.assertIn("警告", err)
             code, out, err = self.waitchecks(watch=(1, table), rollup=self.FAILED, checks={"5": table})
             self.assertEqual(code, 1, err)
 
