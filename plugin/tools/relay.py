@@ -37,7 +37,9 @@ ready   read-only. Prints what the coordinator can do next, the Plan warning fir
             `Depends on:` line counts only when every one of those lists is empty.
           - Ready for PR: done lanes with no pull request, status head equal to the pushed head.
           - Ready to merge: done lanes whose open PR head is the status head, checks all passed
-            (at least one, none pending), no conflict and a body equal to the draft.
+            (at least one, none pending), no conflict and a body equal to the draft. A PR with
+            no checks that CI does not cover (as waitchecks decides) counts as passed: its line
+            ends with `(CI does not cover these paths: ...)`.
           - Waiting: parked lanes with an open dependency; a parked spare with no brief
             (`spare, available: waits for a brief`); blocked lanes, with their `doing` line
             (`(doing withheld: a deny-list name)` when it matches the deny list, `(doing
@@ -49,7 +51,8 @@ ready   read-only. Prints what the coordinator can do next, the Plan warning fir
             billing, a spending limit) shows as `checks could not run (billing)`, not `check failed`.
             A PR with no checks shows as `no CI configured` when the repo has no Actions workflow
             (`gh api repos/<repo>/actions/workflows`) and no status or check-run on the default
-            branch head (`commits/HEAD/status`, `/check-runs`), else as `no checks reported`.
+            branch head (`commits/HEAD/status`, `/check-runs`), else as `no checks reported`
+            (unless CI does not cover its paths: Ready to merge, above).
           - No status yet: a brief with no status file.
           - Could not parse: a status file that is not valid UTF-8, or has no valid state or no
             branch, head or time; the other lanes are still listed.
@@ -1413,14 +1416,18 @@ def ready_done(records, key, st, repo, checkout, out, deny, lookups=None, fetche
     if stale:
         out["Waiting"].append(f"{key}: PR #{pr['number']} body differs from its draft: "
                               f'gh pr edit {pr["number"]} --body-file "{draft.as_posix()}"')
-    checks = checks_state(pr.get("statusCheckRollup"), repo)
+    checks, uncovered = checks_state(pr.get("statusCheckRollup"), repo), ""
+    if checks == "no checks reported":  # as waitchecks: no workflow runs on these paths (#165)
+        line = uncovered_line(pr["number"], repo)
+        if line:
+            checks, uncovered = "passed", f" ({line})"
     if pr.get("mergeable", "").upper() == "CONFLICTING":
         out["Waiting"].append(f"{key}: PR #{pr['number']} has a merge conflict")
     elif checks != "passed":
         out["Waiting"].append(f"{key}: PR #{pr['number']} {checks}")
     elif not stale:
         out["Ready to merge"].append(f"{key}: PR #{pr['number']} --match-head-commit "
-                                     f"{pr['headRefOid']}{skipped}")
+                                     f"{pr['headRefOid']}{uncovered}{skipped}")
 
 
 # roadmap --------------------------------------------------------------------------------------
@@ -1778,7 +1785,8 @@ def cmd_waitchecks(a):
 
 # merge ----------------------------------------------------------------------------------------
 
-READY_TO_MERGE = re.compile(r"PR #(\d+) --match-head-commit ([0-9a-f]{40})$")
+READY_TO_MERGE = re.compile(r"PR #(\d+) --match-head-commit ([0-9a-f]{40})"
+                            r"(?: \(CI does not cover these paths: .*; no checks to wait for\))?$")
 STATE_RETRIES = (5, 15, 30)  # seconds; GitHub says UNKNOWN while it recomputes after a merge
 RUN_WAITS = (0, 10, 20)  # seconds; a push run takes a few seconds to appear
 
