@@ -289,3 +289,9 @@ Merged 2026-11-03 06:13 UTC (PR #155, body updated after two catch-ups) on the u
 Merged 2026-11-03 11:15 UTC (PR #170, 248742b) on the user's 「開 PR，CI 過就合併」. Found by the 0.3.4 release review; review follow-up #169 taken into 0.3.4 as lane 169.
 
 | 165 | #165 | local_43920acb-1c58-4549-94e4-5c56dedf5aaa | done, PR #170 | — |
+
+## Lane 169 (into 0.3.4)
+
+Merged 2026-11-03 11:42 UTC (PR #171, 5373249) on the user's 「開 PR，CI 過就合併」; taken into 0.3.4 on the user's 「#169也納入這一版」.
+
+| 169 | #169 | local_8c824979-9934-42fc-80e7-db53579cba56 | done, PR #171 | — |
