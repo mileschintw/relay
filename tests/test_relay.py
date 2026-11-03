@@ -2237,6 +2237,8 @@ class PushRunTests(Base):
 
     def test_no_origin_head_is_a_failed_lookup_not_a_guess(self):
         git("remote", "set-head", "origin", "--delete", cwd=self.clone)
+        # git 2.48+ re-creates origin/HEAD on ready's fetch unless told not to (older git ignores it)
+        git("config", "remote.origin.followRemoteHEAD", "never", cwd=self.clone)
         self.gh({"runs": [self.push_run("tests", "failure")]})
         out = self.ready()
         self.assertIn("Default branch:\n  push run lookup failed: no origin/HEAD", out)
