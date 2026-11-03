@@ -1194,12 +1194,12 @@ class UncoveredPathsTests(Base):
             relay.timed_out.append(["gh", "api"])
             raise RuntimeError("timed out")
 
+        self.addCleanup(relay.timed_out.clear)
         lookups = relay.ReadyLookups(None, False, 1)
         with mock.patch.object(relay, "workflow_texts", texts):
             for _ in range(2):
                 self.assertIsNone(relay.uncovered_line(5, "o/r", lookups.workflow_texts))
         self.assertEqual(asked, ["o/r", "o/r"])
-        relay.timed_out.clear()
 
     def test_merge_takes_an_uncovered_pr(self):
         head = self.uncovered_lane(["docs/a.png", "README.md"])

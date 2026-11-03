@@ -486,15 +486,15 @@ class ReadyLookups:
     def once(self, fn, repo):
         """fn(repo), or what it returned or raised earlier this run; a call that timed out is not
         kept."""
-        value = self.kept.get(fn)
-        if fn not in self.kept:
+        value = self.kept.get((fn, repo))
+        if (fn, repo) not in self.kept:
             before = len(timed_out)
             try:
                 value = fn(repo)
             except LOOKUP_ERRORS as e:
                 value = e
             if len(timed_out) == before:
-                self.kept[fn] = value
+                self.kept[fn, repo] = value
         if isinstance(value, Exception):
             raise value
         return value
@@ -808,9 +808,9 @@ def ci_case(repo):
             "take *Checks not started*")
 
 
-def checks_state(rollup, repo=None, no_ci_of=no_ci):
+def checks_state(rollup, repo=None, no_ci_of=None):
     if not rollup:
-        return "no CI configured" if no_ci_of(repo) else "no checks reported"
+        return "no CI configured" if (no_ci_of or no_ci)(repo) else "no checks reported"
     billing = []
     for c in rollup:
         status = (c.get("status") or "COMPLETED").upper()
@@ -1396,6 +1396,7 @@ def ready_done(records, key, st, repo, checkout, out, deny, lookups=None, fetche
     branch, head = st["branch"], st["head"]
     pushed_of = lookups.pushed if lookups else (lambda b: pushed_head(checkout, b))
     prs_of = lookups.prs if lookups else branch_prs
+    no_ci_of, texts_of = (lookups.no_ci, lookups.workflow_texts) if lookups else (None, None)
     if not (records / "reports" / f"{key}.md").exists():
         out["Inconsistent"].append(f"{key}: done with no report file")
     pushed = pushed_of(branch)
@@ -1443,10 +1444,9 @@ def ready_done(records, key, st, repo, checkout, out, deny, lookups=None, fetche
     if stale:
         out["Waiting"].append(f"{key}: PR #{pr['number']} body differs from its draft: "
                               f'gh pr edit {pr["number"]} --body-file "{draft.as_posix()}"')
-    checks, uncovered = checks_state(pr.get("statusCheckRollup"), repo,
-                                     lookups.no_ci if lookups else no_ci), ""
+    checks, uncovered = checks_state(pr.get("statusCheckRollup"), repo, no_ci_of), ""
     if checks == "no checks reported":  # as waitchecks: no workflow runs on these paths (#165)
-        line = uncovered_line(pr["number"], repo, lookups and lookups.workflow_texts)
+        line = uncovered_line(pr["number"], repo, texts_of)
         if line:
             checks, uncovered = "passed", f" ({line})"
     if pr.get("mergeable", "").upper() == "CONFLICTING":
