@@ -1049,7 +1049,7 @@ class UncoveredPathsTests(Base):
                                          pr_files={"5": ["docs/a.png", "plugin/tools/relay.py"]})
         self.assertEqual((code, self.polls), (0, [0.0, 60.0]), err)
         self.assertIn("checks of 5", out)
-        self.assertNotIn("does not cover", out)
+        self.assertNotIn("CI does not cover these paths", out)
         code, out, err = self.waitchecks(after=99, workflow_files=self.FILTERED,
                                          pr_files={"5": ["tests/test_relay.py"]})
         self.assertEqual(code, 3, err)
@@ -1075,7 +1075,7 @@ class UncoveredPathsTests(Base):
                      {"workflows": 0, "pr_files": {"5": ["a.md"]}}):
             code, out, err = self.waitchecks(after=99, **data)
             self.assertEqual(code, 3, (data, out, err))
-            self.assertNotIn("does not cover", out)
+            self.assertNotIn("CI does not cover these paths", out)
 
     def test_pull_request_filters(self):
         cases = {
@@ -1335,11 +1335,13 @@ class SafeExitTests(Base):
 
     def test_a_repo_with_workflows_behaves_as_before_apart_from_the_timing(self):
         # fake_gh reports one workflow by default: no no-CI lookup, the same calls as before #51
+        # but the workflow folder lookup after the first empty poll (#159's paths filters)
         code, out, err = self.waitchecks(after=2)
         self.assertEqual((code, self.polls), (0, [0.0, 60.0]), err)
         calls = pathlib.Path(str(self.fake) + ".calls").read_text().splitlines()
-        self.assertEqual(calls, ["pr view 5 --repo o/r --json statusCheckRollup"] * 2 +
-                         ["pr checks 5 --repo o/r --watch", "pr checks 5 --repo o/r"])
+        poll = "pr view 5 --repo o/r --json statusCheckRollup"
+        self.assertEqual(calls, [poll, "api repos/o/r/contents/.github/workflows", poll,
+                                 "pr checks 5 --repo o/r --watch", "pr checks 5 --repo o/r"])
 
     def test_a_pr_left_behind_by_an_earlier_merge_stops(self):
         self.lanes()

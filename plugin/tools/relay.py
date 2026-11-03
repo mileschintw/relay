@@ -722,15 +722,16 @@ def uncovered_line(pr, repo):
     try:
         filters = {f: fs for f, fs in ((f, pull_request_filters(t))
                                        for f, t in workflow_texts(repo).items()) if fs}
+        each = [f for fs in filters.values() for f in fs]
+        if not each or None in each:  # no PR workflow, or one with no filter: skip the PR lookup
+            return None
         paths = list(dict.fromkeys(p for p in gh_raw(
             "api", f"repos/{repo}/pulls/{pr}/files", "--paginate",
             "--jq", ".[] | .filename, (.previous_filename // empty)").splitlines() if p))
-        if (not filters or not paths or len(paths) >= PR_FILES_LIMIT
+        if (not paths or len(paths) >= PR_FILES_LIMIT
                 or any(p.startswith(".github/workflows/") for p in paths)):
             return None
-        for kind, patterns in (f or (None, None) for fs in filters.values() for f in fs):
-            if kind is None:
-                return None
+        for kind, patterns in each:
             hits = [path_filter_matches(patterns, p) for p in paths]
             if (any(hits) if kind == "paths" else not all(hits)):
                 return None
