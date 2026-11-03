@@ -38,13 +38,15 @@ jobs:
             echo "validate=true" >> "$GITHUB_OUTPUT"
           fi
 
+  # A pull request runs ubuntu only: relay's workers already run the tests on Windows before done.
+  # A push to main adds windows; the release step (docs/releasing.md) waits for that push run.
   test:
     needs: changes
     if: needs.changes.outputs.test == 'true'
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: ${{ github.event_name == 'pull_request' && fromJSON('["ubuntu-latest"]') || fromJSON('["ubuntu-latest", "windows-latest"]') }}
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
