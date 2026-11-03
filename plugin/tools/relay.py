@@ -37,7 +37,7 @@ ready   read-only. Prints what the coordinator can do next, the Plan warning fir
             `Depends on:` line counts only when every one of those lists is empty.
           - Ready for PR: done lanes with no pull request, status head equal to the pushed head.
           - Ready to merge: done lanes whose open PR head is the status head, checks all passed
-            (at least one, none pending) and no conflict.
+            (at least one, none pending), no conflict and a body equal to the draft.
           - Waiting: parked lanes with an open dependency; blocked lanes, with their `doing` line;
             done lanes with a conflict, pending or failed checks, a failed lookup, an open PR whose
             body differs from the PR body draft (ends trimmed; the line gives the `gh pr edit`
@@ -129,9 +129,9 @@ waitchecks  waits for PR <N>'s first check, then watches its checks. Polls `gh p
         once; both calls' errors go to stderr. None by the last poll: prints `no checks
         appeared`, then one line naming the `ci-fallbacks.md` case: `no CI configured` (as `ready`
         decides) or no workflow under the default branch's .github/workflows/ runs on
-        `pull_request` (read from each file's top-level `on:`): *CI cannot run*; one does, there
-        is no workflow file (CI outside Actions), or the lookup failed: *Checks not started*. A
-        failed poll is retried at the next one. No overall timeout once watching.
+        `pull_request` or `pull_request_target` (each file's top-level `on:`): *CI cannot run*;
+        one does, there is no workflow file (CI outside Actions), or the lookup failed: *Checks
+        not started*. A failed poll is retried at the next one. No overall timeout once watching.
 
 merge   merges lanes one at a time, in the order given. First, every key must be listed under
         `ready`'s Ready to merge and nowhere else (--checkout as for `ready`, default the current
@@ -152,11 +152,10 @@ merge, a lookup or the comment failed); waitchecks 0 when the checks passed, 1 w
 no failed check behind it, a gh error say); merge 0 when every key merged, 1 when it stopped
 (a key not ready, or a fetch, lookup, merge state or `gh pr merge` that failed);
 2 on a usage error (argparse's too, after which waitchecks and merge still print their hint;
-waitchecks: a CI start wait that is not a number of minutes, or a
-project.md that is not UTF-8; merge: a key given twice, or a --checkout that is not a git
-checkout; localcheck: a project.md that is not UTF-8, or a checks line with more than one
-command, or only a Windows override, in one item) or a missing
-records folder (status too: it creates only status/ inside it).
+waitchecks: a CI start wait that is not a number of minutes, or a project.md that is not UTF-8;
+merge: a key given twice, or a --checkout that is not a git checkout; localcheck: a project.md
+that is not UTF-8, or a checks line with more than one command, or only a Windows override, in
+one item) or a missing records folder (status too: it creates only status/ inside it).
 waitchecks and merge: an error not named above (a bug, say) exits 4 with one line, never 1;
 output the console cannot encode is replaced, not fatal; a last `hint (exit <code>):` line on
 stdout gives the coordinator's next step for that exit (EXIT_HINTS).
@@ -494,29 +493,33 @@ def no_ci(repo):
 
 
 ON_LINE = re.compile(r"""^["']?on["']?\s*:(.*)$""")
-PULL_REQUEST = re.compile(r"""^\s*(?:-\s*)?["']?pull_request["']?\s*(?::|$)""")
+PR_EVENT = re.compile(r"\bpull_request(?:_target)?\b")
+PR_EVENT_ITEM = re.compile(r"""^\s*(?:-\s*)?["']?pull_request(?:_target)?["']?\s*(?::|$)""")
+
+
+def indent(line):
+    return len(line) - len(line.lstrip())
 
 
 def runs_on_pull_request(text):
-    """True when workflow text's top-level `on:` names the `pull_request` event: inline
-    (`on: pull_request`, `on: [push, pull_request]`) or as a child key or list item."""
-    lines = [ln.split(" #")[0].rstrip() for ln in text.splitlines()]
+    """True when workflow text's top-level `on:` names `pull_request` or `pull_request_target`
+    (counting both errs toward asking the user): inline (`on: pull_request`, a flow list or map,
+    which may run on over the lines below) or as a child key or list item."""
+    lines = [re.sub(r"(^|\s)#.*", "", ln).rstrip() for ln in text.lstrip("﻿").splitlines()]
     for i, line in enumerate(lines):
         m = ON_LINE.match(line)
         if not m:
             continue
-        if m.group(1).strip():
-            return bool(re.search(r"\bpull_request\b(?!_)", m.group(1)))
         block = []
         for child in lines[i + 1:]:
-            if child.strip() and not child.lstrip().startswith("#"):
-                if not child[0].isspace() and not child.startswith("-"):
+            if child:
+                if not child[0].isspace() and not child.startswith(("-", "]", "}")):
                     break
                 block.append(child)
-        if not block:
-            return False
-        indent = min(len(c) - len(c.lstrip()) for c in block)
-        return any(PULL_REQUEST.match(c) for c in block if len(c) - len(c.lstrip()) == indent)
+        if m.group(1).strip():
+            return bool(PR_EVENT.search(" ".join([m.group(1)] + block)))
+        top = min(map(indent, block), default=0)
+        return any(PR_EVENT_ITEM.match(c) for c in block if indent(c) == top)
     return False
 
 
@@ -528,10 +531,12 @@ def ci_case(repo):
                 "head: take *CI cannot run*")
     try:
         try:
-            listed = gh("api", f"repos/{repo}/contents/.github/workflows") or []
+            listed = gh("api", f"repos/{repo}/contents/.github/workflows")
         except RuntimeError as e:
-            if "404" not in str(e):
+            if "HTTP 404" not in str(e):
                 raise
+            listed = None
+        if not isinstance(listed, list):  # no folder, or a file by that name
             listed = []
         files = [f["path"] for f in listed if f.get("type") == "file"
                  and f["name"].endswith((".yml", ".yaml"))]
@@ -544,10 +549,10 @@ def ci_case(repo):
         return ("no workflow file on the default branch (CI outside Actions): take *Checks not "
                 "started*")
     if not on_pr:
-        return (f"no workflow on the default branch runs on pull_request ({', '.join(files)}): "
-                "take *CI cannot run*")
-    return (f"a workflow on the default branch runs on pull_request ({', '.join(on_pr)}): take "
-            "*Checks not started*")
+        return (f"no workflow on the default branch runs on a pull_request event "
+                f"({', '.join(files)}): take *CI cannot run*")
+    return (f"a workflow on the default branch runs on a pull_request event ({', '.join(on_pr)}): "
+            "take *Checks not started*")
 
 
 def checks_state(rollup, repo=None):
@@ -651,8 +656,9 @@ READY_HINTS = (
      "a CI fallback: follow `ci-fallbacks.md`; its *Which case* says which applies"),
     ("Waiting", r"^\S+: (PR #\d+ checks pending|parked on )", "`checks pending` and a parked "
      "lane's open dependency need nothing"),
-    ("Waiting", r"body differs from its draft", "the draft changed after the PR opened: once "
-     "`ready` flags nothing else for that lane, run the line's `gh pr edit`"),
+    ("Waiting", r"^\S+: PR #\d+ body differs from its draft", "the draft changed after the PR "
+     "opened: run the line's `gh pr edit`, after fixing the draft first when `ready` flags its PR "
+     "body under Inconsistent"),
     ("Waiting", r"^\S+: deny-list check not run", "deny-list check not run: follow the deny-list "
      "line under Records, and rerun `ready` only after the user says the deny list is fixed"),
     ("No status yet", "", "a lane in Now stays `started` until its worker writes one; a brief "
@@ -1022,17 +1028,17 @@ def ready_done(records, key, st, repo, checkout, out, deny, lookups=None, fetche
                                    f"is not the status head {head}")
         return
     draft = pathlib.Path(st.get("PR body draft", ""))
-    if pr.get("body") is not None and draft.is_file() and (  # gh may return CRLF
-            pr["body"].replace("\r\n", "\n").strip() != draft.read_text(encoding="utf-8").strip()):
+    stale = pr.get("body") is not None and draft.is_file() and (  # gh may return CRLF
+        pr["body"].replace("\r\n", "\n").strip() != draft.read_text(encoding="utf-8").strip())
+    if stale:
         out["Waiting"].append(f"{key}: PR #{pr['number']} body differs from its draft: "
-                              f"gh pr edit {pr['number']} --body-file {draft.as_posix()}")
-        return
+                              f'gh pr edit {pr["number"]} --body-file "{draft.as_posix()}"')
     checks = checks_state(pr.get("statusCheckRollup"), repo)
     if pr.get("mergeable", "").upper() == "CONFLICTING":
         out["Waiting"].append(f"{key}: PR #{pr['number']} has a merge conflict")
     elif checks != "passed":
         out["Waiting"].append(f"{key}: PR #{pr['number']} {checks}")
-    else:
+    elif not stale:
         out["Ready to merge"].append(f"{key}: PR #{pr['number']} --match-head-commit "
                                      f"{pr['headRefOid']}{skipped}")
 

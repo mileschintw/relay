@@ -19,4 +19,4 @@ A failed local check is a failed check: it goes to the user with its output, as 
 
 ## Checks not started
 
-The repo has CI, but none reported on this PR within the CI start wait. Tell the user no check has reported on PR #<N> after the minutes `waitchecks` printed, and ask whether to keep waiting (run `waitchecks` again) or take *CI cannot run*.
+The repo has CI (or the workflow lookup failed), but none reported on this PR within the CI start wait. Tell the user no check has reported on PR #<N> after the minutes `waitchecks` printed, and ask whether to keep waiting (run `waitchecks` again) or take *CI cannot run*.
