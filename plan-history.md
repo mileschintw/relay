@@ -323,3 +323,4 @@ The unattended merge right is named as living in Handover › Unattended log (SK
 | #167 setup: say CI start wait also caps the checks watch | 1 | none | none | setup/templates/project.md (CI start wait line); GLOSSARY.md (if it defines CI start wait) | free |
 
 Setup's project.md template says CI start wait also caps the checks watch at 20× (2 hours at 6). Report: `reports/167.md`.
+- Lane 173 post-merge check: main push run 41732106151 for 3c0a4f7 succeeded, with test (ubuntu-latest) and test (windows-latest) both passing.
