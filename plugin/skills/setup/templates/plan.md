@@ -16,8 +16,12 @@ Current state only. An entry moves to `plan-history.md` the moment it is DONE or
 
 ## Now
 
-| Key | Issues | Session | State | Parked until |
-|---|---|---|---|---|
+"Kind" is `pr`, `run`, `audit` or `spare`, as the relay plugin's `GLOSSARY.md` defines under **Kind**.
+
+| Key | Kind | Issues | Session | State | Parked until |
+|---|---|---|---|---|---|
+
+**Main checkout:** none. <while a lane holds the main checkout: its key, then what for; `none` again once that lane is done or stops>.
 
 ## Roadmap
 

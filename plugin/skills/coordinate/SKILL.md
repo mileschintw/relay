@@ -47,7 +47,7 @@ Sessions start only in a turn the user typed in the desktop app (no fork, decisi
 2. Write `briefs/<key>.md` from `briefs/_template.md`: about ten lines, only what is specific to this lane, leaving out what `relay:work`, `project.md` and the issue already say.
 3. `start_session` with `initiation: "user_asked"`, `context: "fresh"`, `use_worktree: true`, `source_branch` the default branch (never your own branch), `branch_name: lane-<key>`, `permission_mode` left out so it inherits yours (another mode holds your messages for approval), and a `background` naming the repo and that lanes run in parallel through the records folder. Its prompt:
    `You are the relay worker for lane <key>. Use the relay:work skill. Records folder: <path>. Brief: <path>/briefs/<key>.md.` and, for a parked lane, `You are parked until GO #<key>.`
-4. Run `list_sessions` and check its `cwd` is the folder you asked for (`app-limits.md`, *Session folders*). Record key, session id and state in the plan's Now table: `started` until its first status file, then the status file's state.
+4. Run `list_sessions` and check its `cwd` is the folder you asked for (`app-limits.md`, *Session folders*). Record key, kind, session id and state in the plan's Now table: `started` until its first status file, then the status file's state. A lane that needs the main checkout (untracked data, a local database) gets it through the plan's **Main checkout** field: one lane at a time, named there before you tell its worker, set back to `none` when it is done or stops.
 
 ## Following progress
 

@@ -1816,5 +1816,90 @@ class ResumeTests(unittest.TestCase):
         self.assertEqual(self.resume(self.coord), "")
 
 
+class LaneKindTests(Base):
+    """Now-table lane kinds `run`, `audit` and `spare` close no issue and open no PR, so `ready`
+    does not flag them for one; plan.md's Main checkout names the lane holding it (#116)."""
+
+    def plan(self, rows, checkout="none"):
+        (self.records / "plan.md").write_text(
+            "# Plan\n\n## Now\n\n| Key | Kind | Issues | Session | State | Parked until |\n"
+            "|---|---|---|---|---|---|\n" + "".join(f"| {k} | {kind} | - | s | started | - |\n"
+                                                for k, kind in rows)
+            + f"\n**Main checkout:** {checkout}\n\n## Roadmap\n\n| Issue |\n|---|\n| #9 |\n")
+
+    def done_no_pr(self, key):
+        """A done lane like the live records' lane 110: an audit whose branch was never pushed
+        and that has no PR body draft."""
+        (self.records / "reports" / f"{key}.md").write_text("report")
+        code, _, err = self.call("status", str(self.records), key, "--state", "done", "--doing",
+                                 "x", "--branch", f"claude/lane-{key}-x", "--head", "02d1f2d")
+        self.assertEqual(code, 0, err)
+
+    def test_now_kinds_reads_the_kind_column(self):
+        self.plan([("12", "`run`"), ("13", "Audit"), ("14", ""), ("15", "pr"), ("s1", "spare")])
+        self.assertEqual(relay.now_kinds(self.records / "plan.md"),
+                         {"12": "run", "13": "audit", "14": "pr", "15": "pr", "s1": "spare"})
+        self.assertEqual(relay.now_keys(self.records / "plan.md"), {"12", "13", "14", "15", "s1"})
+        (self.records / "plan.md").write_text(  # no Kind column: every lane is `pr`
+            "# Plan\n\n## Now\n\n| Key | Issues |\n|---|---|\n| 12 | #12 |\n")
+        self.assertEqual(relay.now_kinds(self.records / "plan.md"), {"12": "pr"})
+
+    def test_each_no_pr_kind_is_not_flagged_for_a_missing_pr_or_issue(self):
+        for kind in ("run", "audit", "spare"):
+            with self.subTest(kind=kind):
+                self.plan([("110", kind)])
+                self.done_no_pr("110")
+                out = self.ready()
+                self.assertNotIn("Inconsistent:", out)
+                self.assertNotIn("Ready for PR:", out)
+                self.assertIn(f"Finished:\n  110: {kind} done, no PR: read reports/110.md", out)
+
+    def test_a_normal_lane_still_is(self):
+        self.plan([("110", "pr")])
+        self.done_no_pr("110")
+        self.assertIn("Inconsistent:\n  110: status head 02d1f2d is not the pushed head "
+                      "(branch not pushed)", self.ready())
+        self.plan([])  # lane 110 today: done and moved out of Now, so its kind is unknown
+        self.assertIn("110: status head 02d1f2d is not the pushed head", self.ready())
+
+    def test_a_no_pr_lane_still_needs_its_report(self):
+        self.plan([("12", "run")])
+        self.done_no_pr("12")
+        (self.records / "reports" / "12.md").unlink()
+        out = self.ready()
+        self.assertIn("Inconsistent:\n  12: done with no report file", out)
+        self.assertNotIn("Finished:", out)
+
+    def test_a_parked_spare_waits_for_a_brief(self):
+        self.plan([("s1", "spare"), ("13", "pr")])
+        for key in ("s1", "13"):
+            self.call("status", str(self.records), key, "--state", "parked", "--doing", "parked")
+        out = self.ready()
+        self.assertIn("Waiting:\n  s1: spare, waits for a brief", out)
+        self.assertNotIn("s1: parked with no brief", out)
+        self.assertNotIn("GO #s1", out)
+        self.assertIn("13: parked with no brief", out)  # a normal lane still is flagged
+        # given a brief and its lane's kind, the spare is a parked lane like any other
+        self.plan([("s1", "pr")])
+        (self.records / "briefs" / "s1.md").write_text("Depends on: none\n")
+        self.assertIn("s1: send `GO #s1`", self.ready())
+
+    def test_an_unknown_kind_is_flagged(self):
+        self.plan([("12", "audits")])
+        self.assertRegex(self.ready(), r"plan\.md line \d+: Now kind `audits` for 12 is not "
+                                       r"one of pr, run, audit, spare")
+
+    def test_main_checkout_held_by_a_lane_not_in_now_is_flagged(self):
+        self.plan([("12", "run")], checkout="12 (benchmark data)")
+        self.assertNotIn("Main checkout", self.ready())
+        self.plan([("12", "run")], checkout="none")
+        self.assertNotIn("Main checkout", self.ready())
+        self.plan([("12", "run")], checkout="`13`")
+        out = self.ready()
+        self.assertRegex(out, r"plan\.md line \d+: Main checkout names lane 13, which is not in "
+                              r"Now")
+        self.assertIn("hint: a Main checkout holder not in Now: release it", out)
+
+
 if __name__ == "__main__":
     unittest.main()
