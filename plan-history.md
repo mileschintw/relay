@@ -220,3 +220,11 @@ Finished work moved out of `plan.md`, newest first, for checking only; the plan 
 - Triage done 2026-11-02 20:39 -0800: #114, #115, #116, #118, #119, #130 (all three items), #139, #140, #145 ready-for-agent; #117 closed as wontfix (picked the recommended option). 
 - Since 2026-11-02 20:39 -0800: yes to start the proposed wave (#145, #140, #139, #118, #114, #116, #130 now; #119 parked behind #145, #115 behind #116).
 - Round started 2026-11-02 20:49 -0800: lanes 145, 140, 139, 118, 114, 116, 130 running; 119 parked behind #145, 115 behind #116.
+
+## Lanes 145, 140, 114 (round 2026-11-02)
+
+Merged 2026-11-03 05:29 UTC by `relay.py merge` after CI passed, on the user's "open the PR and merge once CI passes" (picked). Follow-ups opened: #146 (lane 114), #151 (lane 140's review, on the user's yes).
+
+| 145 | #145 | local_1ac00200-a9a1-4a09-92ab-6fb646392a2f (folder lane-134-eb4fc2, an archived lane's, on its own branch claude/lane-145-6a04eb) | done, PR #148, waitchecks running | — |
+| 140 | #140 | local_9ddbb370-6eb0-4ec5-8755-a4c2d0340c77 (folder lane-133-1fd07d, an archived lane's, on its own branch claude/lane-140-4d9a51) | done, PR #149, waitchecks running | — |
+| 114 | #114 | local_a6578565-d746-41b0-af40-71c7c25aada2 | done, PR #150, waitchecks running | — |
