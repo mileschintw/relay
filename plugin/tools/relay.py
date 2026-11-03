@@ -68,8 +68,8 @@ ready   read-only. Prints what the coordinator can do next, the Plan warning fir
             body or comment. A failed lookup is listed here and holds nothing.
           - Inconsistent: a done lane's status head that is not the pushed one; done with no report
             file; a lane whose Now Kind is `spare` that has a brief (it took a lane, so its Kind is
-            that lane's); a PR head that is not the status head; a PR closed without merging; a
-            dependency closed as not planned (it also holds GO); a PR body
+            that lane's; done, it is checked as `pr`); a PR head that is not the status head; a PR
+            closed without merging; a dependency closed as not planned (it also holds GO); a PR body
             draft with a title line, a closing keyword outside a `Closes #N` line, or `Closes`
             lines that are not exactly one per issue on the brief's `Closes:` line; a line matching
             project.md's deny list (`- **Deny list:** <path>`, one regex per line; an end of the
@@ -810,6 +810,11 @@ def cmd_ready(a):
         lane = {k: [] for k in READY_SECTIONS} if moved else out
         if not moved:
             print(line)
+        # a spare given a brief has taken a lane: as `spare` it would finish with no PR
+        spare_brief = kind == "spare" and (records / "briefs" / f"{key}.md").exists()
+        if spare_brief:
+            lane["Inconsistent"].append(f"{key}: a spare with a brief: set its Now Kind to its "
+                                        "lane's (`pr` unless it is a run or audit)")
         if parents is None and st["state"] == "parked":
             lane["Waiting"].append(f"{key}: parked; no GO while the Parents lookup fails")
         elif key.isdigit() and int(key) in (parents or ()):
@@ -818,15 +823,12 @@ def cmd_ready(a):
             try:
                 if repo is None and (st["state"] in ("parked", "done")):
                     repo = gh("repo", "view", "--json", "nameWithOwner")["nameWithOwner"]
-                if kind == "spare" and (records / "briefs" / f"{key}.md").exists():
-                    lane["Inconsistent"].append(
-                        f"{key}: a spare with a brief: set its Now Kind to its lane's (`pr` "
-                        "unless it is a run or audit)")
-                elif st["state"] == "parked" and kind == "spare":
-                    lane["Waiting"].append(f"{key}: spare, available: waits for a brief")
+                if st["state"] == "parked" and kind == "spare":
+                    if not spare_brief:
+                        lane["Waiting"].append(f"{key}: spare, available: waits for a brief")
                 elif st["state"] == "parked":
                     ready_parked(records, key, repo, lane)
-                elif st["state"] == "done" and kind in NO_PR_KINDS:
+                elif st["state"] == "done" and kind in NO_PR_KINDS and not spare_brief:
                     ready_finished(records, key, kind, lane)
                 elif st["state"] == "done":
                     ready_done(records, key, st, repo, a.checkout, lane, deny, lookups, fetched,

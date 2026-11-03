@@ -1908,9 +1908,15 @@ class LaneKindTests(Base):
         self.assertIn("Inconsistent:\n  s1: a spare with a brief: set its Now Kind", out)
         self.assertNotIn("available", out)
         self.assertNotIn("GO #s1", out)
-        self.done("s1", "lane-s1", self.branch("lane-s1"), body="Closes #13\n\nBody.\n")
+        self.call("status", str(self.records), "s1", "--state", "blocked", "--doing", "which?",
+                  "--branch", "lane-s1", "--head", "02d1f2d")
         out = self.ready()
         self.assertIn("s1: a spare with a brief", out)
+        self.assertIn("s1: blocked: which?", out)
+        self.done("s1", "lane-s1", self.branch("lane-s1"), body="Closes #13\n\nBody.\n")
+        out = self.ready()  # done, it is checked as the `pr` lane it took
+        self.assertIn("s1: a spare with a brief", out)
+        self.assertIn("Ready for PR:\n  s1: lane-s1", out)
         self.assertNotIn("Finished:", out)
 
     def test_go_turns_a_spare_into_its_lane(self):
@@ -1931,13 +1937,14 @@ class LaneKindTests(Base):
         self.assertNotIn("Finished:", out)
 
     def test_a_spare_never_given_a_brief_closes_out(self):
-        """Told to close out, a spare writes its report and `done` from its unpushed worktree
-        branch: Finished in Now, and left out once moved to plan-history.md."""
+        """Told `CLOSE #s1`, a spare writes its report and `done` with no branch or head (its
+        worktree may sit on the pushed default branch): Finished in Now, and left out once moved
+        to plan-history.md."""
         self.plan([("s1", "spare")])
-        git("switch", "-q", "-c", "claude/lane-s1-ab12cd", "main", cwd=self.clone)
         (self.records / "reports" / "s1.md").write_text("Spare, never given a lane.\n")
         code, _, err = self.call("status", str(self.records), "s1", "--state", "done",
-                                 "--doing", "closed out, no lane")
+                                 "--branch", "none", "--head", "none",
+                                 "--doing", "spare closed out, no lane")
         self.assertEqual(code, 0, err)
         out = self.ready()
         self.assertIn("Finished:\n  s1: spare done, no PR: read reports/s1.md", out)

@@ -26,6 +26,9 @@ A worker started before its lane may begin; it waits for GO.
 **GO**
 The coordinator's message `GO #<key>`, which lets a parked worker start.
 
+**CLOSE**
+The coordinator's message `CLOSE #<key>` to a spare no lane needs: it finishes with a one-line report and `done`.
+
 **Hard dependency**
 Lane A needs lane B's result. Recorded as the tracker's blocking link on A's issue (GitHub's blocked-by).
 
@@ -67,7 +70,7 @@ The plan table of every open issue, once: its Order, blocked-by, same-section wa
 
 **Kind**
 A Roadmap column, judged by the lane's outcome: `free` when the outcome needs no user decision, account, special machine or release (a single limited follow-up step, such as replacing a release asset, is logged for the user and leaves it `free`); `limited: <what>` when the outcome itself needs one; `parent` for an issue with sub-issues.
-Also a Now-table column, by what the lane ends in: `pr` (an empty cell too) closes issues through its own PR; `run` (a long run), `audit` (a report) and `spare` (a parked worker with no lane yet) close no issue and open no PR, so `ready` lists them under Finished once done, with their report, instead of flagging a missing PR or issue. A parked spare waits for a brief, and takes a lane on GO: its brief is written as `briefs/<the spare's key>.md` and its Now Kind set to that lane's (`pr` unless it is a run or audit). A spare no lane needs gets `CLOSE #<key>` and finishes with a one-line report.
+Also a Now-table column, by what the lane ends in: `pr` (an empty cell too) closes issues through its own PR; `run` (a long run), `audit` (a report) and `spare` (a parked worker with no lane yet) close no issue and open no PR, so `ready` lists them under Finished once done, with their report, instead of flagging a missing PR or issue. A parked spare waits for a brief, and takes a lane on GO: its brief is written as `briefs/<the spare's key>.md` and its Now Kind set to that lane's (`pr` unless it is a run or audit).
 
 **Ruling**
 A decision the user made that the repo does not record yet, kept in the plan as one line with its date; it moves to `plan-history.md` once its lanes merge or a doc or ADR carries it.
