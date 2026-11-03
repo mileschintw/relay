@@ -13,6 +13,8 @@ Install once per machine, in Claude Code:
 /plugin install relay@relay
 ```
 
+The plugin is cloned over HTTPS, so installs and updates need no GitHub SSH key.
+
 Then, once per project, in the project's repo:
 
 ```
