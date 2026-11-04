@@ -393,3 +393,7 @@ Ended: all five lanes merged 2026-11-03.
 ## Close-out of round 181–187
 
 - 2026-11-03 18:35 -0800: on the user's picked "Do both": project.md's Checks before done test item gained `(covers: plugin/tools/**, plugin/skills/setup/templates/**, tests/**, .github/workflows/**)` (#185; verified with `check_items`); the seven worker sessions (181–187) archived after their scratchpads were copied to `snapshot/181`, `183`–`186` (182 and 187 had none). Main push run 41754640979 on d9af2ab passed. Coordinator wrote itself out; previous field: **Coordinator:** title Relay coordination, worktree D:/Repos/relay/.claude/worktrees/lane-114-30073e, id local_f0eb7091-3f4b-4994-afb1-091422a00e8b, mode normal. Back in 2026-11-03 15:57 -0800 after writing itself out at 15:46 -0800 (release 0.3.5 and close-out → `plan-history.md`, "Round 2026-11-03 and 0.3.5"). Its worktree is on branch release-0.3.5 (merged into main, clean). `relay.py` is `project.md`'s line (main checkout, at `b2bee65`).
+
+## Roadmap note, round 181–187
+
+Filled 2026-11-03 from `relay.py roadmap` (retrospective issues). Mechanical overlaps (different sections, parallel): relay.py (181 report_push_run/cmd_merge, 182 ready_push_runs, 183 merge_lane, 185 check_commands/localcheck, 187 roadmap argparse); tests/test_relay.py (each lane its own tests; 186 owns `Base` and the `git` helper, 182 and 186 different PushRunTests methods); tests/fake_gh.py (181, 183); coordinate/SKILL.md (181 Finishing a lane › Merge, 187 First turn).
