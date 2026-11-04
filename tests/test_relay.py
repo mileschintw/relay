@@ -1301,6 +1301,7 @@ class UncoveredPathsTests(Base):
 
     def test_merge_takes_an_uncovered_pr(self):
         head = self.uncovered_lane(["docs/a.png", "README.md"])
+        self.gh({**json.loads(self.fake.read_text()), "runs": MergeTests.GREEN})
         with mock.patch.object(relay.time, "sleep", lambda s: None):
             code, out, err = self.call("merge", str(self.records), "12", "--repo", "o/r")
         self.assertEqual(code, 0, err)
