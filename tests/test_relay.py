@@ -1347,6 +1347,8 @@ class MergeTests(Base):
     """merge takes lanes 12 (PR #5) and 13 (PR #6) from Ready to merge, with time faked."""
 
     OK = [{"name": "ci", "status": "COMPLETED", "conclusion": "SUCCESS"}]
+    GREEN = [{"databaseId": 9, "workflowName": "tests", "status": "completed",
+              "conclusion": "success", "url": "https://github.com/o/r/actions/runs/9"}]
 
     def setUp(self):
         super().setUp()
@@ -1366,9 +1368,15 @@ class MergeTests(Base):
                    for pr, head in self.heads.values()}
         self.gh({"prs": prs, "pr_view": pr_view,
                  "pr_checks": {str(pr): {"rollup": self.OK} for pr, _ in self.heads.values()},
-                 **data})
+                 "runs": MergeTests.GREEN, **data})
         pathlib.Path(str(self.fake) + ".calls").unlink(missing_ok=True)
-        with mock.patch.object(relay.time, "sleep", sleep):
+        now = [0.0]
+
+        def clock_sleep(s):
+            sleep(s)
+            now[0] += s
+        with mock.patch.object(relay.time, "sleep", clock_sleep), \
+                mock.patch.object(relay.time, "monotonic", lambda: now[0]):
             return self.call("merge", str(self.records), *keys, "--repo", "o/r")
 
     def merges(self):
@@ -1377,23 +1385,18 @@ class MergeTests(Base):
         return [c for c in calls if c.startswith("pr merge")]
 
     def test_two_lanes_merge_in_order_with_match_head_commit(self):
-        run = {"databaseId": 9, "status": "in_progress", "conclusion": "",
-               "url": "https://github.com/o/r/actions/runs/9", "headSha": "m6" * 8}
-        code, out, err = self.merge("13", "12", runs=[run])
+        code, out, err = self.merge("13", "12")
         self.assertEqual(code, 0, err)
         self.assertEqual(self.merges(), [
             f"pr merge 6 --repo o/r --merge --match-head-commit {self.heads['13'][1]}",
             f"pr merge 5 --repo o/r --merge --match-head-commit {self.heads['12'][1]}"])
         self.assertIn("13: merged PR #6 at 2026-10-31T07:00:00Z", out)
         self.assertIn("12: merged PR #5 at 2026-10-31T07:00:00Z", out)
-        self.assertIn("main push run for m5m5m5m5: in_progress https://github.com/o/r/actions/runs/9", out)
+        self.assertIn("tests: push run success at m5m5m5m5: https://github.com/o/r/actions/runs/9",
+                      out)
         calls = pathlib.Path(str(self.fake) + ".calls").read_text()
         self.assertIn("run list --repo o/r --branch main --event push --commit " + "m5" * 8, calls)
-
-    def test_no_push_run_yet_is_said(self):
-        code, out, err = self.merge("12")
-        self.assertEqual(code, 0, err)
-        self.assertIn("no push run on main for m5m5m5m5 yet", out)
+        self.assertNotIn("--commit " + "m6" * 8, calls)  # only the last merge commit's run
 
     def assert_stopped(self, code, err, *words):
         self.assertEqual(code, 1)
@@ -1408,8 +1411,7 @@ class MergeTests(Base):
         self.assert_stopped(code, err, "PR #5", "head ffffffffffff", "not")
 
     def test_checks_are_not_waited_for_again(self):
-        # Ready to merge already needs every check passed: no poll, no watch, no CI start wait
-        (self.records / "project.md").write_text("- **CI start wait:** soon\n", encoding="utf-8")
+        # Ready to merge already needs every check passed: no poll, no watch
         sleeps = []
         code, out, err = self.merge("12", "13", sleep=sleeps.append)
         self.assertEqual(code, 0, err)
@@ -1417,7 +1419,7 @@ class MergeTests(Base):
         calls = pathlib.Path(str(self.fake) + ".calls").read_text().splitlines()
         self.assertEqual([c for c in calls if "--watch" in c or
                           (c.startswith("pr view") and "statusCheckRollup" in c)], [])
-        self.assertEqual([s for s in sleeps if s], list(relay.RUN_WAITS[1:]))
+        self.assertEqual([s for s in sleeps if s], [])  # the push run is there at once
 
     def test_state_not_clean_stops_before_any_merge(self):
         code, out, err = self.merge("12", "13", view={"5": {"mergeStateStatus": "BLOCKED"}})
@@ -1444,7 +1446,7 @@ class MergeTests(Base):
         self.assert_stopped(code, err, "PR #5", "UNKNOWN, not CLEAN")
         self.assertEqual([s for s in sleeps if s], list(relay.STATE_RETRIES))
 
-    def test_merge_time_lookup_failure_still_counts_as_merged(self):
+    def test_merge_time_lookup_failure_still_counts_as_merged_but_skips_the_push_run(self):
         real_gh = relay.gh
 
         def gh(*args, **kw):
@@ -1453,10 +1455,12 @@ class MergeTests(Base):
             return real_gh(*args, **kw)
         with mock.patch.object(relay, "gh", gh):
             code, out, err = self.merge("12", "13")
-        self.assertEqual(code, 0, err)
+        self.assertEqual(code, 4, err)
         self.assertEqual(len(self.merges()), 2)
         self.assertIn("12: merged PR #5; merge time lookup failed: HTTP 502", out)
-        self.assertNotIn("push run", out)
+        self.assertNotIn("push run(s)", out)
+        self.assertIn("every key merged; the push run is not checked: the merge commit lookup "
+                      "failed", err)
 
     def test_a_key_not_ready_to_merge_is_refused_before_any_merge(self):
         self.call("status", str(self.records), "14", "--state", "working", "--doing", "x")
@@ -1519,7 +1523,7 @@ class MergeTests(Base):
         self.assertEqual(len(self.merges()), 2)
         self.assertIn("12: merged PR #5 at 2026-10-31T07:00:00Z", out)
         self.assertNotIn("12: ", err)
-        self.assertEqual([s for s in sleeps if s], list(relay.RUN_WAITS[1:]))
+        self.assertEqual([s for s in sleeps if s], [])
 
     def test_502_then_in_progress_then_merged_within_the_bound(self):
         sleeps = []
@@ -1535,7 +1539,7 @@ class MergeTests(Base):
                          [f"pr merge 5 --repo o/r --merge --match-head-commit {head}"] * 2)
         self.assertEqual(len(self.merges()), 3)
         self.assertIn("12: merged PR #5 at 2026-10-31T07:00:00Z", out)
-        merge_sleeps = [s for s in sleeps if s][:-len(relay.RUN_WAITS[1:])]
+        merge_sleeps = [s for s in sleeps if s]
         self.assertEqual(merge_sleeps, list(relay.MERGE_POLLS) + list(relay.MERGE_POLLS[:1]))
 
     def test_a_failed_state_lookup_is_asked_again_and_a_missing_merge_commit_is_no_crash(self):
@@ -1553,7 +1557,7 @@ class MergeTests(Base):
             return real_gh(*args, **kw)
         with mock.patch.object(relay, "gh", gh):
             code, out, err = self.merge("12", merge_fail={"5": "HTTP 502: Bad Gateway"})
-        self.assertEqual(code, 0, err)
+        self.assertEqual(code, 4, err)  # merged; with no merge commit, no push run to wait for
         self.assertEqual((len(self.merges()), len(lookups)), (1, 2))
         self.assertIn("12: merged PR #5; merge time lookup failed: ", out)
 
@@ -1733,6 +1737,137 @@ class SafeExitTests(Base):
         code, _, err = self.call("waitchecks", str(self.records), "5", "--repo", "o/r")
         self.assertEqual(code, 2)
         self.assertIn("not valid UTF-8", err)
+
+
+class PushWaitTests(Base):
+    """#181: `waitchecks --push <sha>`, and merge after its last merge, wait for the default
+    branch's push runs for a commit and fail on red, with time faked."""
+
+    SHA = "a" * 40
+    merge, merges = MergeTests.merge, MergeTests.merges
+    lanes, OK = SafeExitTests.lanes, MergeTests.OK
+
+    def run_(self, status="completed", conclusion="success", name="tests", id_=9):
+        return {"databaseId": id_, "workflowName": name, "status": status,
+                "conclusion": conclusion if status == "completed" else "",
+                "url": f"https://github.com/o/r/actions/runs/{id_}"}
+
+    def wait(self, *answers, sha=SHA, project=None, **data):
+        """`waitchecks --push <sha>`, the push runs answering each `run list` in turn."""
+        if project is not None:
+            (self.records / "project.md").write_text(project)
+        self.gh({"push_runs": {sha: list(answers) or [[]]}, **data})
+        pathlib.Path(str(self.fake) + ".calls").unlink(missing_ok=True)
+        now, self.polls = [0.0], []
+        real_gh = relay.gh
+
+        def poll(*args, **kw):
+            if args[:2] == ("run", "list"):
+                self.polls.append(now[0])
+            return real_gh(*args, **kw)
+
+        def sleep(s):
+            now[0] += s
+        with mock.patch.object(relay.time, "sleep", sleep), \
+                mock.patch.object(relay.time, "monotonic", lambda: now[0]), \
+                mock.patch.object(relay, "gh", poll):
+            return self.call("waitchecks", str(self.records), "--push", sha, "--repo", "o/r")
+
+    def test_a_green_push_run_is_waited_for_and_passes(self):
+        code, out, err = self.wait([], [self.run_("queued")], [self.run_("in_progress")],
+                                   [self.run_()])
+        self.assertEqual(code, 0, err)
+        self.assertEqual(self.polls, [0.0, 60.0, 90.0, 120.0])
+        self.assertIn("tests: push run success at aaaaaaaa: https://github.com/o/r/actions/runs/9", out)
+        calls = pathlib.Path(str(self.fake) + ".calls").read_text()
+        self.assertIn(f"run list --repo o/r --branch main --event push --commit {self.SHA}", calls)
+        self.assertIn("hint (exit 0): the push run passed", out)
+
+    def test_a_red_push_run_names_the_workflow_sha_failed_jobs_and_url(self):
+        red = [self.run_(conclusion="failure", id_=7), self.run_(name="lint", id_=8)]
+        code, out, err = self.wait([self.run_("in_progress", id_=7), self.run_(name="lint", id_=8)],
+                                   red, run_jobs={"7": [
+                                       {"name": "test (windows-latest)", "conclusion": "failure"},
+                                       {"name": "test (ubuntu-latest)", "conclusion": "success"}]})
+        self.assertEqual(code, 1, err)
+        self.assertIn("tests: push run failure at aaaaaaaa: https://github.com/o/r/actions/runs/7\n"
+                      "  failed jobs: test (windows-latest)\n", out)
+        self.assertIn("lint: push run success at aaaaaaaa", out)
+        self.assertIn("hint (exit 1): a red push run", out)
+        for conclusion in ("timed_out", "startup_failure"):
+            code, out, err = self.wait([self.run_(conclusion=conclusion)])
+            self.assertEqual(code, 1, err)
+            self.assertIn(f"tests: push run {conclusion} at aaaaaaaa", out)
+            self.assertIn("  failed jobs: lookup failed: ", out)  # run 9 has no jobs scripted
+
+    def test_no_push_run_by_the_last_poll_is_its_own_exit(self):
+        code, out, err = self.wait([])
+        self.assertEqual(code, 3, err)
+        self.assertEqual(self.polls, [0.0, 60.0, 180.0, 360.0])
+        self.assertIn(f"no push run on main for aaaaaaaa appeared within 6 minutes: gh run list "
+                      f"--repo o/r --branch main --event push --commit {self.SHA}", out)
+        self.assertIn("hint (exit 3): no push run appeared", out)
+
+    def test_a_run_still_in_progress_past_the_bound_is_its_own_exit(self):
+        code, out, err = self.wait([self.run_("in_progress")])
+        self.assertEqual(code, 5, err)
+        limit = 360 * relay.WATCH_FACTOR
+        self.assertLessEqual(self.polls[-1], limit)
+        self.assertGreater(self.polls[-1] + relay.PUSH_RUN_POLL, limit)
+        self.assertIn("tests: push run in_progress at aaaaaaaa", out)
+        self.assertIn(f"the push run watch for {self.SHA} on main ran past 120 minutes", out)
+        self.assertIn("hint (exit 5): the push run watch timed out", out)
+        # a failure already in hand is red, even past the bound
+        code, out, err = self.wait([self.run_(conclusion="failure"),
+                                    self.run_("in_progress", name="lint", id_=8)])
+        self.assertEqual(code, 1, err)
+
+    def test_cancelled_or_skipped_decides_nothing(self):
+        # as `ready` (#182): passed over, never a failure; a failure beside them still is one
+        code, out, err = self.wait([self.run_(conclusion="cancelled"),
+                                    self.run_(conclusion="skipped", name="lint", id_=8)])
+        self.assertEqual(code, 0, err)
+        self.assertIn("tests: push run cancelled at aaaaaaaa: https://github.com/o/r/actions/runs/9 "
+                      "(decides nothing, as in `ready`)", out)
+        self.assertIn("lint: push run skipped", out)
+        code, out, err = self.wait([self.run_(conclusion="cancelled"),
+                                    self.run_(conclusion="failure", name="lint", id_=8)])
+        self.assertEqual(code, 1, err)
+
+    def test_failed_lookups_retry_and_a_failed_last_poll_is_its_own_exit(self):
+        code, out, err = self.wait(broken=["--commit"])
+        self.assertEqual(code, 4, err)
+        self.assertEqual(len(self.polls), 4)
+        self.assertIn("push run lookup failed", err)
+
+    def test_usage_errors(self):
+        for argv in ((), ("5", "--push", self.SHA), ("--push", "abc1234")):
+            code, out, err = self.call("waitchecks", str(self.records), *argv, "--repo", "o/r")
+            self.assertEqual(code, 2, argv)
+            self.assertIn("hint (exit 2): a usage error", out)
+        self.assertIn("a full 40-character commit sha", err)
+
+    def test_merge_waits_for_the_last_merge_commits_push_run(self):
+        # one test per outcome after every key merged: green 0, red 6, no run 3, timed out 5
+        self.lanes()
+        sha = "m5" * 8
+        cases = {0: [self.run_()], relay.PUSH_RED: [self.run_(conclusion="failure")], 3: [],
+                 5: [self.run_("in_progress")]}
+        for code_, runs in cases.items():
+            code, out, err = self.merge("12", push_runs={sha: [runs]})
+            self.assertEqual((code, len(self.merges())), (code_, 1), (code_, err))
+            self.assertIn("12: merged PR #5 at ", out)
+        self.assertIn("hint (exit 5): every key merged; the push run watch timed out", out)
+        code, out, err = self.merge("12", push_runs={sha: [cases[relay.PUSH_RED]]})
+        self.assertIn("tests: push run failure at m5m5m5m5: https://github.com/o/r/actions/runs/9\n"
+                      "  failed jobs: ", out)
+        self.assertIn("hint (exit 6): every key merged, but the last merge commit's push run "
+                      "failed", out)
+        # a CI start wait merge cannot read stops before any merge
+        (self.records / "project.md").write_text("- **CI start wait:** soon\n")
+        code, out, err = self.merge("12")
+        self.assertEqual((code, self.merges()), (2, []))
+        self.assertIn("CI start wait is not a number of minutes: soon; nothing merged", err)
 
 
 class ParentTests(Base):
@@ -2033,13 +2168,14 @@ class HintTests(Base):
         self.assertIn("hint (exit 4): a lookup failed or an unexpected error: rerun it once; if it "
                       "exits 4 again, give the user its line", out)
 
-    def test_c102_merge_says_read_the_push_run(self):
+    def test_c102_merge_says_the_push_run_passed(self):
         self.lanes()
         code, out, err = self.merge("12")
         self.assertEqual(code, 0, err)
         self.assertTrue(out.rstrip().endswith(
-            "hint (exit 0): read the default branch's run for the last merge commit instead of "
-            "rerunning checks locally; tell the user which lanes merged"), out)
+            "hint (exit 0): every key merged and the last merge commit's push run passed (or each "
+            "run was cancelled or skipped); do not rerun the checks locally; tell the user which "
+            "lanes merged"), out)
 
     def test_c103_merge_prints_the_next_step_for_each_stop(self):
         self.lanes()
@@ -2056,9 +2192,10 @@ class HintTests(Base):
         with mock.patch.object(relay, "ready_to_merge", boom):
             code, out, _ = self.call("merge", str(self.records), "12", "--repo", "o/r")
         self.assertEqual(code, 4)
-        self.assertIn("hint (exit 4): an unexpected error, which may come after some merges; "
-                      "exit 4: do not rerun; give the user its line, and run `ready` to see which "
-                      "lanes merged", out)
+        self.assertIn("hint (exit 4): an unexpected error, which may come after some merges, or "
+                      "a push run lookup that failed after every key merged; exit 4: do not "
+                      "rerun; give the user its line, and run `ready` to see which lanes merged",
+                      out)
 
     def test_c121_plan_warning_asks_for_one_pruning_pass(self):
         (self.records / "plan.md").write_bytes(b"x" * 20000)

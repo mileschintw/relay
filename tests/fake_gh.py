@@ -30,8 +30,12 @@
  "merge_fail": {"5": "message"},                  # `pr merge 5` exits 1 with this message; a
                                                   # list answers per call (null: it merges), the
                                                   # last one repeated
- "runs": [{"databaseId": 9, "status": "queued"}]} # `run list`'s answer, default [] (merge's
-                                                  # push run, and ready's Default branch)
+ "runs": [{"databaseId": 9, "status": "queued"}], # `run list`'s answer, default [] (ready's
+                                                  # Default branch)
+ "push_runs": {"<sha>": [[], [{...}]]},           # `run list --commit <sha>`, one answer per
+                                                  # call, the last one repeated; default "runs"
+ "run_jobs": {"9": [{"name": "test", "conclusion": "failure"}]}}  # `run view 9 --json jobs`;
+                                                  # a run missing here: HTTP 404
 prs: `pr list --head <branch>`'s answer; without --head, every PR with its headRefName, cut at
 --limit.
 children: an issue's sub-issues. bodies, comments: an issue's body and comments.
@@ -73,7 +77,7 @@ for slow, seconds in data.get("slow", {}).items():
 if any(b in x for b in data.get("broken", []) for x in a):
     sys.exit(f"fake gh: broken {a}")
 if a[:2] == ["repo", "view"]:
-    print(json.dumps({"nameWithOwner": data["repo"]}))
+    print(json.dumps({"nameWithOwner": data["repo"], "defaultBranchRef": {"name": "main"}}))
 elif a[0] == "api" and a[1].endswith("/dependencies/blocked_by"):
     n = a[1].split("/")[-3]
     print(json.dumps([rest(str(b)) if str(b) in issues else {"number": b}
@@ -158,8 +162,18 @@ elif a[:2] == ["pr", "merge"]:
     if fails:
         sys.exit(fails)
     print(f"merged pull request #{a[2]}")
+elif a[:2] == ["run", "list"] and "--commit" in a and a[a.index("--commit") + 1] in data.get(
+        "push_runs", {}):
+    sha = a[a.index("--commit") + 1]
+    calls = open(os.environ["RELAY_FAKE_GH"] + ".calls", encoding="utf-8").read().splitlines()
+    answers = data["push_runs"][sha]
+    print(json.dumps(answers[min(sum(f"--commit {sha}" in c for c in calls), len(answers)) - 1]))
 elif a[:2] == ["run", "list"]:
     print(json.dumps(data.get("runs", [])))
+elif a[:2] == ["run", "view"]:
+    if a[2] not in data.get("run_jobs", {}):
+        sys.exit("gh: Not Found (HTTP 404)")
+    print(json.dumps({"jobs": data["run_jobs"][a[2]]}))
 elif a[:2] == ["pr", "comment"]:
     body = open(a[a.index("--body-file") + 1], encoding="utf-8").read()
     with open(os.environ["RELAY_FAKE_GH"] + ".comments", "a", encoding="utf-8") as f:
