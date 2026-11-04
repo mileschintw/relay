@@ -214,7 +214,9 @@ merge   merges lanes one at a time, in the order given. First, every key must be
         key that fails a test gets one line saying why (a merge that still failed: the last
         error), and no later key merges. After the last merge, waits for the default branch's
         push runs for its merge commit as `waitchecks --push` does (project.md's CI start wait,
-        read before any merge), and prints them.
+        read before any merge), and prints them; when no workflow file on the default branch
+        names `push` in its `on:` (its branch filters unread), one line says so instead and
+        there is no wait; a failed workflow lookup keeps the wait.
 
 Exit: status 0 when written, 1 when a check fails; ready 0 after printing, 2 on a bad
 $RELAY_READY_SECONDS; roadmap 0 after printing, 1 when a lookup fails; localcheck 0
@@ -228,8 +230,8 @@ still ran past the bound; merge 0 when every key merged (a failed `gh pr merge` 
 reads MERGED counts) and the last merge commit's push run passed, 1 when it stopped (a key
 not ready, or a fetch, lookup, merge state or `gh pr merge` that failed, after its one retry
 for a 5xx or `Merge already in progress`), and after every key merged: 6 when that push run
-failed, 3 when none appeared or decided, 5 when the wait timed out, 4 when the merge commit or
-its push run lookup failed;
+failed, 3 when none appeared or decided or no workflow runs on push, 5 when the wait timed
+out, 4 when the merge commit or its push run lookup failed;
 2 on a usage error (argparse's too, after which waitchecks and merge still print their hint;
 ready: a $RELAY_READY_SECONDS that is not a number of seconds; waitchecks: a CI start wait that
 is not a number of minutes, or a project.md that is not UTF-8, both or neither of <N> and
@@ -711,6 +713,16 @@ def runs_on_pull_request(text):
     return bool(pull_request_filters(text))
 
 
+PUSH_EVENT = re.compile(r"\bpush\b")
+PUSH_EVENT_ITEM = re.compile(r"""^\s*(?:-\s*)?["']?push["']?\s*(?::|$)""")
+
+
+def runs_on_push(text):
+    """True when workflow text's top-level `on:` names `push`, read as runs_on_pull_request
+    reads `pull_request`; a `branches` or `tags` filter is not read (errs toward waiting)."""
+    return bool(on_events(text, PUSH_EVENT, PUSH_EVENT_ITEM))
+
+
 PATHS_KEY = re.compile(r"""^\s*["']?(paths(?:-ignore)?)["']?\s*:(.*)$""")
 
 
@@ -746,20 +758,20 @@ def paths_filter(lines):
     return found[0] if len(found) == 1 and found[0][1] else None
 
 
-def pull_request_filters(text):
-    """One entry per `pull_request` or `pull_request_target` event under workflow text's
-    top-level `on:`: its paths_filter, or None when it has none (or an inline value, read as
-    none); empty when the workflow does not run on either."""
+def on_events(text, event, item):
+    """One entry per event under workflow text's top-level `on:` that regex `event` finds in an
+    inline value, or `item` matches as a child key or list item: the lines under that key, None
+    for an inline value, a list item or a key with an inline value; empty when there is none."""
     found = on_block(text)
     if not found:
         return []
     inline, block = found
     if inline:
-        return [None] * len(PR_EVENT.findall(" ".join([inline] + block)))
+        return [None] * len(event.findall(" ".join([inline] + block)))
     top = min(map(indent, block), default=0)
-    filters = []
+    entries = []
     for i, line in enumerate(block):
-        if indent(line) != top or not PR_EVENT_ITEM.match(line):
+        if indent(line) != top or not item.match(line):
             continue
         sub = []
         for c in block[i + 1:]:
@@ -767,8 +779,16 @@ def pull_request_filters(text):
                 break
             sub.append(c)
         bare = line.lstrip().startswith("-") or line.partition(":")[2].strip()
-        filters.append(None if bare else paths_filter(sub))
-    return filters
+        entries.append(None if bare else sub)
+    return entries
+
+
+def pull_request_filters(text):
+    """One entry per `pull_request` or `pull_request_target` event under workflow text's
+    top-level `on:`: its paths_filter, or None when it has none (or an inline value, read as
+    none); empty when the workflow does not run on either."""
+    return [None if sub is None else paths_filter(sub)
+            for sub in on_events(text, PR_EVENT, PR_EVENT_ITEM)]
 
 
 def path_pattern(pattern):
@@ -1136,8 +1156,9 @@ EXIT_HINTS = {
            "moved head, a merge state other than CLEAN, a failed lookup or `gh pr merge`): give "
            "the user that line. Tell the user which lanes merged and where it stopped",
         2: "a usage error, nothing merged: fix what its error line names and rerun",
-        3: "every key merged, but for the last merge commit no push run appeared, or each was "
-           "cancelled or skipped: tell the user which lanes merged and give them that line",
+        3: "every key merged, but no workflow runs on push, or for the last merge commit no push "
+           "run appeared, or each was cancelled or skipped: tell the user which lanes merged and "
+           "give them that line",
         4: "an unexpected error, which may come after some merges; exit 4: do not rerun; give "
            "the user its line, and run `ready` to see which lanes merged. When a line says every "
            "key merged and the push run is not checked, run the `waitchecks <records> --push` it "
@@ -2269,6 +2290,14 @@ def cmd_merge(a):
         print("every key merged; the push run is not checked: the merge commit lookup failed",
               file=sys.stderr)
         return LOOKUP_FAILED
+    try:
+        texts = workflow_texts(repo)
+        if not any(runs_on_push(t) for t in texts.values()):
+            print(f"every key merged; no push run to wait for: no workflow on the default branch "
+                  f"runs on push ({', '.join(texts) or 'no workflow file'})")
+            return NO_CHECKS
+    except LOOKUP_ERRORS as e:
+        print(f"workflow lookup failed ({e}); waiting for the push run", file=sys.stderr)
     code = wait_push_run(repo, last[1], last[0], schedule)
     if code == LOOKUP_FAILED:
         print(f"every key merged; the push run is not checked: run `waitchecks <records> --push "
