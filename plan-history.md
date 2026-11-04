@@ -350,3 +350,11 @@ Ended: all five lanes merged 2026-11-03.
 - Last Next: release 0.3.5. User 2026-11-03 picked "全部照做 (Recommended)" to the question "要照下面的步驟發布嗎？", whose steps were: version PR; merge after CI and main's push run (ubuntu, windows) pass; `git push origin main:release`; tag `relay--v0.3.5`; update the local install in D:\Repos
 - 0.3.5 released 2026-11-03 15:46 -0800: main's push run 41741118123 for b2bee65 passed (ubuntu and windows test); `release` fast-forwarded 5b7c556..b2bee65; tag `relay--v0.3.5`. Local-scope install in D:\Repos\relay updated 0.3.4 → 0.3.5.
 - Close-out 2026-11-03 15:46 -0800: five worker sessions (166, 167, 168, 173, 174) archived on the user's pick 「全部照做」; snapshot/174 holds lane 174's fix scripts (other scratchpads held only test logs); no temporary rulings; coordinator wrote itself out.
+
+## Lanes 184 and 187 (round 181–187)
+
+| 184 | #184 | local_84cd9f8c-daf9-4295-b607-aeaab4a0c623 (landed in archived lane 168's folder lane-168-992910, on its own branch claude/lane-184-93215e) | PR #188, waiting on CI | - |
+| 187 | #187 | local_410f1290-06be-4659-af12-0b7e8ba379bf (lane-187-5cb69a) | PR #189, waiting on CI | - |
+
+- 184: #184 README size in rounded figures, PR #188 merged 2026-11-04 00:20:07 UTC.
+- 187: #187 Handover field shape on First turn and roadmap call line in coordinate/SKILL.md (doc option, relay.py unchanged), PR #189 merged 2026-11-04 00:20:19 UTC. Main push run 41746068666 for af8bfe2 in progress at merge time.
