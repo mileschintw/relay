@@ -41,11 +41,9 @@ none
 
 ## Waiting for the user's decision
 
-- Owner note #145 was already done at the 0.3.4 install (2026-11-03) → `plan-history.md`.
+none (owner notes #145, C126 and W33 done 2026-11-03 → `plan-history.md`)
 
 
-- Owner note (#112, from lane 133, C126): for the user's own CLAUDE.md: "On Windows, write a commit message with a double quote in it to a file and use `git commit -F`." (`reports/133.md`)
-- Owner note (#112, from lane 132, W33): add to the one project that uses it, in its `project.md` checks or brief template: "A test that needs a pull request (a CI trigger, say): open none; write in the report how to confirm it after the merge." (`reports/132.md`)
 
 ## Deadlines
 
