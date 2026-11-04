@@ -190,10 +190,14 @@ merge   merges lanes one at a time, in the order given. First, every key must be
         Then, per key, with no wait for checks (Ready to merge already needs them all passed):
         its head still the sha Ready to merge printed; mergeStateStatus `CLEAN` (UNKNOWN, while
         GitHub recomputes after a merge, is asked again after 5, 15 and 30 seconds); `gh pr merge
-        <N> --merge --match-head-commit <sha>`; one line with the merge time. The first key that
-        fails a test gets one line saying why, and no later key merges. After the last merge,
-        prints the default branch's push run for the merge commit (`gh run list --event push
-        --commit`), or that none has appeared yet.
+        <N> --merge --match-head-commit <sha>`; one line with the merge time. A failed `gh pr
+        merge` rereads the PR at once: MERGED counts as merged. After a 5xx or `Merge already
+        in progress` it is also asked after 10, 20, 30, 60 and 60 seconds, then the merge is
+        retried once with the same --match-head-commit (a retry that fails the same way waits
+        out those polls again, with no further retry); any other error gets no retry. The first
+        key that fails a test gets one line saying why (a merge that still failed: the last
+        error), and no later key merges. After the last merge, prints the default branch's push run for the merge
+        commit (`gh run list --event push --commit`), or that none has appeared yet.
 
 Exit: status 0 when written, 1 when a check fails; ready 0 after printing, 2 on a bad
 $RELAY_READY_SECONDS; roadmap 0 after printing, 1 when a lookup fails; localcheck 0
@@ -201,8 +205,9 @@ when every command passed, else 1 (a command, the merge, a lookup or the comment
 waitchecks 0 when the checks passed (or CI does not cover the PR's paths), 1 when one failed,
 3 when no check appeared, 4 when a lookup failed (the last poll's, or a watch that failed with
 no failed check behind it, a gh error say), 5 when the watch timed out; merge 0 when every
-key merged, 1 when it stopped (a key not ready, or a fetch, lookup, merge state or `gh pr merge`
-that failed);
+key merged (a failed `gh pr merge` whose PR reads MERGED counts), 1 when it stopped (a key not
+ready, or a fetch, lookup, merge state or `gh pr merge` that failed, after its one retry for a
+5xx or `Merge already in progress`);
 2 on a usage error (argparse's too, after which waitchecks and merge still print their hint;
 ready: a $RELAY_READY_SECONDS that is not a number of seconds; waitchecks: a CI start wait that
 is not a number of minutes, or a project.md that is not UTF-8;
@@ -1940,6 +1945,10 @@ READY_TO_MERGE = re.compile(r"PR #(\d+) --match-head-commit ([0-9a-f]{40})"
                             r"(?: \(CI does not cover these paths: .*; no checks to wait for\))?$")
 STATE_RETRIES = (5, 15, 30)  # seconds; GitHub says UNKNOWN while it recomputes after a merge
 RUN_WAITS = (0, 10, 20)  # seconds; a push run takes a few seconds to appear
+MERGE_POLLS = (10, 20, 30, 60, 60)  # seconds; how long a transient merge failure is waited out
+# a gh pr merge failure GitHub may still be working through (#183): a 5xx, or a merge underway
+TRANSIENT_MERGE = re.compile(r"HTTP 5\d\d\b|\b5\d\d (?:Bad Gateway|Service Unavailable|Gateway "
+                             r"Time-?out|Internal Server Error)|already in progress", re.I)
 
 
 def ready_to_merge(records, key, repo, checkout, deny):
@@ -1989,19 +1998,40 @@ def merge_lane(key, pr, sha, repo):
     if state != "CLEAN":
         fail(f"{key}: PR #{pr} merge state is {state}, not CLEAN")
         return None
-    code, out, err = run(gh_base() + ["pr", "merge", str(pr), "--repo", repo, "--merge",
-                                      "--match-head-commit", sha])
-    if code:
-        fail(f"{key}: gh pr merge {pr} failed: {' '.join((err or out).split())}")
-        return None
+    for retry_left in (True, False):
+        code, out, err = run(gh_base() + ["pr", "merge", str(pr), "--repo", repo, "--merge",
+                                          "--match-head-commit", sha])
+        if not code:
+            break
+        error = " ".join((err or out).split())
+        transient = bool(TRANSIENT_MERGE.search(error))
+        if merged_after_failure(pr, repo, transient):
+            break
+        if not (retry_left and transient):
+            fail(f"{key}: gh pr merge {pr} failed: {error}")
+            return None
     try:
         merged = gh("pr", "view", str(pr), "--repo", repo, "--json", "mergedAt,mergeCommit")
+        oid = merged["mergeCommit"]["oid"]
         print(f"{key}: merged PR #{pr} at {merged['mergedAt']}", flush=True)
-        return merged["mergeCommit"]["oid"], view["baseRefName"]
+        return oid, view["baseRefName"]
     except LOOKUP_ERRORS as e:
         print(f"{key}: merged PR #{pr}; merge time lookup failed: {e}", flush=True)
         return None, view["baseRefName"]
 
+
+def merged_after_failure(pr, repo, transient):
+    """Whether PR <pr> reads MERGED after a failed `gh pr merge`: asked at once, then, when the
+    failure was transient, again after each MERGE_POLLS wait. A failed lookup counts as not
+    merged yet."""
+    for wait in (0, *(MERGE_POLLS if transient else ())):
+        time.sleep(wait)
+        try:
+            if gh("pr", "view", str(pr), "--repo", repo, "--json", "state")["state"].upper() == "MERGED":
+                return True
+        except LOOKUP_ERRORS:
+            continue
+    return False
 
 def report_push_run(repo, base, sha):
     """Print the push run on <base> for merge commit <sha>, or say there is none yet."""
