@@ -429,3 +429,11 @@ Filled 2026-11-03 from `relay.py roadmap` (retrospective issues). Mechanical ove
 
 - 211: #211 `localcheck`'s fetch and origin lookup each time out after 120 s with prompts off; a timeout names the step. PR #215 merged 2026-11-04; main push run passed.
 - Lane 211 merge right, ended when it merged: - **Merge right:** 2026-11-03 23:15 -0800, lane 211: asked "For lane 211, open the PR and merge once CI passes?", picked "Merge on CI".
+
+## Release 0.3.6
+
+| 216 | #216 | local_45c7e375-0743-4288-a70b-2eb790d6bd13 (D:/Repos/relay/.claude/worktrees/jovial-bardeen-e0b063, branch claude/jovial-bardeen-e0b063; started from a card) | done, PR open, waiting on CI; re-review of its diff clean | |
+
+- Release review over relay--v0.3.5..3c336ae (one pass, per project.md): 1 code bug (wait_push_run passed with no success run) and 2 contradictions (work step 4 diff without --no-renames; coordinate Merge missing the no-push-workflow case) → #216; no lost invariants. 41 unfixed review notes since 0.3.5 sorted: none worth an issue.
+- 216: PR #217 merged 2026-11-04; main push run passed. Re-review of its diff only: clean.
+- Lane 216 merge right, ended when it merged: - **Merge right:** 2026-11-04 00:03 -0800, lane 216: asked "How should they go in before releasing 0.3.6?", picked "One lane, then release (Recommended)" (its option: merge once CI passes).
