@@ -2160,7 +2160,7 @@ class PushRunTests(Base):
             self.gh({"runs": [self.push_run("tests", conclusion)]})
             self.assertIn(f"tests: push run {conclusion} at abcdef12", self.ready())
 
-    def test_only_each_workflows_latest_completed_run_decides(self):
+    def test_only_each_workflows_latest_decided_run_counts(self):
         self.gh({"runs": [self.push_run("tests", "success", n=2), self.push_run("tests", "failure")]})
         self.assertNotIn("Default branch", self.ready())
         self.gh({"runs": [self.push_run("lint", "success", n=3), self.push_run("tests", "failure", n=2),

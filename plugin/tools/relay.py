@@ -109,8 +109,9 @@ ready   read-only. Prints what the coordinator can do next, the Plan warning and
             sha and the run URL (no failed jobs: `gh run list` has none), plus `(a newer run is in
             progress)` when one is and `(newer runs cancelled or skipped)` when one was. From one
             `gh run list --event push` call per `ready`, reading the latest 100 push runs, so a
-            workflow with no deciding run among them is not checked. A failed lookup, or no origin/HEAD to name the default
-            branch, is one `push run lookup failed` line. All green, or no push runs: no section.
+            workflow with no deciding run among them is not checked. A failed lookup, or no
+            origin/HEAD to name the default branch, is one `push run lookup failed` line. All
+            green, or no push runs: no section.
             Report only: it changes no lane's section and not the exit code.
           - relay.py: a warning when the git checkout holding project.md's `relay.py:` path
             (relative to --checkout, else the current folder) is behind its origin/<default>,
