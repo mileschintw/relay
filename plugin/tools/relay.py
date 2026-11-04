@@ -63,7 +63,7 @@ ready   read-only. Prints what the coordinator can do next, the Plan warning and
           - Could not parse: a status file that is not valid UTF-8, or has no valid state or no
             branch, head or time; the other lanes are still listed.
           - Merged: done lanes whose PR merged, even when the branch was deleted since (move
-            them to plan-history.md).
+            them to plan-history.md). One outside the Now table gets no PR body check (#207).
           - Finished: done lanes whose Now-table Kind is `run`, `audit` or `spare` (GLOSSARY.md,
             **Kind**), with a report file; they get no branch, PR or PR body check, so a missing
             PR or issue is never flagged (without a report: Inconsistent). A lane in a Now table
