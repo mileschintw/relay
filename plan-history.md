@@ -382,3 +382,10 @@ Ended: all five lanes merged 2026-11-03.
 | 183 | #183 | local_2a6b47ac-2cc2-4551-a840-147a1cb22f1f (landed in archived lane 173's folder lane-173-14b5e0, on its own branch claude/lane-183-a56c9c) | PR #193, merging | - |
 
 - 183: #183 merge_lane rereads the PR after a failed gh pr merge, polls 5xx / already-in-progress, retries once. PR #193 merged 2026-11-04 00:31:13 UTC as 7f346ee.
+
+## Lane 181 and the round 181–187 merge right
+
+| 181 | #181 | local_8005a435-95f2-40f0-9abe-3f4f3571afaa (lane-181-cd73ca) | PR #194, waiting on CI | - |
+
+- 181: #181 merge waits for the default branch's push run and exits 6 on red; `waitchecks --push <sha>`; coordinate skill, unattended.md and docs/releasing.md step 2 updated. PR #194 merged 2026-11-04 01:31:28 UTC as d9af2ab.
+- Round merge right, ended when all seven lanes merged: **Merge right:** 2026-11-03 16:06 -0800, lanes 181, 182, 183, 184, 185, 186, 187. Question: "這一輪是 #181–#187 七條。#182–#187 現在並行啟動，#181 先停車，等 #183 合併後再 GO。這一輪的每一條都開 PR 並在 CI 通過後合併嗎？"; picked "開 PR，CI 通過後合併 (Recommended)". (The 2026-11-03 14:19 -0800 round's right → `plan-history.md`.)
