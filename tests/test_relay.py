@@ -119,7 +119,7 @@ class HarnessGitTests(unittest.TestCase):
         outside = tempfile.mkdtemp()
         scopes = subprocess.run(["git", "config", "--list", "--show-scope"], cwd=outside,
                                 check=True, capture_output=True, text=True).stdout.splitlines()
-        self.assertEqual({line.split("	")[0] for line in scopes}, {"global"}, scopes)
+        self.assertEqual({line.split("\t")[0] for line in scopes}, {"global"}, scopes)
 
 
 class StatusTests(Base):
