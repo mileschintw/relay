@@ -205,7 +205,7 @@ ready: a $RELAY_READY_SECONDS that is not a number of seconds; waitchecks: a CI 
 is not a number of minutes, or a project.md that is not UTF-8;
 merge: a key given twice, or a --checkout that is not a git checkout; localcheck: a project.md
 that is not UTF-8, or a checks line with more than one command, only a Windows override, or a
-covers list with no path, in one item) or a missing records folder (status too: it creates only status/ inside it).
+covers list with no path or a second one, in one item) or a missing records folder (status too: it creates only status/ inside it).
 waitchecks and merge: an error not named above (a bug, say) exits 4 with one line, never 1;
 output the console cannot encode is replaced, not fatal; a last `hint (exit <code>):` line on
 stdout gives the coordinator's next step for that exit (EXIT_HINTS).
@@ -1661,10 +1661,10 @@ def check_items(line, windows=None):
     """[(command, main checkout only, covered paths or None)] from a project.md checks line:
     `;`-separated items, each command in backticks. A `(Windows: `...`)` in an item, before or
     after its command, replaces that command on Windows; a `(covers: <path>, ...)` lists the paths
-    the item covers (backticks optional; see `covered`); an item marked "main checkout only" is
+    the item covers (separated by `,`, backticks optional; see `covered`); an item marked "main checkout only" is
     flagged. ValueError, naming the line, when an item holds more than one command outside its
     Windows override (never run only the first), only an override (no command for other
-    systems), or a covers list with no path."""
+    systems), or a covers list with no path or a second one."""
     windows = os.name == "nt" if windows is None else windows
     items, cur, tick = [], "", False
     for ch in line:
@@ -1677,10 +1677,14 @@ def check_items(line, windows=None):
     items.append(cur)
     result = []
     for item in items:
-        cov = re.search(r"\(covers:([^)]*)\)", item)
+        covs = list(re.finditer(r"\(covers:([^)]*)\)", item))
         covers = None
-        if cov:
-            covers = [p for p in re.split(r"[\s,]+", cov.group(1).replace("`", "")) if p]
+        if len(covs) > 1:
+            raise ValueError(f"project.md's checks line has two `(covers: ...)` lists in one item "
+                             f"(one per item, paths separated by `,`): {line.strip()}")
+        if covs:
+            cov = covs[0]
+            covers = [p.strip() for p in cov.group(1).replace("`", "").split(",") if p.strip()]
             if not covers:
                 raise ValueError(f"project.md's checks line has a `(covers: ...)` with no path: "
                                  f"{line.strip()}")
@@ -1755,15 +1759,17 @@ def cmd_localcheck(a):
     lines = [f"relay localcheck, lane {a.key}: {branch}", f"head {head}", f"base {base} ({default})"]
     if not head.startswith(st.get("head", "")):
         lines.append(f"warning: the status head {st.get('head')} is not this head")
-    code, out, _ = run(["git", "diff", "--name-only", "--no-renames", f"{base}...{head}"],
-                       cwd=checkout)
-    changed = out.splitlines() if code == 0 else None
+    code, out, _ = run(["git", "diff", "--name-only", "-z", "--no-renames", f"{base}...{head}"],
+                       cwd=checkout)  # -z: paths unquoted, so a non-ASCII path still matches
+    changed = [p for p in out.split("\0") if p] if code == 0 else None
     if changed is None and any(cov for _, _, cov in items):
         lines.append("warning: could not list the lane's changed paths; every item runs")
-    needed = [it for it in items if changed is None or it[2] is None or covered(it[2], changed)]
-    not_needed = [it[0] for it in items if it not in needed]
-    commands = [c for c, main, _ in needed if not main]
-    skipped = [c for c, main, _ in needed if main]
+    commands, skipped, not_needed = [], [], []
+    for cmd, main, cov in items:
+        if changed is not None and cov is not None and not covered(cov, changed):
+            not_needed.append(cmd)
+        else:
+            (skipped if main else commands).append(cmd)
     env = longpaths_env()
     wt = tempfile.mkdtemp(prefix="relay-lc-")
     ok = False

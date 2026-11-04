@@ -960,6 +960,10 @@ class LocalcheckTests(Base):
         with self.assertRaisesRegex(ValueError, "no path") as e:
             relay.check_items("`a` (covers: )", windows=False)
         self.assertIn("`a` (covers: )", str(e.exception))
+        with self.assertRaisesRegex(ValueError, "two `\\(covers: ...\\)` lists"):
+            relay.check_items("`a` (covers: src) (covers: `docs`)", windows=False)
+        self.assertEqual(relay.check_items("`a` (covers: my docs/**, b)", windows=False),
+                         [("a", False, ["my docs/**", "b"])])
 
     def test_covered_matches_globs_folders_and_files(self):
         self.assertTrue(relay.covered(["plugin/tools/**"], ["README.md", "plugin/tools/relay.py"]))
@@ -981,6 +985,21 @@ class LocalcheckTests(Base):
         self.assertIn("22", out)
         self.assertIn("33", out)
         self.assertIn("result: passed, 1 not needed", out)
+
+    def test_a_non_ascii_changed_path_still_matches(self):
+        self.lane()
+        git("switch", "-q", "lane-12", cwd=self.clone)
+        (self.clone / "src").mkdir()
+        (self.clone / "src" / "café.txt").write_text("c\n")
+        git("add", "src", cwd=self.clone)
+        git("commit", "-qm", "non-ascii", cwd=self.clone)
+        git("push", "-q", "origin", "lane-12", cwd=self.clone)
+        git("switch", "-q", "main", cwd=self.clone)
+        self.project(f"- **Local checks:** {self.py('print(44)')} (covers: src/*.txt)\n")
+        code, out, err = self.localcheck()
+        self.assertEqual(code, 0, out + err)
+        self.assertIn("\n44\n", out)
+        self.assertNotIn("not needed", out)
 
     def test_every_item_not_needed_passes(self):
         self.lane()
