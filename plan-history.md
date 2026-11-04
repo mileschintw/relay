@@ -376,3 +376,9 @@ Ended: all five lanes merged 2026-11-03.
 | 186 | #186 | local_99f384a6-3a3c-481f-8e45-8ed4341fa4fd (landed in archived lane 133's folder lane-133-1fd07d, on its own branch claude/lane-186-ba2e15) | PR #192, waiting on CI | - |
 
 - 186: #186 test harness owns git global config (GIT_CONFIG_GLOBAL, GIT_CONFIG_NOSYSTEM). PR #192 merged 2026-11-04 00:30:49 UTC as 1be4561; ubuntu CI (git 2.48+) passed.
+
+## Lane 183 (round 181–187)
+
+| 183 | #183 | local_2a6b47ac-2cc2-4551-a840-147a1cb22f1f (landed in archived lane 173's folder lane-173-14b5e0, on its own branch claude/lane-183-a56c9c) | PR #193, merging | - |
+
+- 183: #183 merge_lane rereads the PR after a failed gh pr merge, polls 5xx / already-in-progress, retries once. PR #193 merged 2026-11-04 00:31:13 UTC as 7f346ee.
