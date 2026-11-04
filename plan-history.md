@@ -425,3 +425,7 @@ Filled 2026-11-03 from `relay.py roadmap` (retrospective issues). Mechanical ove
 - 200: #200 `status`'s origin lookup has a 30 s timeout and runs with git's prompts off; a timeout writes nothing. PR #213 merged 2026-11-04 06:52:04 UTC; main push run passed.
 - 209: #209 `merge` skips the push-run wait when no default-branch workflow runs on `push` (exit 3 with a line). Branch and tag filters under `push:` are not read (errs toward waiting); no issue, no incident. PR #214 merged 2026-11-04; main push run passed.
 - Round merge right, ended when all three lanes merged: - **Merge right:** 2026-11-03 22:26 -0800, lanes 200, 207, 209: asked "Start the round for #200, #207 and #209, opening each PR and merging once CI passes?", picked "Start, merge on CI".
+| 211 | #211 | local_cc2e3fa1-dc4b-40e0-ba33-cfab11cb61da (D:/Repos/relay/.claude/worktrees/lane-211-137d8c, branch claude/lane-211-137d8c) | done, PR #215 open, waiting on CI | |
+
+- 211: #211 `localcheck`'s fetch and origin lookup each time out after 120 s with prompts off; a timeout names the step. PR #215 merged 2026-11-04; main push run passed.
+- Lane 211 merge right, ended when it merged: - **Merge right:** 2026-11-03 23:15 -0800, lane 211: asked "For lane 211, open the PR and merge once CI passes?", picked "Merge on CI".
