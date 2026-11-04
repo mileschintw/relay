@@ -34,8 +34,11 @@
                                                   # Default branch)
  "push_runs": {"<sha>": [[], [{...}]]},           # `run list --commit <sha>`, one answer per
                                                   # call, the last one repeated; default "runs"
- "run_jobs": {"9": [{"name": "test", "conclusion": "failure"}]}}  # `run view 9 --json jobs`;
+ "run_jobs": {"9": [{"name": "test", "conclusion": "failure"}]},  # `run view 9 --json jobs`;
                                                   # a run missing here: HTTP 404
+ "commits": {"abc1234": "<full sha>"}}            # `api repos/<repo>/commits/abc1234 --jq .sha`;
+                                                  # a sha missing here: HTTP 422, as GitHub
+                                                  # answers one that matches none or several
 prs: `pr list --head <branch>`'s answer; without --head, every PR with its headRefName, cut at
 --limit.
 children: an issue's sub-issues. bodies, comments: an issue's body and comments.
@@ -131,6 +134,11 @@ elif a[0] == "api" and a[1].endswith("/commits/HEAD/status"):
     print(json.dumps({"total_count": data.get("head_statuses", 0)}))
 elif a[0] == "api" and a[1].endswith("/commits/HEAD/check-runs"):
     print(json.dumps({"total_count": data.get("head_check_runs", 0)}))
+elif a[0] == "api" and "/commits/" in a[1]:
+    sha = a[1].split("/")[-1]
+    if sha not in data.get("commits", {}):
+        sys.exit(f"gh: No commit found for SHA: {sha} (HTTP 422)")
+    print(data["commits"][sha])
 elif a[0] == "api" and a[1].endswith("/annotations"):
     print(json.dumps(data.get("annotations", {}).get(a[1].split("/")[-2], [])))
 elif a[:2] == ["pr", "view"] and "statusCheckRollup" in a:

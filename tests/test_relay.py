@@ -1753,8 +1753,9 @@ class PushWaitTests(Base):
                 "conclusion": conclusion if status == "completed" else "",
                 "url": f"https://github.com/o/r/actions/runs/{id_}"}
 
-    def wait(self, *answers, sha=SHA, **data):
-        """`waitchecks --push <sha>`, the push runs answering each `run list` in turn."""
+    def wait(self, *answers, sha=SHA, arg=None, **data):
+        """`waitchecks --push <arg>` (default <sha>), the push runs for <sha> answering each `run
+        list` in turn."""
         self.gh({"push_runs": {sha: list(answers) or [[]]}, **data})
         pathlib.Path(str(self.fake) + ".calls").unlink(missing_ok=True)
         now, self.polls = [0.0], []
@@ -1770,7 +1771,7 @@ class PushWaitTests(Base):
         with mock.patch.object(relay.time, "sleep", sleep), \
                 mock.patch.object(relay.time, "monotonic", lambda: now[0]), \
                 mock.patch.object(relay, "gh", poll):
-            return self.call("waitchecks", str(self.records), "--push", sha, "--repo", "o/r")
+            return self.call("waitchecks", str(self.records), "--push", arg or sha, "--repo", "o/r")
 
     def test_a_green_push_run_is_waited_for_and_passes(self):
         code, out, err = self.wait([], [self.run_("queued")], [self.run_("in_progress")],
@@ -1860,11 +1861,47 @@ class PushWaitTests(Base):
         self.assertIn("tests: push run success", out.getvalue())
 
     def test_usage_errors(self):
-        for argv in ((), ("5", "--push", self.SHA), ("--push", "abc1234")):
+        for argv in ((), ("5", "--push", self.SHA), ("--push", "abc123"), ("--push", "abc123g"),
+                     ("--push", "a" * 41)):
             code, out, err = self.call("waitchecks", str(self.records), *argv, "--repo", "o/r")
             self.assertEqual(code, 2, argv)
             self.assertIn("hint (exit 2): a usage error", out)
-        self.assertIn("a full 40-character commit sha", err)
+        self.assertIn("--push takes a commit sha of 7 to 40 hex characters, not " + "a" * 41, err)
+
+    def test_a_short_sha_resolves_to_the_full_one(self):
+        # #196: the sha a coordinator has at hand is short (merge's lines, git log --oneline)
+        for short in ("aaaaaaa", "aaaaaaaaaaaaaaaaaaaa", "AAAAAAA"):
+            code, out, err = self.wait([self.run_()], arg=short,
+                                       commits={short.lower(): self.SHA})
+            self.assertEqual(code, 0, err)
+            self.assertIn("tests: push run success at aaaaaaaa", out)
+            calls = pathlib.Path(str(self.fake) + ".calls").read_text()
+            self.assertIn(f"api repos/o/r/commits/{short.lower()} --jq .sha", calls)
+            self.assertIn(f"--event push --commit {self.SHA} ", calls)
+        # a full sha is taken as it is, with no lookup, as before
+        code, out, err = self.wait([self.run_()], commits={})
+        self.assertEqual(code, 0, err)
+        self.assertNotIn("/commits/", pathlib.Path(str(self.fake) + ".calls").read_text())
+
+    def test_a_short_sha_that_matches_no_commit_or_several_is_a_usage_error(self):
+        # GitHub answers HTTP 422 for both (checked on 2026-11-03: a 4-character prefix on a
+        # large repo, and one matching nothing, get the same `No commit found for SHA`)
+        code, out, err = self.wait([self.run_()], arg="bbbbbbb")
+        self.assertEqual(code, 2, err)
+        self.assertIn("--push bbbbbbb matches no commit on o/r (not pushed?), or more than one: "
+                      "give more of the sha", err)
+        self.assertIn("hint (exit 2): a usage error", out)
+        self.assertEqual(self.polls, [])  # no push run looked for
+        # any other failed lookup is a lookup failure, as the rest of waitchecks
+        code, out, err = self.wait([self.run_()], arg="bbbbbbb", broken=["/commits/"])
+        self.assertEqual(code, 4, err)
+        self.assertIn("lookup failed: ", err)
+        self.assertEqual(self.polls, [])
+        # so is an answer that is not the full sha of that prefix
+        code, out, err = self.wait([self.run_()], arg="bbbbbbb", commits={"bbbbbbb": self.SHA})
+        self.assertEqual(code, 4, err)
+        self.assertIn("not the sha of a commit: " + self.SHA, err)
+        self.assertEqual(self.polls, [])
 
     def test_merge_waits_for_the_last_merge_commits_push_run(self):
         # one test per outcome after every key merged: green 0, red 6, no run 3, timed out 5
