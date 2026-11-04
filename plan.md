@@ -5,7 +5,7 @@ Current state only. Done work moves to `plan-history.md` with a one-line pointer
 ## Handover
 
 - **Coordinator:** title Relay coordination (new account), worktree D:/Repos/relay/.claude/worktrees/lane-102-f7b67c, id 3d27dfcf-f202-480f-9e08-3499b5e1a916, mode normal. Took over 2026-11-03 21:45 -0800 on the user's `/relay:coordinate` after switching accounts; the previous coordinator (local_f0eb7091-3f4b-4994-afb1-091422a00e8b, lane-114-30073e) lost access right after merging #197 and #198, before step 6.
-- **Next:** round 195–196 merged; #199–#210 opened 2026-11-03 from the retrospectives (relay's, and career-log coordinator's relayed one) on the user's picks, not started. Changes since 0.3.5 (#181–#187, #195, #196) are unreleased; release on the user's word.
+- **Next:** round 195–196 merged; from the 2026-11-03 retrospectives, #200, #207, #209 are open (#210 waits for the user); the other eight were closed as not planned under the slimming rule. Not started. Changes since 0.3.5 (#181–#187, #195, #196) are unreleased; release on the user's word.
 - **Alarm:** `project.md`'s `Alarm: 10` (the user's 10 minutes, 2026-10-31 01:51 「可以就這樣改」, moved there when #82 merged); waiting on CI relies on the background `waitchecks` ending, not the alarm.
 - **Merge right:** none. (The 2026-11-03 19:57 -0800 round's, lanes 195–196, is in `plan-history.md`.)
 - **Unattended log:** none.
@@ -27,20 +27,12 @@ Every open issue, once. "Order" is the wave (1 = can start now). "Kind" is `free
 
 | Issue | Order | Blocked by (GitHub) | Same-section wait | Files it owns | Kind |
 |---|---|---|---|---|---|
-| #199 | 1 | none | none | coordinate/SKILL.md (Finishing a lane step 2; Following progress, report-is-data bullet) | free |
 | #200 | 1 | none | none | relay.py `pushed_head`, `cmd_status`; tests (StatusTests) | free |
-| #201 | 1 | none | none | work/SKILL.md (step 1 last two sentences; step 4; Background runs) | free |
-| #202 | 1 | none | none | coordinate/SKILL.md (First turn step 5); close-out.md; setup/templates/plan.md | free |
-| #203 | 1 | none | none | work/SKILL.md (step 3) | free |
-| #204 | 1 | none | none | coordinate/app-limits.md (new section); close-out.md (Archiving sessions) | free |
-| #205 | 2 | none | after #201, work/SKILL.md › Status › Background runs | work/SKILL.md (Background runs) | free |
-| #206 | 1 | none | none | setup/templates/briefs/_template.md (Lane tests) | free |
-| #207 | 1 | none | none | relay.py `cmd_ready` brief loop, done-lane `check_pr_body` call; tests (ReadyTests) | free |
-| #208 | 1 | none | none | coordinate/SKILL.md (First turn step 3); relay.py `COORDINATOR_SHAPE`; setup/templates/plan.md (Handover › Coordinator); tests | free |
+| #207 | 1 | none | none | relay.py done-lane `check_pr_body` call; tests (ReadyTests) | free |
 | #209 | 1 | none | none | relay.py `cmd_merge`, `wait_push_run`; tests (PushWaitTests); fake_gh.py | free |
-| #210 | 1 | none | none | relay.py new `retire`; coordinate/SKILL.md (Finishing a lane step 6); tests; docs/layout.md | free |
+| #210 | — | none | none | relay.py new `retire`; coordinate/SKILL.md (Finishing a lane step 6); tests; docs/layout.md | free |
 
-Filled 2026-11-03 from the round 195–196 retrospective (#199–#203) and career-log coordinator's retrospective relayed on the user's request (#204–#210). Same-section wait: #205 after #201 (Background runs). Mechanical overlaps (different sections, parallel): coordinate/SKILL.md (199 Finishing a lane step 2 / Following progress, 202 First turn step 5, 208 First turn step 3, 210 Finishing a lane step 6); work/SKILL.md (201 steps 1, 4, Background runs; 203 step 3); close-out.md (202 Nothing left to start, 204 Archiving sessions); setup/templates/plan.md (202 Waiting, 208 Handover); relay.py (200 pushed_head/cmd_status, 207 cmd_ready, 208 COORDINATOR_SHAPE, 209 cmd_merge/wait_push_run, 210 retire; docstring sections each its own); tests/test_relay.py (each its own tests). (Round 195–196's note → `plan-history.md`.)
+Filled 2026-11-03 from the two retrospectives; on the user's picks the rest were closed as not planned under the slimming rule (#199, #201–#206, #208), #207 narrowed, #210 waits for the user's decision (Order —). Mechanical overlaps (parallel): relay.py (200 pushed_head/cmd_status, 207 done-lane check_pr_body, 209 cmd_merge/wait_push_run); tests/test_relay.py (each its own tests). (Round 195–196's note → `plan-history.md`.)
 
 
 

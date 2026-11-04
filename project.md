@@ -4,7 +4,7 @@ What relay needs to know about this project. The coordinator and every worker re
 
 - **Repo:** mileschintw/relay, default branch `main`.
 - **Language:** talk to the user, and write reports, in Traditional Chinese (繁體中文). Repo files, issues, PR bodies, briefs and the plan are written in English.
-- **Checks before done:** `python3 -I tests/test_relay.py` (Windows: `py -3 -I tests/test_relay.py`) (covers: plugin/tools/**, plugin/skills/setup/templates/**, tests/**, .github/workflows/**); `claude plugin validate .`.
+- **Checks before done:** `python3 -I tests/test_relay.py` (Windows: `py -3 -I tests/test_relay.py`) (about 7 minutes on Windows: start it with `run_in_background`, one class with `py -3 -I tests/test_relay.py <Class>`) (covers: plugin/tools/**, plugin/skills/setup/templates/**, tests/**, .github/workflows/**); `claude plugin validate .`.
 - **Alarm:** 10
 - **Test bar:** the checks above pass and each new behaviour in `plugin/tools/relay.py` has a test in `tests/test_relay.py`; skill and doc changes keep `docs/layout.md`'s table and `plugin/GLOSSARY.md` in step.
 - **Off limits for workers:** the `release` branch, `relay--v*` tags, and `version` in `plugin/.claude-plugin/plugin.json`. Workers write only their own `status/`, `reports/` and `pr-bodies/` files in the records folder.
