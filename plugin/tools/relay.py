@@ -25,10 +25,10 @@ status  writes <records>/status/<key>.md, a worker's status file, then reads it 
           - doing: --doing, one line
         Fails (1), writing nothing, on a line break in a value, a head that is not a sha, or a
         detached HEAD with no --branch. With state review or done and a branch and head (not
-        `none`), also when `git ls-remote origin <branch>` fails or does not show that head
-        (the branch missing on origin, or at another sha), naming the head, origin's sha and
-        `git push origin HEAD`; a lane whose plan.md Now Kind is `run`, `audit` or `spare`
-        skips this check.
+        `none`), also when `git ls-remote origin <branch>` fails (it never waits on a prompt,
+        and is killed after 30 s) or does not show that head (the branch missing on origin, or
+        at another sha), naming the head, origin's sha and `git push origin HEAD`; a lane
+        whose plan.md Now Kind is `run`, `audit` or `spare` skips this check.
 
 ready   read-only. Prints what the coordinator can do next, the Plan warning and the Default branch
         section first, then one line per lane. When plan.md has a `## Now` table, a done lane
@@ -273,9 +273,10 @@ TIMED_OUT = 124  # run's exit code for a command killed, or never started, past 
 # or killed past its own `timeout`
 deadline = None  # the time.monotonic() ready's lookups must end by; None outside ready
 timed_out = []  # the commands run killed or skipped past `deadline`, in order
+STATUS_LOOKUP_SECONDS = 30  # status's origin lookup, which no `deadline` bounds (#200)
 
 
-def run(cmd, cwd=None, timeout=None):
+def run(cmd, cwd=None, timeout=None, env=None):
     """(exit code, stdout, stderr). Past `deadline`, a running command is killed and a new one
     never starts: both return TIMED_OUT and are added to `timed_out`. Past <timeout> seconds, a
     command is killed and returns TIMED_OUT, not added."""
@@ -285,7 +286,7 @@ def run(cmd, cwd=None, timeout=None):
         return TIMED_OUT, "", "skipped: ready's time budget is spent"
     by_deadline = timeout is None or (left is not None and left <= timeout)
     p = subprocess.Popen(cmd, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-                         encoding="utf-8")
+                         encoding="utf-8", env=env)
     try:
         out, err = p.communicate(timeout=left if by_deadline else timeout)
     except subprocess.TimeoutExpired:
@@ -377,7 +378,7 @@ def cmd_status(a):
         kinds = now_kinds(records / "plan.md") or {}
         if kinds.get(a.key, "pr") not in NO_PR_KINDS:
             try:
-                pushed = pushed_head(None, branch)
+                pushed = pushed_head(None, branch, STATUS_LOOKUP_SECONDS)
             except RuntimeError as e:
                 return fail(f"could not check the head on origin: {e}")
             if not pushed.startswith(head):
@@ -511,10 +512,19 @@ def records_deny_hits(records, deny):
     return found
 
 
-def pushed_head(checkout, branch):
+def no_prompt_env():
+    """os.environ with git's credential prompts off (terminal, and Git Credential Manager's
+    window). ssh's own prompts are left to the caller's timeout: a GIT_SSH_COMMAND set here
+    would override the user's core.sshCommand or GIT_SSH."""
+    return dict(os.environ, GIT_TERMINAL_PROMPT="0", GCM_INTERACTIVE="never")
+
+
+def pushed_head(checkout, branch, timeout=None):
     """The sha of origin's <branch>, "" when origin has no such branch; RuntimeError when
-    ls-remote fails (no repo, no network), so the lane reads lookup failed, not unpushed."""
-    code, ls, err = run(["git", "ls-remote", "origin", f"refs/heads/{branch}"], cwd=checkout)
+    ls-remote fails (no repo, no network, a prompt it may not wait on, past <timeout> seconds),
+    so the lane reads lookup failed, not unpushed."""
+    code, ls, err = run(["git", "ls-remote", "origin", f"refs/heads/{branch}"], cwd=checkout,
+                        timeout=timeout, env=no_prompt_env())
     if code:
         raise RuntimeError(f"git ls-remote origin {branch}: {err.strip() or ls.strip()}")
     return ls.split()[0] if ls.strip() else ""

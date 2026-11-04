@@ -109,7 +109,7 @@ class Base(unittest.TestCase):
     def stale_done(self, key, branch, head):
         """done(), written while origin held <head>: origin has moved or lost the branch since,
         which `status`'s own push check (#195) can no longer see."""
-        with mock.patch.object(relay, "pushed_head", lambda checkout, b: head):
+        with mock.patch.object(relay, "pushed_head", lambda checkout, b, timeout=None: head):
             self.done(key, branch, head)
 
 
@@ -274,6 +274,41 @@ class StatusTests(Base):
         self.assertEqual(code, 1)
         self.assertIn("could not check the head on origin: git ls-remote origin lane-12", err)
         self.assertFalse((self.records / "status" / "12.md").exists())
+
+    def test_a_hung_lookup_times_out_and_writes_nothing(self):
+        """#200: an origin that never answers fails status past the lookup's timeout, as a
+        failed ls-remote does, and git runs it with prompts off."""
+        self.branch("lane-12")
+        git("switch", "-q", "lane-12", cwd=self.clone)
+        self.call("status", str(self.records), "12", "--state", "working", "--doing", "before")
+        before = (self.records / "status" / "12.md").read_text()
+        seen = self.tmp / "prompt.txt"
+        hang = self.tmp / "hang.py"
+        hang.write_text("import os, sys, time\n"
+                        "open(sys.argv[1], 'w').write(os.environ.get('GIT_TERMINAL_PROMPT', ''))\n"
+                        "time.sleep(20)\n")
+        git("remote", "set-url", "origin", "ssh://git@example.invalid/r.git", cwd=self.clone)
+        ssh = f'"{pathlib.Path(sys.executable).as_posix()}" "{hang.as_posix()}" "{seen.as_posix()}"'
+        start = time.monotonic()
+        with mock.patch.dict(os.environ, {"GIT_SSH_COMMAND": ssh}), \
+                mock.patch.object(relay, "STATUS_LOOKUP_SECONDS", 2):
+            code, _, err = self.call("status", str(self.records), "12", "--state", "done",
+                                     "--doing", "x")
+        self.assertLess(time.monotonic() - start, 15)
+        self.assertEqual(code, 1)
+        self.assertIn("could not check the head on origin: git ls-remote origin lane-12: "
+                      "timed out after 2 s", err)
+        self.assertEqual((self.records / "status" / "12.md").read_text(), before)
+        self.assertEqual(seen.read_text(), "0")
+
+    def test_lookup_env_never_prompts(self):
+        """#200: ls-remote turns credential prompts off even when the user's env turns them on,
+        and keeps the user's GIT_SSH_COMMAND."""
+        with mock.patch.dict(os.environ, {"GIT_TERMINAL_PROMPT": "1", "GCM_INTERACTIVE": "auto",
+                                          "GIT_SSH_COMMAND": "myssh"}):
+            env = relay.no_prompt_env()
+        self.assertEqual((env["GIT_TERMINAL_PROMPT"], env["GCM_INTERACTIVE"],
+                          env["GIT_SSH_COMMAND"]), ("0", "never", "myssh"))
 
     def test_missing_records_folder_exits_2_and_writes_nothing(self):
         gone = self.tmp / "no-such-records"
@@ -2956,7 +2991,7 @@ class LaneKindTests(Base):
         and that has no PR body draft."""
         (self.records / "reports" / f"{key}.md").write_text("report")
         # past status's push check (#195), as a status written before that check would be
-        with mock.patch.object(relay, "pushed_head", lambda checkout, b: "02d1f2d"):
+        with mock.patch.object(relay, "pushed_head", lambda checkout, b, timeout=None: "02d1f2d"):
             code, _, err = self.call("status", str(self.records), key, "--state", "done",
                                      "--doing", "x", "--branch", f"claude/lane-{key}-x",
                                      "--head", "02d1f2d")
