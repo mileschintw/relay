@@ -1661,8 +1661,8 @@ def check_items(line, windows=None):
     """[(command, main checkout only, covered paths or None)] from a project.md checks line:
     `;`-separated items, each command in backticks. A `(Windows: `...`)` in an item, before or
     after its command, replaces that command on Windows; a `(covers: <path>, ...)` lists the paths
-    the item covers (separated by `,`, backticks optional; see `covered`); an item marked "main checkout only" is
-    flagged. ValueError, naming the line, when an item holds more than one command outside its
+    the item covers (separated by `,`, backticks optional; see `covered`); an item marked "main
+    checkout only" is flagged. ValueError, naming the line, when an item holds more than one command outside its
     Windows override (never run only the first), only an override (no command for other
     systems), or a covers list with no path or a second one."""
     windows = os.name == "nt" if windows is None else windows
