@@ -26,8 +26,9 @@ status  writes <records>/status/<key>.md, a worker's status file, then reads it 
         Fails (1), writing nothing, on a line break in a value, a head that is not a sha, or a
         detached HEAD with no --branch. With state review or done and a branch and head (not
         `none`), also when `git ls-remote origin <branch>` fails or does not show that head
-        (the branch missing on origin, or at another sha), naming both and `git push origin
-        HEAD`; a lane whose plan.md Now Kind is `run`, `audit` or `spare` skips this check.
+        (the branch missing on origin, or at another sha), naming the head, origin's sha and
+        `git push origin HEAD`; a lane whose plan.md Now Kind is `run`, `audit` or `spare`
+        skips this check.
 
 ready   read-only. Prints what the coordinator can do next, the Plan warning and the Default branch
         section first, then one line per lane. When plan.md has a `## Now` table, a done lane
