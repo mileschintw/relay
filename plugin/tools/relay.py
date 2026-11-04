@@ -1160,8 +1160,8 @@ EXIT_HINTS = {
            "the user that line. Tell the user which lanes merged and where it stopped",
         2: "a usage error, nothing merged: fix what its error line names and rerun",
         3: "every key merged, but no workflow runs on push, or for the last merge commit no push "
-           "run appeared, or none passed: tell the user which lanes merged and "
-           "give them that line",
+           "run appeared, or none passed: tell the user which lanes merged and give them that "
+           "line",
         4: "an unexpected error, which may come after some merges; exit 4: do not rerun; give "
            "the user its line, and run `ready` to see which lanes merged. When a line says every "
            "key merged and the push run is not checked, run the `waitchecks <records> --push` it "
@@ -2038,10 +2038,10 @@ def wait_push_run(repo, base, sha, schedule):
     at most WATCH_FACTOR times the last poll's time. Prints one line per run, and each failed
     run's failed jobs. Returns 0 when one passed (`success`) and none failed (`cancelled` and
     `skipped` decide nothing, as in `ready`), 1 when one failed (PUSH_RUN_FAILED), NO_CHECKS
-    when none appeared by the last poll or none passed, LOOKUP_FAILED when the last poll's lookup failed
-    with none seen, WATCH_TIMED_OUT when one still runs past the cap and none failed. Once runs
-    have appeared, a failed or empty lookup keeps the last runs seen and waits for the next
-    poll."""
+    when none appeared by the last poll or none passed, LOOKUP_FAILED when the last poll's
+    lookup failed with none seen, WATCH_TIMED_OUT when one still runs past the cap and none
+    failed. Once runs have appeared, a failed or empty lookup keeps the last runs seen and waits
+    for the next poll."""
     start, runs, error = time.monotonic(), [], None
     for i, at in enumerate(schedule, 1):
         time.sleep(max(0, at - (time.monotonic() - start)))
