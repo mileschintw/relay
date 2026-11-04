@@ -364,3 +364,9 @@ Ended: all five lanes merged 2026-11-03.
 | 185 | #185 | local_69ad8167-a446-4a06-ae85-80d14dffd5a0 (landed in archived lane 167's folder lane-167-29fed5, on its own branch claude/lane-185-774389) | PR #190, merging | - |
 
 - 185: #185 checks items take `(covers: ...)`; localcheck skips uncovered items. PR #190 merged 2026-11-04 00:29:23 UTC as b94212f. The relay checks line with covers is proposed in `reports/185.md`, for project.md on the user's yes.
+
+## Lane 182 (round 181–187)
+
+| 182 | #182 | local_168e63e5-3c82-486c-a4b1-d753c4cfd522 (landed in archived lane 174's folder lane-174-8eea7d, on its own branch claude/lane-182-5e2dc3) | PR #191, merging | - |
+
+- 182: #182 ready passes over cancelled/skipped push runs, so an older failure stays visible. PR #191 merged 2026-11-04 00:29:51 UTC as 070954f. Its first push failed silently (worker could not write .git/config upstream); re-pushed on the coordinator's message.
