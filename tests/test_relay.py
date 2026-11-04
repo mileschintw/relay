@@ -16,6 +16,31 @@ sys.path.insert(0, str(HERE.parent / "plugin" / "tools"))
 import relay  # noqa: E402
 
 
+# Every git the tests run, relay.py's included, reads this file as its global config and no
+# system config, so the machine's git setup cannot change a result (#186).
+GIT_CONFIG = """[user]
+	email = t@example.com
+	name = t
+[init]
+	defaultBranch = main
+[remote "origin"]
+	# git 2.48+ re-creates origin/HEAD on fetch unless told not to (older git ignores it)
+	followRemoteHEAD = never
+"""
+
+
+def setUpModule():
+    config = pathlib.Path(tempfile.mkdtemp()) / "gitconfig"
+    config.write_text(GIT_CONFIG, encoding="utf-8")
+    env_patch = mock.patch.dict(os.environ, {"GIT_CONFIG_GLOBAL": str(config),
+                                             "GIT_CONFIG_NOSYSTEM": "1"})
+    env_patch.start()
+    unittest.addModuleCleanup(env_patch.stop)
+    # config passed in by the caller's environment would also reach every git
+    for name in ("GIT_CONFIG_COUNT", "GIT_CONFIG_PARAMETERS"):
+        os.environ.pop(name, None)
+
+
 def git(*args, cwd):
     subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True)
 
@@ -36,8 +61,6 @@ class Base(unittest.TestCase):
         self.clone = self.tmp / "clone"
         git("init", "-q", "--bare", "-b", "main", str(self.origin), cwd=self.tmp)
         git("clone", "-q", str(self.origin), str(self.clone), cwd=self.tmp)
-        for k, v in (("user.email", "t@example.com"), ("user.name", "t")):
-            git("config", k, v, cwd=self.clone)
         (self.clone / "a.txt").write_text("one\n")
         git("add", ".", cwd=self.clone)
         git("commit", "-qm", "init", cwd=self.clone)
@@ -82,6 +105,21 @@ class Base(unittest.TestCase):
         code, _, err = self.call("status", str(self.records), key, "--state", "done",
                                  "--doing", "finished", "--branch", branch, "--head", head[:7])
         self.assertEqual(code, 0, err)
+
+
+class HarnessGitTests(unittest.TestCase):
+    """Every test's git reads the harness's own global config and no system config (#186)."""
+
+    def test_subprocess_git_sees_only_the_harness_config(self):
+        got = subprocess.run(["git", "config", "--global", "--list"], check=True,
+                             capture_output=True, text=True).stdout.splitlines()
+        self.assertIn("remote.origin.followremotehead=never", got)
+        self.assertIn("user.email=t@example.com", got)
+        self.assertIn("init.defaultbranch=main", got)
+        outside = tempfile.mkdtemp()
+        scopes = subprocess.run(["git", "config", "--list", "--show-scope"], cwd=outside,
+                                check=True, capture_output=True, text=True).stdout.splitlines()
+        self.assertEqual({line.split("\t")[0] for line in scopes}, {"global"}, scopes)
 
 
 class StatusTests(Base):
@@ -2313,8 +2351,6 @@ class PushRunTests(Base):
 
     def test_no_origin_head_is_a_failed_lookup_not_a_guess(self):
         git("remote", "set-head", "origin", "--delete", cwd=self.clone)
-        # git 2.48+ re-creates origin/HEAD on ready's fetch unless told not to (older git ignores it)
-        git("config", "remote.origin.followRemoteHEAD", "never", cwd=self.clone)
         self.gh({"runs": [self.push_run("tests", "failure")]})
         out = self.ready()
         self.assertIn("Default branch:\n  push run lookup failed: no origin/HEAD", out)
