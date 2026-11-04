@@ -185,10 +185,11 @@ waitchecks  waits for PR <N>'s first check, then watches its checks. Polls `gh p
         --push <sha> (the full sha) waits instead for the default branch's push runs for that
         commit (`gh run list --event push --commit`, the branch from `gh repo view`): polled on
         the same schedule until one appears, then every 30 s until each has completed, within
-        the same 20 CI start waits. Prints one line per run (workflow, conclusion, short sha,
+        the same 20 CI start waits (a failed lookup meanwhile waits for the next poll). Prints one line per run (workflow, conclusion, short sha,
         URL) and, under a failed one (`failure`, `timed_out`, `startup_failure`), its failed
         jobs (`gh run view --json jobs`). `cancelled` and `skipped` decide nothing, as in
-        `ready`: they pass, the line says so, and a failure beside them still fails.
+        `ready`: the line says so; a failure beside them still fails, a success still passes,
+        and with nothing else it ends as when no run appeared.
 
 merge   merges lanes one at a time, in the order given. First, every key must be listed under
         `ready`'s Ready to merge and nowhere else (--checkout as for `ready`, default the current
@@ -213,8 +214,9 @@ $RELAY_READY_SECONDS; roadmap 0 after printing, 1 when a lookup fails; localchec
 when every command passed, else 1 (a command, the merge, a lookup or the comment failed);
 waitchecks 0 when the checks passed (or CI does not cover the PR's paths), 1 when one failed,
 3 when no check appeared, 4 when a lookup failed (the last poll's, or a watch that failed with
-no failed check behind it, a gh error say), 5 when the watch timed out; with --push, 0 when no
-push run failed, 1 when one did (even past the bound), 3 when none appeared, 4 when the last
+no failed check behind it, a gh error say), 5 when the watch timed out; with --push, 0 when a
+push run passed and none failed, 1 when one did (even past the bound), 3 when none appeared or
+decided, 4 when the last
 poll's lookup failed with none seen, 5 when one still ran past the bound; merge 0 when every
 key merged (a failed `gh pr merge` whose PR reads MERGED counts) and the last merge commit's
 push run passed, 1 when it stopped (a key not ready, or a fetch, lookup, merge state or `gh pr
@@ -1082,34 +1084,34 @@ EXIT_HINTS = {
            "rerun it once; if it exits 5 again, give the user its line and the table above it",
     },
     "waitchecks --push": {
-        0: "the push run passed, or each run was cancelled or skipped (those decide nothing): "
-           "nothing to do",
+        0: "the push run passed: nothing to do",
         1: "a red push run: after a merge, coordinate's *Finishing a lane* step 4, **Merge**, says "
            "what follows; for a release, do not release (`docs/releasing.md` step 2)",
         2: "a usage error: fix what its error line names and rerun",
-        3: "no push run appeared for that commit: check it is on the default branch; give the user "
-           "the line",
+        3: "no push run appeared or decided (each cancelled or skipped) for that commit: check "
+           "it is on the default branch; give the user the line",
         4: "a lookup failed or an unexpected error: rerun it once; if it exits 4 again, give the "
            "user its line",
         5: "the push run watch timed out: rerun it once; if it exits 5 again, give the user its "
            "line",
     },
     "merge": {
-        0: "every key merged and the last merge commit's push run passed (or each run was "
-           "cancelled or skipped); do not rerun the checks locally; tell the user which lanes "
-           "merged",
+        0: "every key merged and the last merge commit's push run passed; do not rerun the "
+           "checks locally; tell the user which lanes merged",
         1: "it stopped at one lane, on the line saying why, and merged no lane after it. A key "
            "not under Ready to merge (nothing merged): fix what `ready` says, as for a deny-list "
            "name in a records file. Any other stop (a "
            "moved head, a merge state other than CLEAN, a failed lookup or `gh pr merge`): give "
            "the user that line. Tell the user which lanes merged and where it stopped",
         2: "a usage error, nothing merged: fix what its error line names and rerun",
-        3: "every key merged, but no push run appeared for the last merge commit: tell the user "
+        3: "every key merged, but no push run appeared or decided for the last merge commit: "
+           "tell the user "
            "which lanes merged; `ready`'s Default branch section shows the run once it decides",
-        4: "an unexpected error, which may come after some merges, or a push run lookup that "
-           "failed after every key merged; exit 4: do not rerun; give the user its line, and run "
-           "`ready` to see which lanes merged. Tell the user which lanes merged and where it "
-           "stopped",
+        4: "an unexpected error, which may come after some merges; exit 4: do not rerun; give "
+           "the user its line, and run `ready` to see which lanes merged. When a line says every "
+           "key merged and the push run is not checked, run the `waitchecks <records> --push` it "
+           "names, or with the sha from `gh pr view <N> --json mergeCommit`. Tell the user which "
+           "lanes merged and where it stopped",
         5: "every key merged; the push run watch timed out: run `waitchecks <records> --push "
            "<sha>` once with the sha its line names; if it exits 5 again, give the user its line",
         6: "every key merged, but the last merge commit's push run failed: coordinate's "
@@ -1966,10 +1968,11 @@ def wait_push_run(repo, base, sha, schedule):
     """Wait for the push runs on <base> for commit <sha>: polled at each time in schedule (seconds
     from now) until one appears, then every PUSH_RUN_POLL seconds until each has completed, for
     at most WATCH_FACTOR times the last poll's time. Prints one line per run, and each failed
-    run's failed jobs. Returns 0 when none failed (`cancelled` and `skipped` decide nothing, as
-    in `ready`), 1 when one failed (PUSH_RUN_FAILED), NO_CHECKS when none appeared by the last
-    poll, LOOKUP_FAILED when the last poll's lookup failed with none seen, WATCH_TIMED_OUT when
-    one still runs past the cap and none failed."""
+    run's failed jobs. Returns 0 when one passed and none failed (`cancelled` and `skipped`
+    decide nothing, as in `ready`), 1 when one failed (PUSH_RUN_FAILED), NO_CHECKS when none
+    appeared by the last poll or none decided, LOOKUP_FAILED when the last poll's lookup failed with none seen, WATCH_TIMED_OUT when
+    one still runs past the cap and none failed. Once runs have appeared, a failed or empty
+    lookup keeps the last runs seen and waits for the next poll."""
     start, runs, error = time.monotonic(), [], None
     for i, at in enumerate(schedule, 1):
         time.sleep(max(0, at - (time.monotonic() - start)))
@@ -2011,7 +2014,12 @@ def wait_push_run(repo, base, sha, schedule):
         print(f"the push run watch for {sha} on {base} ran past {limit / 60:g} minutes with "
               "no result; it was stopped")
         return 1 if failed else WATCH_TIMED_OUT
-    return 1 if failed else 0
+    if failed:
+        return 1
+    if all(r.get("conclusion") in PUSH_RUN_PASSED_OVER for r in runs):
+        print(f"no push run on {base} for {sha[:8]} decided: each was cancelled or skipped")
+        return NO_CHECKS
+    return 0
 
 
 def failed_jobs(repo, run_id):
@@ -2030,7 +2038,7 @@ def cmd_waitchecks(a):
         print(f"no records folder at {records}", file=sys.stderr)
         return 2
     if (a.pr is None) == (a.push is None):
-        print("give either a PR number or --push <sha>, not both", file=sys.stderr)
+        print("give exactly one of a PR number and --push <sha>", file=sys.stderr)
         return 2
     if a.push is not None and not re.fullmatch(r"[0-9a-f]{40}", a.push):
         print(f"--push takes a full 40-character commit sha, not {a.push} (a short one matches "
@@ -2045,7 +2053,8 @@ def cmd_waitchecks(a):
         view = {} if a.repo and a.pr is not None else gh(
             "repo", "view", *([a.repo] if a.repo else []), "--json", "nameWithOwner,defaultBranchRef")
         repo = a.repo or view["nameWithOwner"]
-        base = a.pr is None and view["defaultBranchRef"]["name"]
+        if a.pr is None:
+            base = view["defaultBranchRef"]["name"]
     except LOOKUP_ERRORS as e:
         print(f"lookup failed: {e}", file=sys.stderr)
         return LOOKUP_FAILED
@@ -2196,10 +2205,13 @@ def cmd_merge(a):
         if last is None:
             return 1
     if not last[0]:
-        print(f"every key merged; the push run is not checked: the merge commit lookup failed. "
-              f"Run `waitchecks <records> --push <merge commit sha>`", file=sys.stderr)
+        print("every key merged; the push run is not checked: the merge commit lookup failed",
+              file=sys.stderr)
         return LOOKUP_FAILED
     code = wait_push_run(repo, last[1], last[0], schedule)
+    if code == LOOKUP_FAILED:
+        print(f"every key merged; the push run is not checked: run `waitchecks <records> --push "
+              f"{last[0]}`", file=sys.stderr)
     return PUSH_RED if code == 1 else code
 
 
