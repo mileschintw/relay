@@ -24,7 +24,11 @@ status  writes <records>/status/<key>.md, a worker's status file, then reads it 
           - time: now, `YYYY-MM-DD HH:MM +HHMM`
           - doing: --doing, one line
         Fails (1), writing nothing, on a line break in a value, a head that is not a sha, or a
-        detached HEAD with no --branch.
+        detached HEAD with no --branch. With state review or done and a branch and head (not
+        `none`), also when `git ls-remote origin <branch>` fails or does not show that head
+        (the branch missing on origin, or at another sha), naming the head, origin's sha and
+        `git push origin HEAD`; a lane whose plan.md Now Kind is `run`, `audit` or `spare`
+        skips this check.
 
 ready   read-only. Prints what the coordinator can do next, the Plan warning and the Default branch
         section first, then one line per lane. When plan.md has a `## Now` table, a done lane
@@ -369,6 +373,18 @@ def cmd_status(a):
     text = f"# {a.key} status\n\n" + "".join(f"- {k}: {v}\n" for k, v in values.items())
     if parse_status(text) != values:
         return fail("the status would not read back as written")
+    if a.state in ("review", "done") and head != "none" and branch != "none":
+        kinds = now_kinds(records / "plan.md") or {}
+        if kinds.get(a.key, "pr") not in NO_PR_KINDS:
+            try:
+                pushed = pushed_head(None, branch)
+            except RuntimeError as e:
+                return fail(f"could not check the head on origin: {e}")
+            if not pushed.startswith(head):
+                where = (f"origin/{branch} is at {pushed[:12]}" if pushed
+                         else f"origin has no branch {branch}")
+                return fail(f"head {head} is not on origin: {where}. Push it with "
+                            "`git push origin HEAD`, then rerun this status command.")
     out_path = records / "status" / f"{a.key}.md"
     out_path.parent.mkdir(exist_ok=True)
     out_path.write_text(text, encoding="utf-8")
