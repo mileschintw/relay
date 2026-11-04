@@ -412,3 +412,10 @@ Filled 2026-11-03 from `relay.py roadmap` (retrospective issues). Mechanical ove
 - 2026-11-03, on the user's 「Add both」: owner note C126 added to the user's `~/.claude/CLAUDE.md` (section "Git on Windows"); owner note W33 added to career-log's records `project.md` (coord a9977cba).
 - 2026-11-03, retrospective triage on the user's picks (AskUserQuestion: #204 picked "Close it (Recommended)", #207 picked "Shrink it (Recommended)", the other seven picked "Close all 7 (Recommended)"): measured against the slimming rule (#110: skill text only for recurring-and-costly failures; scan findings only when a contradiction or code bug; environment to project.md or CLAUDE.md; a rule already written and missed needs a check, not text), #199, #201, #202, #203, #204, #205, #206, #208 closed as not planned with reasons; #207 narrowed to the merged-lane PR body check (career-log's prompt files leave briefs/ in its own records, passed to its coordinator); #200 and #209 kept as code bugs. For #201, project.md's checks line now gives the suite's runtime and how to run it.
 - 2026-11-03: #210 (`relay.py retire`) closed as not planned on the user's "Close #210": recurring but only retries; environment cause; declined twice before.
+
+## Round 200–209
+
+| 207 | #207 | local_32488455-e7e5-4f88-a70d-58a7864f93f2 (landed in old-account worktree folder D:/Repos/relay/.claude/worktrees/lane-75-b3c0b3, on its own branch claude/lane-207-31b394) | done, PR #212 open, waiting on CI | |
+
+- 207: #207 `ready_done` skips the PR body and deny checks for a merged lane outside Now. PR #212 merged 2026-11-04 06:43:12 UTC as 885399d under the round's merge right.
+- #211 (localcheck has no timeout on fetch or lookup) opened by lane 200's worker 2026-11-03 under the standing permission for review follow-ups; added to the Roadmap, not in this round.
