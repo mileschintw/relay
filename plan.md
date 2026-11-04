@@ -5,7 +5,7 @@ Current state only. Done work moves to `plan-history.md` with a one-line pointer
 ## Handover
 
 - **Coordinator:** title Relay coordination (new account), worktree D:/Repos/relay/.claude/worktrees/lane-102-f7b67c, id 3d27dfcf-f202-480f-9e08-3499b5e1a916, mode normal. Took over 2026-11-03 21:45 -0800 on the user's `/relay:coordinate` after switching accounts; the previous coordinator (local_f0eb7091-3f4b-4994-afb1-091422a00e8b, lane-114-30073e) lost access right after merging #197 and #198, before step 6.
-- **Next:** round 195–196 merged; no open issues, nothing to start. Changes since 0.3.5 (#181–#187, #195, #196) are unreleased; release on the user's word. Owner steps: upload `docs/social-preview/social-preview.png` in Settings › General › Social preview.
+- **Next:** round 195–196 merged; no open issues, nothing to start. Changes since 0.3.5 (#181–#187, #195, #196) are unreleased; release on the user's word.
 - **Alarm:** `project.md`'s `Alarm: 10` (the user's 10 minutes, 2026-10-31 01:51 「可以就這樣改」, moved there when #82 merged); waiting on CI relies on the background `waitchecks` ending, not the alarm.
 - **Merge right:** none. (The 2026-11-03 19:57 -0800 round's, lanes 195–196, is in `plan-history.md`.)
 - **Unattended log:** none.
@@ -41,7 +41,7 @@ none
 
 ## Waiting for the user's decision
 
-- Owner note (#145, from lane 145): after the merge, on a machine with no GitHub SSH key and no `url.*.insteadOf` override (`git config --show-origin --get-regexp '^url\..*insteadof'` prints nothing; remove the one added for 0.3.3 with `git config --global --unset-all url.https://github.com/.insteadOf`), run `claude plugin marketplace update relay` then `claude plugin update relay@relay`: it should succeed with no `Permission denied (publickey)`. (`reports/145.md`)
+- Owner note #145 was already done at the 0.3.4 install (2026-11-03) → `plan-history.md`.
 
 
 - Owner note (#112, from lane 133, C126): for the user's own CLAUDE.md: "On Windows, write a commit message with a double quote in it to a file and use `git commit -F`." (`reports/133.md`)
