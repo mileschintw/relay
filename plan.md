@@ -5,9 +5,9 @@ Current state only. Done work moves to `plan-history.md` with a one-line pointer
 ## Handover
 
 - **Coordinator:** title Relay coordination (new account), worktree D:/Repos/relay/.claude/worktrees/lane-102-f7b67c, id local_8a7be3a6-0661-424b-88cc-713e4a6cca01, mode normal. Took over 2026-11-03 21:45 -0800 on the user's `/relay:coordinate` after switching accounts; the previous coordinator (local_f0eb7091-3f4b-4994-afb1-091422a00e8b, lane-114-30073e) lost access right after merging #197 and #198, before step 6.
-- **Next:** no open issues; nothing to start. Changes since 0.3.5 (#181–#187, #195, #196, #200, #207, #209, #211) are unreleased; release on the user's word.
+- **Next:** releasing 0.3.6 on the user's "release 0.3.6" (2026-11-04). Release review over relay--v0.3.5..3c336ae found 1 code bug and 2 contradictions → #216 (one lane, then re-review only that diff, then release, on the user's pick "One lane, then release"); 41 unfixed review notes sorted, none worth an issue. Then version PR, `main:release`, tag, local install, each outward step on the user's yes.
 - **Alarm:** `project.md`'s `Alarm: 10` (the user's 10 minutes, 2026-10-31 01:51 「可以就這樣改」, moved there when #82 merged); waiting on CI relies on the background `waitchecks` ending, not the alarm.
-- **Merge right:** none. (Lane 211's is in `plan-history.md`.)
+- **Merge right:** 2026-11-04 00:03 -0800, lane 216: asked "How should they go in before releasing 0.3.6?", picked "One lane, then release (Recommended)" (its option: merge once CI passes).
 - **Unattended log:** none.
 
 ## Rulings
@@ -27,7 +27,7 @@ Every open issue, once. "Order" is the wave (1 = can start now). "Kind" is `free
 
 | Issue | Order | Blocked by (GitHub) | Same-section wait | Files it owns | Kind |
 |---|---|---|---|---|---|
-none open.
+| #216 | 1 | none | none | relay.py `wait_push_run`; tests; work/SKILL.md step 4; coordinate/SKILL.md Merge | free |
 
 Filled 2026-11-03 from the two retrospectives; on the user's picks the rest were closed as not planned under the slimming rule (#199, #201–#206, #208), #207 narrowed, #210 closed on the user's "Close #210". Mechanical overlaps (parallel): relay.py (211 cmd_localcheck); tests/test_relay.py (each its own tests). (Round 195–196's note → `plan-history.md`.)
 
