@@ -1851,7 +1851,10 @@ class PushWaitTests(Base):
                 raise answer
             return answer
         now = [0.0]
-        with mock.patch.object(relay, "push_runs", push_runs),                 mock.patch.object(relay.time, "sleep", lambda s: now.__setitem__(0, now[0] + s)),                 mock.patch.object(relay.time, "monotonic", lambda: now[0]),                 redirect_stdout(io.StringIO()) as out, redirect_stderr(io.StringIO()) as err:
+        with mock.patch.object(relay, "push_runs", push_runs), \
+                mock.patch.object(relay.time, "sleep", lambda s: now.__setitem__(0, now[0] + s)), \
+                mock.patch.object(relay.time, "monotonic", lambda: now[0]), \
+                redirect_stdout(io.StringIO()) as out, redirect_stderr(io.StringIO()) as err:
             self.assertEqual(relay.wait_push_run("o/r", "main", self.SHA, [0, 60]), 0)
         self.assertIn("push run lookup failed: HTTP 502", err.getvalue())
         self.assertIn("tests: push run success", out.getvalue())
