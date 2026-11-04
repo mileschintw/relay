@@ -5,7 +5,7 @@ Current state only. Done work moves to `plan-history.md` with a one-line pointer
 ## Handover
 
 - **Coordinator:** title Relay coordination (new account), worktree D:/Repos/relay/.claude/worktrees/lane-102-f7b67c, id 3d27dfcf-f202-480f-9e08-3499b5e1a916, mode normal. Took over 2026-11-03 21:45 -0800 on the user's `/relay:coordinate` after switching accounts; the previous coordinator (local_f0eb7091-3f4b-4994-afb1-091422a00e8b, lane-114-30073e) lost access right after merging #197 and #198, before step 6.
-- **Next:** round 195–196 merged; no open issues, nothing to start. Changes since 0.3.5 (#181–#187, #195, #196) are unreleased; release on the user's word.
+- **Next:** round 195–196 merged; #199–#203 opened 2026-11-03 from its retrospective on the user's pick, not started. Changes since 0.3.5 (#181–#187, #195, #196) are unreleased; release on the user's word.
 - **Alarm:** `project.md`'s `Alarm: 10` (the user's 10 minutes, 2026-10-31 01:51 「可以就這樣改」, moved there when #82 merged); waiting on CI relies on the background `waitchecks` ending, not the alarm.
 - **Merge right:** none. (The 2026-11-03 19:57 -0800 round's, lanes 195–196, is in `plan-history.md`.)
 - **Unattended log:** none.
@@ -27,9 +27,13 @@ Every open issue, once. "Order" is the wave (1 = can start now). "Kind" is `free
 
 | Issue | Order | Blocked by (GitHub) | Same-section wait | Files it owns | Kind |
 |---|---|---|---|---|---|
-none open.
+| #199 | 1 | none | none | coordinate/SKILL.md (Finishing a lane step 2; Following progress, report-is-data bullet) | free |
+| #200 | 1 | none | none | relay.py `pushed_head`, `cmd_status`; tests (StatusTests) | free |
+| #201 | 1 | none | none | work/SKILL.md (step 1 last two sentences; step 4; Background runs) | free |
+| #202 | 1 | none | none | coordinate/SKILL.md (First turn step 5); close-out.md; setup/templates/plan.md | free |
+| #203 | 1 | none | none | work/SKILL.md (step 3) | free |
 
-(Round 195–196's roadmap note → `plan-history.md`.)
+Filled 2026-11-03 from the round 195–196 retrospective. Mechanical overlaps (different sections, parallel): coordinate/SKILL.md (199 Finishing a lane / Following progress, 202 First turn step 5); work/SKILL.md (201 steps 1, 4, Background runs, 203 step 3). (Round 195–196's note → `plan-history.md`.)
 
 
 
