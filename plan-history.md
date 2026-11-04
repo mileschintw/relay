@@ -419,3 +419,9 @@ Filled 2026-11-03 from `relay.py roadmap` (retrospective issues). Mechanical ove
 
 - 207: #207 `ready_done` skips the PR body and deny checks for a merged lane outside Now. PR #212 merged 2026-11-04 06:43:12 UTC as 885399d under the round's merge right.
 - #211 (localcheck has no timeout on fetch or lookup) opened by lane 200's worker 2026-11-03 under the standing permission for review follow-ups; added to the Roadmap, not in this round.
+| 200 | #200 | local_5c09e0b2-db2c-463f-996a-c108245480ad (landed in old-account worktree folder D:/Repos/relay/.claude/worktrees/lane-103-3d7569, on its own branch claude/lane-200-4ae358) | done, PR #213 open, merging | |
+| 209 | #209 | local_d573e5be-a181-4a33-92bb-aec8a85c79ad (D:/Repos/relay/.claude/worktrees/lane-209-0a1ef0, branch claude/lane-209-0a1ef0) | done, PR #214 open, waiting on CI | |
+
+- 200: #200 `status`'s origin lookup has a 30 s timeout and runs with git's prompts off; a timeout writes nothing. PR #213 merged 2026-11-04 06:52:04 UTC; main push run passed.
+- 209: #209 `merge` skips the push-run wait when no default-branch workflow runs on `push` (exit 3 with a line). Branch and tag filters under `push:` are not read (errs toward waiting); no issue, no incident. PR #214 merged 2026-11-04; main push run passed.
+- Round merge right, ended when all three lanes merged: - **Merge right:** 2026-11-03 22:26 -0800, lanes 200, 207, 209: asked "Start the round for #200, #207 and #209, opening each PR and merging once CI passes?", picked "Start, merge on CI".
