@@ -1805,7 +1805,7 @@ class PushWaitTests(Base):
         self.assertEqual(self.polls, [0.0, 60.0, 180.0, 360.0])
         self.assertIn(f"no push run on main for aaaaaaaa appeared within 6 minutes: gh run list "
                       f"--repo o/r --branch main --event push --commit {self.SHA}", out)
-        self.assertIn("hint (exit 3): no push run appeared", out)
+        self.assertIn("hint (exit 3): no push run decided for that commit: when none appeared", out)
 
     def test_a_run_still_in_progress_past_the_bound_is_its_own_exit(self):
         code, out, err = self.wait([self.run_("in_progress")])
