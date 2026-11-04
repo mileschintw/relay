@@ -216,7 +216,7 @@ merge   merges lanes one at a time, in the order given. First, every key must be
         push runs for its merge commit as `waitchecks --push` does (project.md's CI start wait,
         read before any merge), and prints them; when no workflow file on the default branch
         names `push` in its `on:` (its branch filters unread), one line says so instead and
-        there is no wait (#209); a failed workflow lookup keeps the wait.
+        there is no wait; a failed workflow lookup keeps the wait.
 
 Exit: status 0 when written, 1 when a check fails; ready 0 after printing, 2 on a bad
 $RELAY_READY_SECONDS; roadmap 0 after printing, 1 when a lookup fails; localcheck 0
@@ -703,21 +703,14 @@ def runs_on_pull_request(text):
     return bool(pull_request_filters(text))
 
 
-PUSH_EVENT = re.compile(r"(?<![\w-])push(?![\w-])")
+PUSH_EVENT = re.compile(r"\bpush\b")
 PUSH_EVENT_ITEM = re.compile(r"""^\s*(?:-\s*)?["']?push["']?\s*(?::|$)""")
 
 
 def runs_on_push(text):
     """True when workflow text's top-level `on:` names `push`, read as runs_on_pull_request
     reads `pull_request`; a `branches` or `tags` filter is not read (errs toward waiting)."""
-    found = on_block(text)
-    if not found:
-        return False
-    inline, block = found
-    if inline:
-        return bool(PUSH_EVENT.search(" ".join([inline] + block)))
-    top = min(map(indent, block), default=0)
-    return any(indent(line) == top and PUSH_EVENT_ITEM.match(line) for line in block)
+    return bool(on_events(text, PUSH_EVENT, PUSH_EVENT_ITEM))
 
 
 PATHS_KEY = re.compile(r"""^\s*["']?(paths(?:-ignore)?)["']?\s*:(.*)$""")
@@ -755,20 +748,20 @@ def paths_filter(lines):
     return found[0] if len(found) == 1 and found[0][1] else None
 
 
-def pull_request_filters(text):
-    """One entry per `pull_request` or `pull_request_target` event under workflow text's
-    top-level `on:`: its paths_filter, or None when it has none (or an inline value, read as
-    none); empty when the workflow does not run on either."""
+def on_events(text, event, item):
+    """One entry per event under workflow text's top-level `on:` that regex `event` finds in an
+    inline value, or `item` matches as a child key or list item: the lines under that key, None
+    for an inline value, a list item or a key with an inline value; empty when there is none."""
     found = on_block(text)
     if not found:
         return []
     inline, block = found
     if inline:
-        return [None] * len(PR_EVENT.findall(" ".join([inline] + block)))
+        return [None] * len(event.findall(" ".join([inline] + block)))
     top = min(map(indent, block), default=0)
-    filters = []
+    entries = []
     for i, line in enumerate(block):
-        if indent(line) != top or not PR_EVENT_ITEM.match(line):
+        if indent(line) != top or not item.match(line):
             continue
         sub = []
         for c in block[i + 1:]:
@@ -776,8 +769,16 @@ def pull_request_filters(text):
                 break
             sub.append(c)
         bare = line.lstrip().startswith("-") or line.partition(":")[2].strip()
-        filters.append(None if bare else paths_filter(sub))
-    return filters
+        entries.append(None if bare else sub)
+    return entries
+
+
+def pull_request_filters(text):
+    """One entry per `pull_request` or `pull_request_target` event under workflow text's
+    top-level `on:`: its paths_filter, or None when it has none (or an inline value, read as
+    none); empty when the workflow does not run on either."""
+    return [None if sub is None else paths_filter(sub)
+            for sub in on_events(text, PR_EVENT, PR_EVENT_ITEM)]
 
 
 def path_pattern(pattern):

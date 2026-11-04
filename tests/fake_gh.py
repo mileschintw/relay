@@ -15,7 +15,8 @@
  "annotations": {"<job id>": [{"message": "..."}]},
  "workflows": 0,                                  # the repo's Actions workflow count, default 1
  "workflow_files": {"ci.yml": "on: push"},        # .github/workflows/ on the default branch;
-                                                  # absent: the folder is missing (HTTP 404)
+                                                  # absent or null: the folder is missing
+                                                  # (HTTP 404)
  "pr_files": {"5": ["docs/a.png"]},              # `api .../pulls/5/files --jq`: one path per
                                                   # line; a PR missing here: HTTP 404
  "head_statuses": 1, "head_check_runs": 1,      # counts on the default branch head, default 0
@@ -118,7 +119,7 @@ elif a[0] == "api" and a[1].endswith("/actions/workflows"):
     n = data.get("workflows", 1)
     print(json.dumps({"total_count": n, "workflows": [{"name": f"ci{i}"} for i in range(n)]}))
 elif a[0] == "api" and a[-1].endswith("/contents/.github/workflows"):
-    if "workflow_files" not in data:
+    if data.get("workflow_files") is None:
         sys.exit("gh: Not Found (HTTP 404)")
     print(json.dumps([{"name": n, "path": f".github/workflows/{n}", "type": "file"}
                       for n in data["workflow_files"]]))

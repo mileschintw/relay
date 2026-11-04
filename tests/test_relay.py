@@ -2029,31 +2029,31 @@ class PushWaitTests(Base):
     def test_merge_skips_the_wait_when_no_workflow_runs_on_push(self):
         # #209: with every workflow on pull_request only, no push run ever appears
         self.lanes()
-        for files in ({"pr.yml": "on: pull_request\n", "nightly.yml": "on:\n  schedule: []\n"},
-                      {}):
+        cases = (({"pr.yml": "on: pull_request\n", "nightly.yml": "on:\n  schedule: []\n"},
+                  "(.github/workflows/pr.yml, .github/workflows/nightly.yml)"),
+                 ({}, "(no workflow file)"), (None, "(no workflow file)"))  # None: HTTP 404
+        for files, files_read in cases:
             code, out, err = self.merge("12", workflow_files=files, push_runs={})
             self.assertEqual((code, len(self.merges())), (3, 1), err)
             self.assertIn("12: merged PR #5 at ", out)
             self.assertIn("every key merged; no push run to wait for: no workflow on the default "
-                          "branch runs on push", out)
+                          f"branch runs on push {files_read}", out)
             self.assertNotIn("--event push", pathlib.Path(str(self.fake) + ".calls").read_text())
             self.assertIn("hint (exit 3): every key merged, but no workflow runs on push", out)
-        code, out, err = self.merge("12", push_runs={}, workflow_files={
-            "pr.yml": "on: pull_request\n", "nightly.yml": "on:\n  schedule: []\n"})
-        self.assertIn("runs on push (.github/workflows/pr.yml, .github/workflows/nightly.yml)", out)
 
     def test_merge_waits_when_a_workflow_runs_on_push_or_the_lookup_fails(self):
         self.lanes()
         sha = "m5" * 8
-        for data in ({"workflow_files": {"pr.yml": "on: pull_request\n",
-                                         "ci.yml": "on:\n  push:\n    branches: [main]\n"}},
-                     {"workflow_files": {"ci.yml": "on: pull_request\n"}, "broken": ["ci.yml"]}):
+        for data, lookup_failed in (
+                ({"workflow_files": {"pr.yml": "on: pull_request\n",
+                                     "ci.yml": "on:\n  push:\n    branches: [main]\n"}}, False),
+                ({"workflow_files": {"ci.yml": "on: pull_request\n"}, "broken": ["ci.yml"]}, True)):
             code, out, err = self.merge("12", push_runs={sha: [[self.run_()]]}, **data)
             self.assertEqual((code, len(self.merges())), (0, 1), err)
             self.assertIn("tests: push run success at m5m5m5m5", out)
             self.assertNotIn("no push run to wait for", out)
-        self.assertIn("workflow lookup failed (", err)
-        self.assertIn("); waiting for the push run", err)
+            self.assertEqual("); waiting for the push run" in err, lookup_failed, err)
+            self.assertEqual("workflow lookup failed (" in err, lookup_failed, err)
 
     def test_runs_on_push(self):
         yes = ["on: push\n", "on: [push, pull_request]\n", "'on': push\n",
