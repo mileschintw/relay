@@ -184,12 +184,12 @@ merge   merges lanes one at a time, in the order given. First, every key must be
         its head still the sha Ready to merge printed; mergeStateStatus `CLEAN` (UNKNOWN, while
         GitHub recomputes after a merge, is asked again after 5, 15 and 30 seconds); `gh pr merge
         <N> --merge --match-head-commit <sha>`; one line with the merge time. A failed `gh pr
-        merge` rereads the PR: MERGED counts as merged. After a 5xx or `Merge already in
-        progress`, the PR's state is asked again after 10, 20, 30, 60 and 60 seconds, then the
-        merge is retried once with the same --match-head-commit (a retry that fails the same way
-        waits out those polls again, with no further retry). The first key that fails a test, or
-        whose merge still failed, gets one line saying why (naming the last error), and no later
-        key merges. After the last merge, prints the default branch's push run for the merge
+        merge` rereads the PR at once: MERGED counts as merged. After a 5xx or `Merge already
+        in progress` it is also asked after 10, 20, 30, 60 and 60 seconds, then the merge is
+        retried once with the same --match-head-commit (a retry that fails the same way waits
+        out those polls again, with no further retry); any other error gets no retry. The first
+        key that fails a test gets one line saying why (a merge that still failed: the last
+        error), and no later key merges. After the last merge, prints the default branch's push run for the merge
         commit (`gh run list --event push --commit`), or that none has appeared yet.
 
 Exit: status 0 when written, 1 when a check fails; ready 0 after printing, 2 on a bad
