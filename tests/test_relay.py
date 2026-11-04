@@ -911,8 +911,8 @@ class ReadyLookupTests(Base):
         self.lanes()
         real = relay.run
 
-        def run(cmd, cwd=None):
-            return (1, "", "offline") if cmd[1] == "fetch" else real(cmd, cwd)
+        def run(cmd, cwd=None, **kw):
+            return (1, "", "offline") if cmd[1] == "fetch" else real(cmd, cwd, **kw)
         with mock.patch.object(relay, "run", run):
             out, gits, _ = self.counted_ready("--checkout", str(self.clone))
         self.assertEqual(len([g for g in gits if g.startswith("ls-remote")]), 3, gits)
@@ -922,8 +922,8 @@ class ReadyLookupTests(Base):
         heads = self.lanes()
         real = relay.run
 
-        def run(cmd, cwd=None):
-            return (1, "", "offline") if cmd[1] == "fetch" else real(cmd, cwd)
+        def run(cmd, cwd=None, **kw):
+            return (1, "", "offline") if cmd[1] == "fetch" else real(cmd, cwd, **kw)
         with mock.patch.object(relay, "run", run):
             out, gits, _ = self.counted_ready("--checkout", str(self.clone))
         self.assertFalse([g for g in gits if g.startswith("merge-tree")], gits)
