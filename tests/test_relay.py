@@ -1440,6 +1440,25 @@ class MergeTests(Base):
         merge_sleeps = [s for s in sleeps if s][:-len(relay.RUN_WAITS[1:])]
         self.assertEqual(merge_sleeps, list(relay.MERGE_POLLS) + list(relay.MERGE_POLLS[:1]))
 
+    def test_a_failed_state_lookup_is_asked_again_and_a_missing_merge_commit_is_no_crash(self):
+        real_gh = relay.gh
+        lookups = []
+
+        def gh(*args, **kw):
+            if args[-1] == "state":
+                lookups.append(args)
+                if len(lookups) == 1:
+                    raise RuntimeError("HTTP 502")
+                return {"state": "MERGED"}
+            if args[-1] == "mergedAt,mergeCommit":
+                return {"mergedAt": "2026-10-31T07:00:00Z", "mergeCommit": None}
+            return real_gh(*args, **kw)
+        with mock.patch.object(relay, "gh", gh):
+            code, out, err = self.merge("12", merge_fail={"5": "HTTP 502: Bad Gateway"})
+        self.assertEqual(code, 0, err)
+        self.assertEqual((len(self.merges()), len(lookups)), (1, 2))
+        self.assertIn("12: merged PR #5; merge time lookup failed: ", out)
+
     def test_502_then_a_retry_that_merges(self):
         code, out, err = self.merge("12", pr_view=self.views(*["OPEN"] * 20),
                                     merge_fail={"5": ["HTTP 502: Bad Gateway", None]})

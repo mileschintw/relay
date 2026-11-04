@@ -1936,42 +1936,40 @@ def merge_lane(key, pr, sha, repo):
     if state != "CLEAN":
         fail(f"{key}: PR #{pr} merge state is {state}, not CLEAN")
         return None
-    for retry in (True, False):
+    for retry_left in (True, False):
         code, out, err = run(gh_base() + ["pr", "merge", str(pr), "--repo", repo, "--merge",
                                           "--match-head-commit", sha])
         if not code:
             break
         error = " ".join((err or out).split())
-        merged = merged_after_failure(pr, repo, TRANSIENT_MERGE.search(error))
-        if merged:
-            print(f"{key}: merged PR #{pr} at {merged['mergedAt']}", flush=True)
-            return merged["mergeCommit"]["oid"], view["baseRefName"]
-        if not (retry and TRANSIENT_MERGE.search(error)):
+        transient = bool(TRANSIENT_MERGE.search(error))
+        if merged_after_failure(pr, repo, transient):
+            break
+        if not (retry_left and transient):
             fail(f"{key}: gh pr merge {pr} failed: {error}")
             return None
     try:
         merged = gh("pr", "view", str(pr), "--repo", repo, "--json", "mergedAt,mergeCommit")
+        oid = merged["mergeCommit"]["oid"]
         print(f"{key}: merged PR #{pr} at {merged['mergedAt']}", flush=True)
-        return merged["mergeCommit"]["oid"], view["baseRefName"]
+        return oid, view["baseRefName"]
     except LOOKUP_ERRORS as e:
         print(f"{key}: merged PR #{pr}; merge time lookup failed: {e}", flush=True)
         return None, view["baseRefName"]
 
 
 def merged_after_failure(pr, repo, transient):
-    """After a failed `gh pr merge`, PR <pr>'s view (state, mergedAt, mergeCommit) when it reads
-    MERGED: asked at once, then, when the failure was <transient>, again after each MERGE_POLLS
-    wait. None when it never does; a failed lookup counts as not merged yet."""
+    """Whether PR <pr> reads MERGED after a failed `gh pr merge`: asked at once, then, when the
+    failure was transient, again after each MERGE_POLLS wait. A failed lookup counts as not
+    merged yet."""
     for wait in (0, *(MERGE_POLLS if transient else ())):
         time.sleep(wait)
         try:
-            view = gh("pr", "view", str(pr), "--repo", repo, "--json", "state,mergedAt,mergeCommit")
+            if gh("pr", "view", str(pr), "--repo", repo, "--json", "state")["state"].upper() == "MERGED":
+                return True
         except LOOKUP_ERRORS:
             continue
-        if view.get("state", "").upper() == "MERGED":
-            return view
-    return None
-
+    return False
 
 def report_push_run(repo, base, sha):
     """Print the push run on <base> for merge commit <sha>, or say there is none yet."""
