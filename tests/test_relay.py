@@ -106,6 +106,12 @@ class Base(unittest.TestCase):
                                  "--doing", "finished", "--branch", branch, "--head", head[:7])
         self.assertEqual(code, 0, err)
 
+    def stale_done(self, key, branch, head):
+        """done(), written while origin held <head>: origin has moved or lost the branch since,
+        which `status`'s own push check (#195) can no longer see."""
+        with mock.patch.object(relay, "pushed_head", lambda checkout, b: head):
+            self.done(key, branch, head)
+
 
 class HarnessGitTests(unittest.TestCase):
     """Every test's git reads the harness's own global config and no system config (#186)."""
@@ -179,6 +185,95 @@ class StatusTests(Base):
                                   "--doing", "x")
         self.assertEqual(code, 2)
         self.assertIn("'完成'", err)
+
+    def unpushed(self, branch):
+        """A local branch one commit past what origin holds for it (nothing when origin has no
+        such branch); returns its short head, with the branch checked out."""
+        git("switch", "-q", "-c", branch, "main", cwd=self.clone)
+        (self.clone / "a.txt").write_text("local\n")
+        git("commit", "-qam", "local", cwd=self.clone)
+        return sh("rev-parse", "--short", "HEAD", cwd=self.clone)
+
+    def test_review_and_done_need_the_head_on_origin(self):
+        """#195: review and done refuse a head origin's branch is not at, writing nothing."""
+        self.branch("lane-12")
+        git("switch", "-q", "lane-12", cwd=self.clone)
+        (self.clone / "a.txt").write_text("unpushed\n")
+        git("commit", "-qam", "unpushed", cwd=self.clone)
+        head = sh("rev-parse", "--short", "HEAD", cwd=self.clone)
+        pushed = sh("rev-parse", "--short=12", "origin/lane-12", cwd=self.clone)
+        for state in ("review", "done"):
+            with self.subTest(state=state):
+                code, _, err = self.call("status", str(self.records), "12", "--state", state,
+                                         "--doing", "x")
+                self.assertEqual(code, 1)
+                self.assertIn(f"head {head} is not on origin: origin/lane-12 is at {pushed}", err)
+                self.assertIn("git push origin HEAD", err)
+                self.assertFalse((self.records / "status" / "12.md").exists())
+
+    def test_review_and_done_need_the_branch_on_origin(self):
+        head = self.unpushed("lane-12")
+        code, _, err = self.call("status", str(self.records), "12", "--state", "done",
+                                 "--doing", "x")
+        self.assertEqual(code, 1)
+        self.assertIn(f"head {head} is not on origin: origin has no branch lane-12", err)
+        self.assertIn("git push origin HEAD", err)
+        self.assertFalse((self.records / "status" / "12.md").exists())
+
+    def test_review_and_done_pass_on_a_pushed_head(self):
+        head = self.branch("lane-12")
+        git("switch", "-q", "lane-12", cwd=self.clone)
+        for state in ("review", "done"):
+            with self.subTest(state=state):
+                code, _, err = self.call("status", str(self.records), "12", "--state", state,
+                                         "--doing", "x")
+                self.assertEqual(code, 0, err)
+                st = relay.parse_status((self.records / "status" / "12.md").read_text())
+                self.assertEqual((st["state"], st["head"]), (state, head[:7]))
+        code, _, err = self.call("status", str(self.records), "12", "--state", "done",
+                                 "--doing", "x", "--branch", "lane-12", "--head", head)
+        self.assertEqual(code, 0, err)
+
+    def test_other_states_and_no_head_skip_the_push_check(self):
+        head = self.unpushed("lane-12")
+        for state in ("working", "blocked"):
+            with self.subTest(state=state):
+                code, _, err = self.call("status", str(self.records), "12", "--state", state,
+                                         "--doing", "x")
+                self.assertEqual(code, 0, err)
+                st = relay.parse_status((self.records / "status" / "12.md").read_text())
+                self.assertEqual(st["head"], head)
+        code, _, err = self.call("status", str(self.records), "13", "--state", "parked",
+                                 "--doing", "x")
+        self.assertEqual(code, 0, err)
+        code, _, err = self.call("status", str(self.records), "14", "--state", "done",
+                                 "--branch", "none", "--head", "none", "--doing", "x")
+        self.assertEqual(code, 0, err)
+
+    def test_a_no_pr_lane_skips_the_push_check(self):
+        """A run or audit lane in plan.md's Now table opens no PR, so its head need not be on
+        origin; a pr lane, or a key not in Now, still needs it."""
+        head = self.unpushed("lane-12")
+        (self.records / "plan.md").write_text(
+            "# Plan\n\n## Now\n\n| Key | Kind |\n|---|---|\n| 12 | audit |\n| 13 | pr |\n")
+        code, _, err = self.call("status", str(self.records), "12", "--state", "done",
+                                 "--doing", "x")
+        self.assertEqual(code, 0, err)
+        for key in ("13", "14"):
+            with self.subTest(key=key):
+                code, _, err = self.call("status", str(self.records), key, "--state", "done",
+                                         "--doing", "x")
+                self.assertEqual(code, 1)
+                self.assertIn(f"head {head} is not on origin", err)
+
+    def test_a_failed_lookup_writes_nothing(self):
+        self.unpushed("lane-12")
+        git("remote", "set-url", "origin", str(self.tmp / "no-such-origin.git"), cwd=self.clone)
+        code, _, err = self.call("status", str(self.records), "12", "--state", "review",
+                                 "--doing", "x")
+        self.assertEqual(code, 1)
+        self.assertIn("could not check the head on origin: git ls-remote origin lane-12", err)
+        self.assertFalse((self.records / "status" / "12.md").exists())
 
     def test_missing_records_folder_exits_2_and_writes_nothing(self):
         gone = self.tmp / "no-such-records"
@@ -440,7 +535,7 @@ class ReadyTests(Base):
 
     def test_stale_status_head(self):
         self.branch("lane-12")
-        self.done("12", "lane-12", "abcdef1234")
+        self.stale_done("12", "lane-12", "abcdef1234")
         self.assertIn("is not the pushed head", self.ready())
 
     def test_merge_conflict_waits(self):
@@ -2823,8 +2918,11 @@ class LaneKindTests(Base):
         """A done lane like the live records' lane 110: an audit whose branch was never pushed
         and that has no PR body draft."""
         (self.records / "reports" / f"{key}.md").write_text("report")
-        code, _, err = self.call("status", str(self.records), key, "--state", "done", "--doing",
-                                 "x", "--branch", f"claude/lane-{key}-x", "--head", "02d1f2d")
+        # past status's push check (#195), as a status written before that check would be
+        with mock.patch.object(relay, "pushed_head", lambda checkout, b: "02d1f2d"):
+            code, _, err = self.call("status", str(self.records), key, "--state", "done",
+                                     "--doing", "x", "--branch", f"claude/lane-{key}-x",
+                                     "--head", "02d1f2d")
         self.assertEqual(code, 0, err)
 
     def test_now_kinds_reads_the_kind_column(self):
