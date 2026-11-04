@@ -2038,7 +2038,8 @@ class PushWaitTests(Base):
         self.assertEqual(code, 0, err)
 
     def test_only_a_success_passes(self):
-        # #216: runs that end with no failure and no success (neutral, action_required) pass nothing
+        """#216: runs that end with no failure and no success (neutral, action_required) pass
+        nothing."""
         for conclusion in ("neutral", "action_required"):
             code, out, err = self.wait([self.run_(conclusion=conclusion),
                                         self.run_(conclusion=conclusion, name="lint", id_=8)])

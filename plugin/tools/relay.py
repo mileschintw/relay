@@ -227,12 +227,12 @@ waitchecks 0 when the checks passed (or CI does not cover the PR's paths), 1 whe
 3 when no check appeared, 4 when a lookup failed (the last poll's, or a watch that failed with
 no failed check behind it, a gh error say), 5 when the watch timed out; with --push, 0 when a
 push run passed and none failed, 1 when one did (even past the bound), 3 when none appeared or
-decided, 4 when the short sha's lookup failed, or the last poll's with none seen, 5 when one
+none passed, 4 when the short sha's lookup failed, or the last poll's with none seen, 5 when one
 still ran past the bound; merge 0 when every key merged (a failed `gh pr merge` whose PR
 reads MERGED counts) and the last merge commit's push run passed, 1 when it stopped (a key
 not ready, or a fetch, lookup, merge state or `gh pr merge` that failed, after its one retry
 for a 5xx or `Merge already in progress`), and after every key merged: 6 when that push run
-failed, 3 when none appeared or passed or no workflow runs on push, 5 when the wait timed
+failed, 3 when none appeared or none passed or no workflow runs on push, 5 when the wait timed
 out, 4 when the merge commit or its push run lookup failed;
 2 on a usage error (argparse's too, after which waitchecks and merge still print their hint;
 ready: a $RELAY_READY_SECONDS that is not a number of seconds; waitchecks: a CI start wait that
@@ -1031,6 +1031,7 @@ def now_problems(plan):
 # neither failure nor success: `ready` passes over them, so they never hide an older failure.
 PUSH_RUN_FAILED = ("failure", "timed_out", "startup_failure")
 PUSH_RUN_PASSED_OVER = ("cancelled", "skipped")
+PUSH_RUN_PASSED = ("success",)  # wait_push_run passes only when a run ended in one (#216)
 PUSH_RUN_LIMIT = 100  # the push runs `ready` reads, newest first: enough to reach each workflow's
 # latest decided one
 
@@ -2088,7 +2089,7 @@ def wait_push_run(repo, base, sha, schedule):
     if all(r.get("conclusion") in PUSH_RUN_PASSED_OVER for r in runs):
         print(f"no push run on {base} for {sha[:8]} decided: each was cancelled or skipped")
         return NO_CHECKS
-    if not any(r.get("conclusion") == "success" for r in runs):
+    if not any(r.get("conclusion") in PUSH_RUN_PASSED for r in runs):
         print(f"no push run on {base} for {sha[:8]} passed: none ended in success")
         return NO_CHECKS
     return 0
