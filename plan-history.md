@@ -358,3 +358,9 @@ Ended: all five lanes merged 2026-11-03.
 
 - 184: #184 README size in rounded figures, PR #188 merged 2026-11-04 00:20:07 UTC.
 - 187: #187 Handover field shape on First turn and roadmap call line in coordinate/SKILL.md (doc option, relay.py unchanged), PR #189 merged 2026-11-04 00:20:19 UTC. Main push run 41746068666 for af8bfe2 in progress at merge time.
+
+## Lane 185 (round 181–187)
+
+| 185 | #185 | local_69ad8167-a446-4a06-ae85-80d14dffd5a0 (landed in archived lane 167's folder lane-167-29fed5, on its own branch claude/lane-185-774389) | PR #190, merging | - |
+
+- 185: #185 checks items take `(covers: ...)`; localcheck skips uncovered items. PR #190 merged 2026-11-04 00:29:23 UTC as b94212f. The relay checks line with covers is proposed in `reports/185.md`, for project.md on the user's yes.
