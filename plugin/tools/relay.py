@@ -182,8 +182,10 @@ waitchecks  waits for PR <N>'s first check, then watches its checks. Polls `gh p
         one does, there is no workflow file (CI outside Actions), or the lookup failed: *Checks
         not started*. A failed poll is retried at the next one. A watch still running after 20
         times the CI start wait (2 hours by default) is stopped and the table printed.
-        --push <sha> (the full sha) waits instead for the default branch's push runs for that
-        commit (`gh run list --event push --commit`, the branch from `gh repo view`): polled on
+        --push <sha> waits instead for the default branch's push runs for that commit (`gh run
+        list --event push --commit`, the branch from `gh repo view`); a sha of 7 to 39 hex
+        characters is first resolved to the full one (`gh api repos/<repo>/commits/<sha> --jq
+        .sha`), and the lines print that full sha as for a full one. The runs are polled on
         the same schedule until one appears, then every 30 s until each has completed, within
         the same 20 CI start waits (a failed lookup meanwhile waits for the next poll). Prints
         one line per run (workflow, conclusion, short sha, URL) and, under a failed one
@@ -217,17 +219,18 @@ waitchecks 0 when the checks passed (or CI does not cover the PR's paths), 1 whe
 3 when no check appeared, 4 when a lookup failed (the last poll's, or a watch that failed with
 no failed check behind it, a gh error say), 5 when the watch timed out; with --push, 0 when a
 push run passed and none failed, 1 when one did (even past the bound), 3 when none appeared or
-decided, 4 when the last
-poll's lookup failed with none seen, 5 when one still ran past the bound; merge 0 when every
-key merged (a failed `gh pr merge` whose PR reads MERGED counts) and the last merge commit's
-push run passed, 1 when it stopped (a key not ready, or a fetch, lookup, merge state or `gh pr
-merge` that failed, after its one retry for a 5xx or `Merge already in progress`), and after
-every key merged: 6 when that push run failed, 3 when none appeared or decided, 5 when the
-wait timed out, 4 when the merge commit or its push run lookup failed;
+decided, 4 when the short sha's lookup failed, or the last poll's with none seen, 5 when one
+still ran past the bound; merge 0 when every key merged (a failed `gh pr merge` whose PR
+reads MERGED counts) and the last merge commit's push run passed, 1 when it stopped (a key
+not ready, or a fetch, lookup, merge state or `gh pr merge` that failed, after its one retry
+for a 5xx or `Merge already in progress`), and after every key merged: 6 when that push run
+failed, 3 when none appeared or decided, 5 when the wait timed out, 4 when the merge commit or
+its push run lookup failed;
 2 on a usage error (argparse's too, after which waitchecks and merge still print their hint;
 ready: a $RELAY_READY_SECONDS that is not a number of seconds; waitchecks: a CI start wait that
 is not a number of minutes, or a project.md that is not UTF-8, both or neither of <N> and
---push, or a --push that is not a full sha;
+--push, a --push that is not 7 to 40 hex characters, or a short one that matches no commit
+or more than one;
 merge: a CI start wait or project.md as for waitchecks (nothing merged), a key given twice, or
 a --checkout that is not a git checkout; localcheck: a project.md
 that is not UTF-8, or a checks line with more than one command, only a Windows override, or a
@@ -2036,6 +2039,23 @@ def failed_jobs(repo, run_id):
     return ", ".join(names) or "none reported"
 
 
+def full_sha(repo, sha):
+    """The full sha of commit <sha> on <repo>, a hex prefix of 7 to 40 characters (#196): as it
+    is when full, else through GitHub, so no checkout is needed. None when it matches no commit
+    or more than one (GitHub's HTTP 422 for both); RuntimeError when the lookup failed."""
+    if len(sha) == 40:
+        return sha
+    try:
+        full = gh_raw("api", f"repos/{repo}/commits/{sha}", "--jq", ".sha").strip()
+    except RuntimeError as e:
+        if "(HTTP 422)" in str(e):
+            return None
+        raise
+    if not (re.fullmatch(r"[0-9a-f]{40}", full) and full.startswith(sha)):
+        raise RuntimeError(f"gh api repos/{repo}/commits/{sha}: not the sha of a commit: {full}")
+    return full
+
+
 def cmd_waitchecks(a):
     records = pathlib.Path(a.records)
     if not records.is_dir():
@@ -2044,9 +2064,9 @@ def cmd_waitchecks(a):
     if (a.pr is None) == (a.push is None):
         print("give exactly one of a PR number and --push <sha>", file=sys.stderr)
         return 2
-    if a.push is not None and not re.fullmatch(r"[0-9a-f]{40}", a.push):
-        print(f"--push takes a full 40-character commit sha, not {a.push} (a short one matches "
-              "no run)", file=sys.stderr)
+    if a.push is not None and not re.fullmatch(r"[0-9a-fA-F]{7,40}", a.push):
+        print(f"--push takes a commit sha of 7 to 40 hex characters, not {a.push}",
+              file=sys.stderr)
         return 2
     try:
         schedule = ci_start_schedule(records)
@@ -2059,11 +2079,16 @@ def cmd_waitchecks(a):
         repo = a.repo or view["nameWithOwner"]
         if a.pr is None:
             base = view["defaultBranchRef"]["name"]
+            sha = full_sha(repo, a.push.lower())
     except LOOKUP_ERRORS as e:
         print(f"lookup failed: {e}", file=sys.stderr)
         return LOOKUP_FAILED
     if a.pr is None:
-        return wait_push_run(repo, base, a.push, schedule)
+        if sha is None:
+            print(f"--push {a.push} matches no commit on {repo}, or more than one: give more of "
+                  "the sha", file=sys.stderr)
+            return 2
+        return wait_push_run(repo, base, sha, schedule)
     return wait_checks(a.pr, repo, schedule)
 
 
@@ -2255,7 +2280,8 @@ def main(argv=None):
                        "--push: wait for the default branch's push run for a commit")
     w.add_argument("records")
     w.add_argument("pr", type=int, nargs="?")
-    w.add_argument("--push", metavar="SHA")
+    w.add_argument("--push", metavar="SHA", help="the commit: a sha of 7 to 40 hex characters, "
+                   "a short one resolved through GitHub")
     w.add_argument("--repo")
     g = sub.add_parser("merge", help="merge Ready to merge lanes one at a time, stopping on the first problem")
     g.add_argument("records")
