@@ -1533,7 +1533,7 @@ def ready_done(records, key, st, repo, checkout, out, deny, lookups=None, fetche
     the caller loaded once, None when they failed to load (the lane then waits; the caller
     reports why). `moved`: the lane is outside plan.md's Now table, so its kind is unknown; one
     never pushed, with no PR and a report, is taken as a run, audit or spare moved to
-    plan-history.md."""
+    plan-history.md; one whose PR merged gets no PR body check (#207)."""
     branch, head = st["branch"], st["head"]
     pushed_of = lookups.pushed if lookups else (lambda b: pushed_head(checkout, b))
     prs_of = lookups.prs if lookups else branch_prs
@@ -1551,6 +1551,12 @@ def ready_done(records, key, st, repo, checkout, out, deny, lookups=None, fetche
         out["Inconsistent"].append(f"{key}: status head {head} is not the pushed head "
                                    f"{pushed[:12] or '(branch not pushed)'}")
         return
+    if prs is None and moved:
+        prs = prs_of(repo, branch)
+    merged = next((p for p in prs or [] if p["state"].upper() == "MERGED"), None)
+    if moved and merged:  # after the merge, its body draft can no longer change anything (#207)
+        out["Merged"].append(f"{key}: PR #{merged['number']}")
+        return
     if deny is None:
         out["Waiting"].append(f"{key}: deny-list check not run (see Records)")
         return
@@ -1559,7 +1565,7 @@ def ready_done(records, key, st, repo, checkout, out, deny, lookups=None, fetche
         out["Inconsistent"].append(f"{key}: {problem}")
     if prs is None:
         prs = prs_of(repo, branch)
-    merged = next((p for p in prs if p["state"].upper() == "MERGED"), None)
+        merged = next((p for p in prs if p["state"].upper() == "MERGED"), None)
     if merged:
         out["Merged"].append(f"{key}: PR #{merged['number']}")
         return
