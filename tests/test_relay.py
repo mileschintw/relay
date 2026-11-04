@@ -786,6 +786,29 @@ class ReadyTests(Base):
         self.gh({"prs": {"lane-12": [{"number": 5, "state": "CLOSED", "headRefOid": head}]}})
         self.assertIn("  12: done", self.ready())
 
+    def test_merged_lane_outside_now_gets_no_pr_body_check(self):
+        """#207: a merged lane moved out of Now whose draft has no `Closes` line (a `Part of`
+        PR) is not Inconsistent; in Now, or with its PR not merged, it is still checked."""
+        empty_now = "# Plan\n\n## Now\n\n| Key | Issues |\n|---|---|\n"
+        (self.records / "plan.md").write_text(empty_now)
+        (self.records / "briefs" / "12.md").write_text("Depends on: none\n- **Closes:** #12\n")
+        head = self.branch("lane-12")
+        self.done("12", "lane-12", head, body="Part of #12\n\nBody.\n")
+        self.gh({"prs": {"lane-12": [{"number": 5, "state": "MERGED", "headRefOid": head}]}})
+        out = self.ready()
+        self.assertNotIn("Inconsistent:", out)
+        self.assertNotIn("  12: ", out)
+        self.assertIn("  (1 merged lane not in plan.md's Now table left out)", out)
+        (self.records / "plan.md").write_text(empty_now + "| 12 | #12 |\n")  # in Now: checked
+        out = self.ready()
+        self.assertIn("12: PR body has no `Closes #12` line", out)
+        self.assertIn("Merged:\n  12: PR #5", out)
+        (self.records / "plan.md").write_text(empty_now)
+        self.gh({"prs": {"lane-12": [{"number": 5, "state": "OPEN", "headRefOid": head}]}})
+        self.assertIn("no `Closes #12` line", self.ready())  # outside Now, PR open: checked
+        self.gh({"prs": {}})
+        self.assertIn("no `Closes #12` line", self.ready())  # outside Now, no PR: checked
+
     def test_now_keys_reads_the_first_column(self):
         plan = self.records / "plan.md"
         plan.write_text("# Plan\n\n## Now\n\n| Key | Issues |\n|---|---|\n| `12` | #12 |\n"
