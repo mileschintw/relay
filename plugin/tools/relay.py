@@ -101,13 +101,15 @@ ready   read-only. Prints what the coordinator can do next, the Plan warning and
             per records file (plan.md, plan-history.md, briefs/*.md, reports/*.md,
             status/*.md) with a line matching the deny list, by line numbers, never the name.
           - Plan: a warning when plan.md is larger than --plan-limit bytes (default 16384, 16 KB).
-          - Default branch: one line per workflow whose latest completed push run on the default
+          - Default branch: one line per workflow whose latest decided push run on the default
             branch (origin/HEAD of --checkout, else of the current folder) failed (`failure`,
-            `timed_out` or `startup_failure`; never `cancelled` or `skipped`): the workflow, the
-            conclusion, the short sha and the run URL (no failed jobs: `gh run list` has none),
-            plus `(a newer run is in progress)` when one is. From one `gh run list --event push`
-            call per `ready`, reading the latest 100 push runs, so a workflow with no completed
-            run among them is not checked. A failed lookup, or no origin/HEAD to name the default
+            `timed_out` or `startup_failure`). A run decides when it completed as anything but
+            `cancelled` or `skipped`: those are passed over, so they never hide an older failure,
+            and a newer success clears it. The line gives the workflow, the conclusion, the short
+            sha and the run URL (no failed jobs: `gh run list` has none), plus `(a newer run is in
+            progress)` when one is and `(newer runs cancelled or skipped)` when one was. From one
+            `gh run list --event push` call per `ready`, reading the latest 100 push runs, so a
+            workflow with no deciding run among them is not checked. A failed lookup, or no origin/HEAD to name the default
             branch, is one `push run lookup failed` line. All green, or no push runs: no section.
             Report only: it changes no lane's section and not the exit code.
           - relay.py: a warning when the git checkout holding project.md's `relay.py:` path
@@ -944,11 +946,12 @@ def now_problems(plan):
     return out
 
 
-# A push run conclusion `ready` reports under Default branch; `cancelled` and `skipped` are not
-# failures.
+# A push run conclusion `ready` reports under Default branch. `cancelled` and `skipped` are
+# neither failure nor success: `ready` passes over them, so they never hide an older failure.
 PUSH_RUN_FAILED = ("failure", "timed_out", "startup_failure")
+PUSH_RUN_PASSED_OVER = ("cancelled", "skipped")
 PUSH_RUN_LIMIT = 100  # the push runs `ready` reads, newest first: enough to reach each workflow's
-# latest completed one
+# latest decided one
 
 
 # The coordinator's next step for each kind of `ready` line, printed as `  hint:` lines after the
@@ -1361,9 +1364,10 @@ def ready_parents(repo, out):
 
 
 def ready_push_runs(repo, checkout, out):
-    """One line under Default branch per workflow whose latest completed push run on the default
-    branch (of <checkout>, else the current folder) failed, saying so when a newer run of it is
-    in progress; a failed lookup is one line there. One `gh run list` call."""
+    """One line under Default branch per workflow whose latest decided push run on the default
+    branch (of <checkout>, else the current folder) failed: the newest completed run that is not
+    cancelled or skipped. The line says so when a newer run of it is in progress, or was cancelled
+    or skipped; a failed lookup is one line there. One `gh run list` call."""
     code, base, _ = run(["git", "symbolic-ref", "--short", "refs/remotes/origin/HEAD"], cwd=checkout)
     if code:  # default_branch's origin/main guess would read a red master as green
         out["Default branch"].append("push run lookup failed: no origin/HEAD names the default "
@@ -1378,7 +1382,7 @@ def ready_push_runs(repo, checkout, out):
     except LOOKUP_ERRORS as e:
         out["Default branch"].append(f"push run lookup failed: {e}")
         return
-    decided, running = set(), set()
+    decided, running, passed_over = set(), set(), set()
     for r in runs:  # newest first
         name = r.get("workflowName") or "(unnamed workflow)"
         if name in decided:
@@ -1386,12 +1390,17 @@ def ready_push_runs(repo, checkout, out):
         if r.get("status") != "completed":
             running.add(name)
             continue
+        if r.get("conclusion") in PUSH_RUN_PASSED_OVER:
+            passed_over.add(name)
+            continue
         decided.add(name)
         if r.get("conclusion") in PUSH_RUN_FAILED:
             line = (f"{name}: push run {r['conclusion']} at {(r.get('headSha') or '?')[:8]}: "
                     f"{r.get('url')}")
             if name in running:
                 line += " (a newer run is in progress)"
+            if name in passed_over:
+                line += " (newer runs cancelled or skipped)"
             out["Default branch"].append(line)
 
 
