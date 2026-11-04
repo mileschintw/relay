@@ -44,7 +44,7 @@ none
 
 ## Waiting for the user's decision
 
-none (owner notes #145, C126 and W33 done 2026-11-03 → `plan-history.md`)
+- #210 (`relay.py retire`): keep or close under the slimming rule; the user asked whether repeated Windows script failures count as recurring. Since 2026-11-03.
 
 
 
