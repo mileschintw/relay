@@ -2037,6 +2037,24 @@ class PushWaitTests(Base):
                                     self.run_(name="lint", id_=8)])
         self.assertEqual(code, 0, err)
 
+    def test_only_a_success_passes(self):
+        """#216: runs that end with no failure and no success (neutral, action_required) pass
+        nothing."""
+        for conclusion in ("neutral", "action_required"):
+            code, out, err = self.wait([self.run_(conclusion=conclusion),
+                                        self.run_(conclusion=conclusion, name="lint", id_=8)])
+            self.assertEqual(code, 3, (conclusion, err))
+            self.assertIn("no push run on main for aaaaaaaa passed", out)
+        code, out, err = self.wait([self.run_(conclusion="skipped"),
+                                    self.run_(conclusion="neutral", name="lint", id_=8)])
+        self.assertEqual(code, 3, err)
+        code, out, err = self.wait([self.run_(conclusion="skipped"),
+                                    self.run_(name="lint", id_=8)])
+        self.assertEqual(code, 0, err)
+        code, out, err = self.wait([self.run_(conclusion="neutral"),
+                                    self.run_(conclusion="failure", name="lint", id_=8)])
+        self.assertEqual(code, 1, err)
+
     def test_failed_lookups_retry_and_a_failed_last_poll_is_its_own_exit(self):
         code, out, err = self.wait(broken=["--commit"])
         self.assertEqual(code, 4, err)

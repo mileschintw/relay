@@ -227,12 +227,12 @@ waitchecks 0 when the checks passed (or CI does not cover the PR's paths), 1 whe
 3 when no check appeared, 4 when a lookup failed (the last poll's, or a watch that failed with
 no failed check behind it, a gh error say), 5 when the watch timed out; with --push, 0 when a
 push run passed and none failed, 1 when one did (even past the bound), 3 when none appeared or
-decided, 4 when the short sha's lookup failed, or the last poll's with none seen, 5 when one
+none passed, 4 when the short sha's lookup failed, or the last poll's with none seen, 5 when one
 still ran past the bound; merge 0 when every key merged (a failed `gh pr merge` whose PR
 reads MERGED counts) and the last merge commit's push run passed, 1 when it stopped (a key
 not ready, or a fetch, lookup, merge state or `gh pr merge` that failed, after its one retry
 for a 5xx or `Merge already in progress`), and after every key merged: 6 when that push run
-failed, 3 when none appeared or decided or no workflow runs on push, 5 when the wait timed
+failed, 3 when none appeared or none passed or no workflow runs on push, 5 when the wait timed
 out, 4 when the merge commit or its push run lookup failed;
 2 on a usage error (argparse's too, after which waitchecks and merge still print their hint;
 ready: a $RELAY_READY_SECONDS that is not a number of seconds; waitchecks: a CI start wait that
@@ -1031,6 +1031,7 @@ def now_problems(plan):
 # neither failure nor success: `ready` passes over them, so they never hide an older failure.
 PUSH_RUN_FAILED = ("failure", "timed_out", "startup_failure")
 PUSH_RUN_PASSED_OVER = ("cancelled", "skipped")
+PUSH_RUN_PASSED = ("success",)  # wait_push_run passes only when a run ended in one (#216)
 PUSH_RUN_LIMIT = 100  # the push runs `ready` reads, newest first: enough to reach each workflow's
 # latest decided one
 
@@ -1143,8 +1144,8 @@ EXIT_HINTS = {
            "what follows; for a release, do not release (`docs/releasing.md` step 2)",
         2: "a usage error: fix what its error line names and rerun",
         3: "no push run decided for that commit: when none appeared, check it is on the default "
-           "branch and give the user the line; when each was cancelled or skipped, rerun one "
-           "(`gh run rerun <id>`) and wait again",
+           "branch and give the user the line; when none passed (each was cancelled, skipped or "
+           "ended with no success), rerun one (`gh run rerun <id>`) and wait again",
         4: "a lookup failed or an unexpected error: rerun it once; if it exits 4 again, give the "
            "user its line",
         5: "the push run watch timed out: rerun it once; if it exits 5 again, give the user its "
@@ -1160,8 +1161,8 @@ EXIT_HINTS = {
            "the user that line. Tell the user which lanes merged and where it stopped",
         2: "a usage error, nothing merged: fix what its error line names and rerun",
         3: "every key merged, but no workflow runs on push, or for the last merge commit no push "
-           "run appeared, or each was cancelled or skipped: tell the user which lanes merged and "
-           "give them that line",
+           "run appeared, or none passed: tell the user which lanes merged and give them that "
+           "line",
         4: "an unexpected error, which may come after some merges; exit 4: do not rerun; give "
            "the user its line, and run `ready` to see which lanes merged. When a line says every "
            "key merged and the push run is not checked, run the `waitchecks <records> --push` it "
@@ -2036,12 +2037,12 @@ def wait_push_run(repo, base, sha, schedule):
     """Wait for the push runs on <base> for commit <sha>: polled at each time in schedule (seconds
     from now) until one appears, then every PUSH_RUN_POLL seconds until each has completed, for
     at most WATCH_FACTOR times the last poll's time. Prints one line per run, and each failed
-    run's failed jobs. Returns 0 when one passed and none failed (`cancelled` and `skipped`
-    decide nothing, as in `ready`), 1 when one failed (PUSH_RUN_FAILED), NO_CHECKS when none
-    appeared by the last poll or none decided, LOOKUP_FAILED when the last poll's lookup failed
-    with none seen, WATCH_TIMED_OUT when one still runs past the cap and none failed. Once runs
-    have appeared, a failed or empty lookup keeps the last runs seen and waits for the next
-    poll."""
+    run's failed jobs. Returns 0 when one passed (`success`) and none failed (`cancelled` and
+    `skipped` decide nothing, as in `ready`), 1 when one failed (PUSH_RUN_FAILED), NO_CHECKS
+    when none appeared by the last poll or none passed, LOOKUP_FAILED when the last poll's
+    lookup failed with none seen, WATCH_TIMED_OUT when one still runs past the cap and none
+    failed. Once runs have appeared, a failed or empty lookup keeps the last runs seen and waits
+    for the next poll."""
     start, runs, error = time.monotonic(), [], None
     for i, at in enumerate(schedule, 1):
         time.sleep(max(0, at - (time.monotonic() - start)))
@@ -2087,6 +2088,9 @@ def wait_push_run(repo, base, sha, schedule):
         return 1
     if all(r.get("conclusion") in PUSH_RUN_PASSED_OVER for r in runs):
         print(f"no push run on {base} for {sha[:8]} decided: each was cancelled or skipped")
+        return NO_CHECKS
+    if not any(r.get("conclusion") in PUSH_RUN_PASSED for r in runs):
+        print(f"no push run on {base} for {sha[:8]} passed: none ended in success")
         return NO_CHECKS
     return 0
 
