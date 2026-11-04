@@ -134,7 +134,7 @@ elif a[0] == "api" and a[1].endswith("/commits/HEAD/status"):
     print(json.dumps({"total_count": data.get("head_statuses", 0)}))
 elif a[0] == "api" and a[1].endswith("/commits/HEAD/check-runs"):
     print(json.dumps({"total_count": data.get("head_check_runs", 0)}))
-elif a[0] == "api" and a[1].split("/")[-2] == "commits":
+elif a[0] == "api" and "/commits/" in a[1]:
     sha = a[1].split("/")[-1]
     if sha not in data.get("commits", {}):
         sys.exit(f"gh: No commit found for SHA: {sha} (HTTP 422)")

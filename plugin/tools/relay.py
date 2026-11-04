@@ -2085,8 +2085,8 @@ def cmd_waitchecks(a):
         return LOOKUP_FAILED
     if a.pr is None:
         if sha is None:
-            print(f"--push {a.push} matches no commit on {repo}, or more than one: give more of "
-                  "the sha", file=sys.stderr)
+            print(f"--push {a.push} matches no commit on {repo} (not pushed?), or more than "
+                  "one: give more of the sha", file=sys.stderr)
             return 2
         return wait_push_run(repo, base, sha, schedule)
     return wait_checks(a.pr, repo, schedule)

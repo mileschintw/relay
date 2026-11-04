@@ -1888,14 +1888,19 @@ class PushWaitTests(Base):
         # large repo, and one matching nothing, get the same `No commit found for SHA`)
         code, out, err = self.wait([self.run_()], arg="bbbbbbb")
         self.assertEqual(code, 2, err)
-        self.assertIn("--push bbbbbbb matches no commit on o/r, or more than one: give more of "
-                      "the sha", err)
+        self.assertIn("--push bbbbbbb matches no commit on o/r (not pushed?), or more than one: "
+                      "give more of the sha", err)
         self.assertIn("hint (exit 2): a usage error", out)
         self.assertEqual(self.polls, [])  # no push run looked for
         # any other failed lookup is a lookup failure, as the rest of waitchecks
         code, out, err = self.wait([self.run_()], arg="bbbbbbb", broken=["/commits/"])
         self.assertEqual(code, 4, err)
         self.assertIn("lookup failed: ", err)
+        self.assertEqual(self.polls, [])
+        # so is an answer that is not the full sha of that prefix
+        code, out, err = self.wait([self.run_()], arg="bbbbbbb", commits={"bbbbbbb": self.SHA})
+        self.assertEqual(code, 4, err)
+        self.assertIn("not the sha of a commit: " + self.SHA, err)
         self.assertEqual(self.polls, [])
 
     def test_merge_waits_for_the_last_merge_commits_push_run(self):
