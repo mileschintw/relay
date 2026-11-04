@@ -223,8 +223,7 @@ key merged (a failed `gh pr merge` whose PR reads MERGED counts) and the last me
 push run passed, 1 when it stopped (a key not ready, or a fetch, lookup, merge state or `gh pr
 merge` that failed, after its one retry for a 5xx or `Merge already in progress`), and after
 every key merged: 6 when that push run failed, 3 when none appeared or decided, 5 when the
-wait timed
-out, 4 when the merge commit or its push run lookup failed;
+wait timed out, 4 when the merge commit or its push run lookup failed;
 2 on a usage error (argparse's too, after which waitchecks and merge still print their hint;
 ready: a $RELAY_READY_SECONDS that is not a number of seconds; waitchecks: a CI start wait that
 is not a number of minutes, or a project.md that is not UTF-8, both or neither of <N> and
