@@ -4,8 +4,8 @@ Current state only. Done work moves to `plan-history.md` with a one-line pointer
 
 ## Handover
 
-- **Coordinator:** title Relay coordination, worktree D:/Repos/relay/.claude/worktrees/lane-114-30073e, id local_f0eb7091-3f4b-4994-afb1-091422a00e8b, mode normal. Back in 2026-11-03 15:57 -0800 after writing itself out at 15:46 -0800 (release 0.3.5 and close-out → `plan-history.md`, "Round 2026-11-03 and 0.3.5"). Its worktree is on branch release-0.3.5 (merged into main, clean). `relay.py` is `project.md`'s line (main checkout, at `b2bee65`).
-- **Next:** round 181–187 all merged; no open issue. Close-out question asked: archive the seven worker sessions. Also asked: add `(covers: plugin/tools/**, plugin/skills/setup/templates/**, tests/**, .github/workflows/**)` to the test item on project.md's Checks before done line (#185's "a docs-only lane runs only validate"; proposed in `reports/185.md`). Owner steps: upload `docs/social-preview/social-preview.png` in Settings › General › Social preview.
+- **Coordinator:** none. The last one (title Relay coordination, worktree D:/Repos/relay/.claude/worktrees/lane-114-30073e, id local_f0eb7091-3f4b-4994-afb1-091422a00e8b) wrote itself out 2026-11-03 18:35 -0800 after round 181–187 and its close-out; the next coordinator runs `/relay:coordinate`.
+- **Next:** no open issue. Changes since 0.3.5 (#181–#187) are unreleased; release on the user's word. Owner steps: upload `docs/social-preview/social-preview.png` in Settings › General › Social preview.
 - **Alarm:** `project.md`'s `Alarm: 10` (the user's 10 minutes, 2026-10-31 01:51 「可以就這樣改」, moved there when #82 merged); waiting on CI relies on the background `waitchecks` ending, not the alarm.
 - **Merge right:** none (the 2026-11-03 16:06 -0800 round's, lanes 181–187, moved to `plan-history.md` once all seven merged).
 - **Unattended log:** none.

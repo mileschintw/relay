@@ -389,3 +389,7 @@ Ended: all five lanes merged 2026-11-03.
 
 - 181: #181 merge waits for the default branch's push run and exits 6 on red; `waitchecks --push <sha>`; coordinate skill, unattended.md and docs/releasing.md step 2 updated. PR #194 merged 2026-11-04 01:31:28 UTC as d9af2ab.
 - Round merge right, ended when all seven lanes merged: **Merge right:** 2026-11-03 16:06 -0800, lanes 181, 182, 183, 184, 185, 186, 187. Question: "這一輪是 #181–#187 七條。#182–#187 現在並行啟動，#181 先停車，等 #183 合併後再 GO。這一輪的每一條都開 PR 並在 CI 通過後合併嗎？"; picked "開 PR，CI 通過後合併 (Recommended)". (The 2026-11-03 14:19 -0800 round's right → `plan-history.md`.)
+
+## Close-out of round 181–187
+
+- 2026-11-03 18:35 -0800: on the user's picked "Do both": project.md's Checks before done test item gained `(covers: plugin/tools/**, plugin/skills/setup/templates/**, tests/**, .github/workflows/**)` (#185; verified with `check_items`); the seven worker sessions (181–187) archived after their scratchpads were copied to `snapshot/181`, `183`–`186` (182 and 187 had none). Main push run 41754640979 on d9af2ab passed. Coordinator wrote itself out; previous field: **Coordinator:** title Relay coordination, worktree D:/Repos/relay/.claude/worktrees/lane-114-30073e, id local_f0eb7091-3f4b-4994-afb1-091422a00e8b, mode normal. Back in 2026-11-03 15:57 -0800 after writing itself out at 15:46 -0800 (release 0.3.5 and close-out → `plan-history.md`, "Round 2026-11-03 and 0.3.5"). Its worktree is on branch release-0.3.5 (merged into main, clean). `relay.py` is `project.md`'s line (main checkout, at `b2bee65`).
