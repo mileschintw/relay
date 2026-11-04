@@ -4,7 +4,7 @@ Current state only. Done work moves to `plan-history.md` with a one-line pointer
 
 ## Handover
 
-- **Coordinator:** none. The last one (title Relay coordination, worktree D:/Repos/relay/.claude/worktrees/lane-114-30073e, id local_f0eb7091-3f4b-4994-afb1-091422a00e8b) wrote itself out 2026-11-03 18:35 -0800 after round 181–187 and its close-out; the next coordinator runs `/relay:coordinate`.
+- **Coordinator:** title Relay coordination, worktree D:/Repos/relay/.claude/worktrees/lane-114-30073e, id local_f0eb7091-3f4b-4994-afb1-091422a00e8b, back 2026-11-03 19:56 -0800 on the user's `/relay:coordinate` for round 195–196. Mode: normal.
 - **Next:** #195 and #196 open (from the round 181–187 retrospective, opened on the user's word 2026-11-03), both can start now. Changes since 0.3.5 (#181–#187) are unreleased; release on the user's word. Owner steps: upload `docs/social-preview/social-preview.png` in Settings › General › Social preview.
 - **Alarm:** `project.md`'s `Alarm: 10` (the user's 10 minutes, 2026-10-31 01:51 「可以就這樣改」, moved there when #82 merged); waiting on CI relies on the background `waitchecks` ending, not the alarm.
 - **Merge right:** none (the 2026-11-03 16:06 -0800 round's, lanes 181–187, moved to `plan-history.md` once all seven merged).
