@@ -17,14 +17,14 @@ When your start message says you are parked (a spare reads and runs its status a
 
 ## Workflow
 
-1. **Branch.** `git fetch`. Keep the branch the app created for your worktree and run `git reset --hard origin/<default>` (it holds no commit yet); in a worktree with no branch, `git switch --no-track -c lane-<key> origin/<default>`. Push with `git push -u origin HEAD`. Recheck each thing the issues want against that commit. Run `project.md`'s checks once here. A check already failing on the default branch: if the fix is small and in no other lane's files, give it its own commit; if not, block (*Status*). Then `relay.py status <records> <key> --state working --doing "<one line>"`.
+1. **Branch.** `git fetch`. Keep the branch the app created for your worktree and run `git reset --hard origin/<default>` (it holds no commit yet); in a worktree with no branch, `git switch --no-track -c lane-<key> origin/<default>`. Push with `git push -u origin HEAD`. Recheck each thing the issues want against that commit. Run `project.md`'s checks once here, every item, whatever its covers list. A check already failing on the default branch: if the fix is small and in no other lane's files, give it its own commit; if not, block (*Status*). Then `relay.py status <records> <key> --state working --doing "<one line>"`.
 2. **Build.** Test-first where the code allows (`mattpocock-skills:tdd`; the brief's lane tests are the agreed seams, so ask only about a seam beyond them); `mattpocock-skills:writing-for-agents` before editing any repo file an agent reads (skills, `AGENTS.md`, `CLAUDE.md`, prompts). Commit and push as often as the work needs.
    - **Catching up** (a conflict, or another lane's work you need): `git fetch`, `git merge origin/<default>`, resolve, rerun what the conflict touched, `git push`. Never rebase or force-push unless the user says so.
    - Before anything on `project.md`'s ask-first list, stop and ask the user with the exact scope (when the brief says the user is away, block instead: *Status*); undo what you created afterwards.
 3. **Review until no blocker.** `relay.py status <records> <key> --state review --doing "<one line>"`. Run `mattpocock-skills:code-review` with `origin/<default>` as the fixed point and the issues on the *Closes* line plus your brief as the spec (it needs neither from the user; a parent spec those issues link to is context, not spec), plus a `mattpocock-skills:writing-for-agents` review of changed agent-facing text. Fix blockers; list everything else as notes and leave them.
    - **Each later round** reviews only the commits since the head the last round reviewed (that head as the fixed point, the last round's blockers as the spec). Still blockers after three rounds: block (*Status*).
    - A finding outside the lane's scope is no blocker: handle it as *Status* says.
-4. **Checks.** Run `project.md`'s checks and the brief's lane tests; keep commands and output for the report. A skipped test counts as not run: name it in the report. A check `project.md` marks "main checkout only": don't run it here; name it in the report with its command, for the user to run before the merge. A failure: fix it, then back to step 3.
+4. **Checks.** Run `project.md`'s checks and the brief's lane tests; keep commands and output for the report. A skipped test counts as not run: name it in the report. A check `project.md` marks "main checkout only": don't run it here; name it in the report with its command, for the user to run before the merge. A check with a `(covers: <path>, ...)` list is not needed when `git diff --name-only origin/<default>...HEAD` lists no path it covers (a glob, `*` crossing `/`; a folder; a file): don't run it, and name it in the report as "not needed: no covered path changed"; it counts as passing. A failure: fix it, then back to step 3.
 5. **PR body draft** at `<records>/pr-bodies/<key>.md`, in the `mattpocock-skills:pr` skill's shape, plus:
    - one `Closes #N` line per issue on the brief's *Closes* line, each alone on its line; anywhere else, related issues are `Refs #N` (no fix/close/resolve before a `#N`); no name from the deny list `project.md` names, if it names one (`ready` reports hits by line);
    - no title line (the coordinator passes the issue title separately);
@@ -32,7 +32,7 @@ When your start message says you are parked (a spare reads and runs its status a
 6. **Finish.** `git fetch`. If `origin/<default>` moved in a way that touches your files or the brief's *Before and after* line: *Catching up*, then rerun steps 3 and 4 for what changed. Write the report (*Report*). Check every clause of **Done when**; once all hold, run `relay.py status <records> <key> --state done --doing "<one line>"`. The coordinator opens the PR from that head. After `done`, the branch changes only when the coordinator asks for a fix: *Catching up*, rerun steps 3 and 4 for what changed, then `relay.py status <records> <key> --state done --doing "<one line>"` again.
 7. End your turn on a two-line summary naming the report file (background commands: *Status*, **Background runs**).
 
-**Done when:** everything each issue on the *Closes* line wants is built, or listed in the report as no longer holding; `project.md`'s checks and the lane tests pass on the pushed head, except "main checkout only" ones named in the report; the last review found no blocker; the PR body draft and the report are written. The status file then says `done` with that head.
+**Done when:** everything each issue on the *Closes* line wants is built, or listed in the report as no longer holding; `project.md`'s checks and the lane tests pass on the pushed head, except "main checkout only" ones and ones not needed, each named in the report; the last review found no blocker; the PR body draft and the report are written. The status file then says `done` with that head.
 
 ## Status
 
@@ -52,7 +52,7 @@ Run `relay.py status` from your lane's worktree (it reads the branch and head th
 - issue items that no longer hold;
 - what changed, per file;
 - under its own heading, any fix to a check already failing on the default branch;
-- checks and lane tests, with their output, and any not run (skipped, or main checkout only, with its command);
+- checks and lane tests, with their output, and any not run (skipped, or main checkout only, with its command) or not needed;
 - how each conflict was resolved;
 - review findings and how each was handled;
 - issues opened;

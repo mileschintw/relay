@@ -155,8 +155,12 @@ localcheck  the checks CI would run, for when it cannot (billing, quota). In --c
         worktree, even when a check fails. Commands are the backticked items of the line, split on
         `;`, one per item (an item with two, or with only a `(Windows: `...`)`, is a usage error);
         `(Windows: `...`)` replaces an item's command on Windows; items marked "main checkout
-        only" are listed as not run. Prints the head and base shas and each command's output;
-        --comment <N> also posts that output on PR <N>.
+        only" are listed as not run. `(covers: <path>, ...)` in an item names the paths it
+        covers (globs, `*` crossing `/`; folders; files): when the lane's diff against the
+        default branch (`git diff <base>...<head>`) touches none, it is listed as not needed
+        (no covered path changed) and not run; an item with no list always runs. Prints the
+        head and base shas and each command's output; --comment <N> also posts that output on
+        PR <N>.
 
 waitchecks  waits for PR <N>'s first check, then watches its checks. Polls `gh pr view <N> --json
         statusCheckRollup` now and at 1, 3 and 6 minutes; project.md's `CI start wait: <minutes>`
@@ -200,8 +204,8 @@ that failed);
 ready: a $RELAY_READY_SECONDS that is not a number of seconds; waitchecks: a CI start wait that
 is not a number of minutes, or a project.md that is not UTF-8;
 merge: a key given twice, or a --checkout that is not a git checkout; localcheck: a project.md
-that is not UTF-8, or a checks line with more than one command, or only a Windows override, in
-one item) or a missing records folder (status too: it creates only status/ inside it).
+that is not UTF-8, or a checks line with more than one command, only a Windows override, or a
+covers list with no path or a second one, in one item) or a missing records folder (status too: it creates only status/ inside it).
 waitchecks and merge: an error not named above (a bug, say) exits 4 with one line, never 1;
 output the console cannot encode is replaced, not fatal; a last `hint (exit <code>):` line on
 stdout gives the coordinator's next step for that exit (EXIT_HINTS).
@@ -210,6 +214,7 @@ Standard library only, Python 3.10+.
 """
 import argparse
 import datetime
+import fnmatch
 import json
 import os
 import pathlib
@@ -1652,12 +1657,14 @@ def parse_coordinator(value):
     return {"worktree": m.group(1), "mode": m.group(2)} if m else None
 
 
-def check_commands(line, windows=None):
-    """(commands, skipped) from a project.md checks line: `;`-separated items, each command in
-    backticks. A `(Windows: `...`)` in an item, before or after its command, replaces that command
-    on Windows; an item marked "main checkout only" is skipped. ValueError, naming the line, when
-    an item holds more than one command outside its Windows override (never run only the first),
-    or only an override (no command for other systems)."""
+def check_items(line, windows=None):
+    """[(command, main checkout only, covered paths or None)] from a project.md checks line:
+    `;`-separated items, each command in backticks. A `(Windows: `...`)` in an item, before or
+    after its command, replaces that command on Windows; a `(covers: <path>, ...)` lists the paths
+    the item covers (separated by `,`, backticks optional; see `covered`); an item marked "main
+    checkout only" is flagged. ValueError, naming the line, when an item holds more than one command outside its
+    Windows override (never run only the first), only an override (no command for other
+    systems), or a covers list with no path or a second one."""
     windows = os.name == "nt" if windows is None else windows
     items, cur, tick = [], "", False
     for ch in line:
@@ -1668,8 +1675,20 @@ def check_commands(line, windows=None):
         else:
             cur += ch
     items.append(cur)
-    commands, skipped = [], []
+    result = []
     for item in items:
+        covs = list(re.finditer(r"\(covers:([^)]*)\)", item))
+        covers = None
+        if len(covs) > 1:
+            raise ValueError(f"project.md's checks line has two `(covers: ...)` lists in one item "
+                             f"(one per item, paths separated by `,`): {line.strip()}")
+        if covs:
+            cov = covs[0]
+            covers = [p.strip() for p in cov.group(1).replace("`", "").split(",") if p.strip()]
+            if not covers:
+                raise ValueError(f"project.md's checks line has a `(covers: ...)` with no path: "
+                                 f"{line.strip()}")
+            item = item[:cov.start()] + item[cov.end():]
         win = re.search(r"\(Windows:\s*`([^`]+)`", item)
         spans = re.findall(r"`([^`]+)`", item[:win.start()] + item[win.end():] if win else item)
         if not spans and not win:
@@ -1682,8 +1701,27 @@ def check_commands(line, windows=None):
             raise ValueError(f"project.md's checks line has an item with only a Windows override "
                              f"(write the command, then `(Windows: `...`)`): {line.strip()}")
         cmd = win.group(1) if win and windows else spans[0]
-        (skipped if "main checkout only" in item else commands).append(cmd)
-    return commands, skipped
+        result.append((cmd, "main checkout only" in item, covers))
+    return result
+
+
+def check_commands(line, windows=None):
+    """(commands, skipped) from a project.md checks line (`check_items`), ignoring covers lists:
+    skipped are the items marked "main checkout only"."""
+    items = check_items(line, windows)
+    return [c for c, main, _ in items if not main], [c for c, main, _ in items if main]
+
+
+def covered(patterns, paths):
+    """True when a changed path matches one of an item's covered patterns: an fnmatch glob (`*`
+    crosses `/`, so `plugin/tools/**` is everything under it), a folder (`tests` or `tests/`), or
+    a file."""
+    for path in paths:
+        for pat in patterns:
+            folder = pat.rstrip("/") + "/"
+            if fnmatch.fnmatchcase(path, pat) or path == pat or path.startswith(folder):
+                return True
+    return False
 
 
 def cmd_localcheck(a):
@@ -1697,11 +1735,11 @@ def cmd_localcheck(a):
         if line is None:
             return fail(f"{records / 'project.md'} has no `- **Local checks:**` line and no "
                         "`- **Checks before done:**` line: add the command that runs the checks")
-        commands, skipped = check_commands(line)
+        items = check_items(line)
     except ValueError as e:
         print(e, file=sys.stderr)
         return 2
-    if not commands:
+    if not any(not main for _, main, _ in items):
         return fail(f"no backticked command on project.md's checks line: {line}")
     status = records / "status" / f"{a.key}.md"
     try:
@@ -1721,6 +1759,17 @@ def cmd_localcheck(a):
     lines = [f"relay localcheck, lane {a.key}: {branch}", f"head {head}", f"base {base} ({default})"]
     if not head.startswith(st.get("head", "")):
         lines.append(f"warning: the status head {st.get('head')} is not this head")
+    code, out, _ = run(["git", "diff", "--name-only", "-z", "--no-renames", f"{base}...{head}"],
+                       cwd=checkout)  # -z: paths unquoted, so a non-ASCII path still matches
+    changed = [p for p in out.split("\0") if p] if code == 0 else None
+    if changed is None and any(cov for _, _, cov in items):
+        lines.append("warning: could not list the lane's changed paths; every item runs")
+    commands, skipped, not_needed = [], [], []
+    for cmd, main, cov in items:
+        if changed is not None and cov is not None and not covered(cov, changed):
+            not_needed.append(cmd)
+        else:
+            (skipped if main else commands).append(cmd)
     env = longpaths_env()
     wt = tempfile.mkdtemp(prefix="relay-lc-")
     ok = False
@@ -1741,8 +1790,11 @@ def cmd_localcheck(a):
                 lines += ["", f"$ {cmd}", (p.stdout + p.stderr).rstrip(),
                           "passed" if p.returncode == 0 else f"failed (exit {p.returncode})"]
                 ok = ok and p.returncode == 0
+        lines += [f"not needed (no covered path changed): {c}" for c in not_needed]
         lines += [f"not run (main checkout only): {c}" for c in skipped]
         result = "passed" if ok else "failed"
+        if ok and not_needed:
+            result += f", {len(not_needed)} not needed"
         if ok and skipped:
             result += f", {len(skipped)} not run: run them in the main checkout before the merge"
         lines += ["", f"result: {result}"]

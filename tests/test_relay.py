@@ -949,6 +949,66 @@ class LocalcheckTests(Base):
         self.assertIn("`npm run lint`", err)
         self.assertNotIn("$ ", out)
 
+    def test_items_parse_with_and_without_a_path_list(self):
+        line = ("`a` (Windows: `w`) (covers: src/**, `tests/**`); `b`; "
+                "(covers: docs) `c` main checkout only")
+        self.assertEqual(relay.check_items(line, windows=False),
+                         [("a", False, ["src/**", "tests/**"]), ("b", False, None),
+                          ("c", True, ["docs"])])
+        self.assertEqual(relay.check_items(line, windows=True)[0], ("w", False, ["src/**", "tests/**"]))
+        self.assertEqual(relay.check_commands(line, windows=False), (["a", "b"], ["c"]))
+        with self.assertRaisesRegex(ValueError, "no path") as e:
+            relay.check_items("`a` (covers: )", windows=False)
+        self.assertIn("`a` (covers: )", str(e.exception))
+        with self.assertRaisesRegex(ValueError, "two `\\(covers: ...\\)` lists"):
+            relay.check_items("`a` (covers: src) (covers: `docs`)", windows=False)
+        self.assertEqual(relay.check_items("`a` (covers: my docs/**, b)", windows=False),
+                         [("a", False, ["my docs/**", "b"])])
+
+    def test_covered_matches_globs_folders_and_files(self):
+        self.assertTrue(relay.covered(["plugin/tools/**"], ["README.md", "plugin/tools/relay.py"]))
+        self.assertTrue(relay.covered(["tests"], ["tests/test_relay.py"]))
+        self.assertTrue(relay.covered(["tests/"], ["tests/test_relay.py"]))
+        self.assertTrue(relay.covered(["README.md"], ["README.md"]))
+        self.assertFalse(relay.covered(["plugin/tools/**", "tests"], ["README.md", "testsuite.txt"]))
+        self.assertFalse(relay.covered(["src/**"], []))
+
+    def test_skips_an_item_when_no_covered_path_changed(self):
+        self.lane()  # the lane changes b.txt; main changes a.txt, which is not the lane's diff
+        self.project(f"- **Local checks:** {self.py('print(11)')} (covers: src/**, a.txt); "
+                     f"{self.py('print(22)')} (covers: b.txt); {self.py('print(33)')}\n")
+        code, out, err = self.localcheck()
+        self.assertEqual(code, 0, out + err)
+        self.assertIn("not needed (no covered path changed): ", out)
+        self.assertIn("print(11)", out.split("not needed")[1])
+        self.assertNotIn("\n11\n", out)
+        self.assertIn("22", out)
+        self.assertIn("33", out)
+        self.assertIn("result: passed, 1 not needed", out)
+
+    def test_a_non_ascii_changed_path_still_matches(self):
+        self.lane()
+        git("switch", "-q", "lane-12", cwd=self.clone)
+        (self.clone / "src").mkdir()
+        (self.clone / "src" / "café.txt").write_text("c\n")
+        git("add", "src", cwd=self.clone)
+        git("commit", "-qm", "non-ascii", cwd=self.clone)
+        git("push", "-q", "origin", "lane-12", cwd=self.clone)
+        git("switch", "-q", "main", cwd=self.clone)
+        self.project(f"- **Local checks:** {self.py('print(44)')} (covers: src/*.txt)\n")
+        code, out, err = self.localcheck()
+        self.assertEqual(code, 0, out + err)
+        self.assertIn("\n44\n", out)
+        self.assertNotIn("not needed", out)
+
+    def test_every_item_not_needed_passes(self):
+        self.lane()
+        self.project(f"- **Local checks:** {self.py('print(11)')} (covers: src/**)\n")
+        code, out, err = self.localcheck()
+        self.assertEqual(code, 0, out + err)
+        self.assertNotIn("$ ", out)
+        self.assertIn("result: passed, 1 not needed", out)
+
 
 class WaitchecksTests(Base):
     """waitchecks polls PR #5 for its first check on a front-loaded schedule, with time faked."""
