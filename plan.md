@@ -4,8 +4,8 @@ Current state only. Done work moves to `plan-history.md` with a one-line pointer
 
 ## Handover
 
-- **Coordinator:** title Relay coordination (new account), worktree D:/Repos/relay/.claude/worktrees/lane-102-f7b67c, id local_8a7be3a6-0661-424b-88cc-713e4a6cca01, mode normal. Took over 2026-11-03 21:45 -0800 on the user's `/relay:coordinate` after switching accounts; the previous coordinator (local_f0eb7091-3f4b-4994-afb1-091422a00e8b, lane-114-30073e) lost access right after merging #197 and #198, before step 6.
-- **Next:** 0.3.6 released 2026-11-04 00:43 -0800 (→ `plan-history.md`, "Release 0.3.6"). No open issues; nothing to start. Close-out (archive the round's worker sessions) on the user's word.
+- **Coordinator:** none. (Last one wrote itself out 2026-11-04 00:46 -0800 after release 0.3.6 and close-out → `plan-history.md`.)
+- **Next:** 0.3.6 released and closed out 2026-11-04 00:46 -0800. No open issues; nothing to start. The next coordinator starts with `/relay:coordinate`.
 - **Alarm:** `project.md`'s `Alarm: 10` (the user's 10 minutes, 2026-10-31 01:51 「可以就這樣改」, moved there when #82 merged); waiting on CI relies on the background `waitchecks` ending, not the alarm.
 - **Merge right:** none. (Lane 216's is in `plan-history.md`.)
 - **Unattended log:** none.
