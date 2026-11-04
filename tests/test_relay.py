@@ -2220,7 +2220,7 @@ class PushRunTests(Base):
             self.gh({"runs": [self.push_run("tests", conclusion)]})
             self.assertIn(f"tests: push run {conclusion} at abcdef12", self.ready())
 
-    def test_only_each_workflows_latest_completed_run_decides(self):
+    def test_only_each_workflows_latest_decided_run_counts(self):
         self.gh({"runs": [self.push_run("tests", "success", n=2), self.push_run("tests", "failure")]})
         self.assertNotIn("Default branch", self.ready())
         self.gh({"runs": [self.push_run("lint", "success", n=3), self.push_run("tests", "failure", n=2),
@@ -2232,13 +2232,29 @@ class PushRunTests(Base):
 
     def test_cancelled_skipped_and_in_progress_runs(self):
         for conclusion in ("cancelled", "skipped"):
-            self.gh({"runs": [self.push_run("tests", conclusion), self.push_run("tests", "failure")]})
-            self.assertNotIn("Default branch", self.ready(), conclusion)
+            self.gh({"runs": [self.push_run("tests", conclusion, n=2), self.push_run("tests", "failure")]})
+            self.assertIn("  tests: push run failure at abcdef12: https://github.com/o/r/actions/runs/1"
+                          " (newer runs cancelled or skipped)\n", self.ready(), conclusion)
         self.gh({"runs": [self.push_run("tests", "", status="in_progress")]})
         self.assertNotIn("Default branch", self.ready())
         self.gh({"runs": [self.push_run("tests", "", status="queued", n=2),
                           self.push_run("tests", "failure")]})
         self.assertIn("runs/1 (a newer run is in progress)", self.ready())
+
+    def test_a_failure_then_cancelled_or_skipped_runs_still_shows(self):
+        self.gh({"runs": [self.push_run("tests", "skipped", n=3), self.push_run("tests", "cancelled", n=2),
+                          self.push_run("tests", "failure")]})
+        self.assertIn("tests: push run failure at abcdef12: https://github.com/o/r/actions/runs/1 "
+                      "(newer runs cancelled or skipped)", self.ready())
+
+    def test_a_success_after_a_failure_clears_it_past_cancelled_runs(self):
+        self.gh({"runs": [self.push_run("tests", "cancelled", n=3), self.push_run("tests", "success", n=2),
+                          self.push_run("tests", "failure")]})
+        self.assertNotIn("Default branch", self.ready())
+
+    def test_only_cancelled_or_skipped_runs_print_nothing(self):
+        self.gh({"runs": [self.push_run("tests", "cancelled", n=2), self.push_run("tests", "skipped")]})
+        self.assertNotIn("Default branch", self.ready())
 
     def test_all_green_or_no_runs_prints_no_section(self):
         for runs in ([], [self.push_run("tests", "success"), self.push_run("lint", "success")]):
