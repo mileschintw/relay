@@ -397,3 +397,14 @@ Ended: all five lanes merged 2026-11-03.
 ## Roadmap note, round 181–187
 
 Filled 2026-11-03 from `relay.py roadmap` (retrospective issues). Mechanical overlaps (different sections, parallel): relay.py (181 report_push_run/cmd_merge, 182 ready_push_runs, 183 merge_lane, 185 check_commands/localcheck, 187 roadmap argparse); tests/test_relay.py (each lane its own tests; 186 owns `Base` and the `git` helper, 182 and 186 different PushRunTests methods); tests/fake_gh.py (181, 183); coordinate/SKILL.md (181 Finishing a lane › Merge, 187 First turn).
+
+## Round 195–196
+
+| 195 | #195 | local_fca49d50-7f32-4d95-8554-ea6adc8981a7 (landed in archived lane 134's folder D:/Repos/relay/.claude/worktrees/lane-134-eb4fc2, on its own branch claude/lane-195-582e1a) | done, PR #197 open, waiting on CI | |
+| 196 | #196 | local_a527b888-8def-4411-942a-1902e0507e5b (D:/Repos/relay/.claude/worktrees/new-session-208f95, branch claude/lane-196-cdf218) | done, PR #198 open, waiting on CI | |
+
+- 196: #196 `waitchecks --push` accepts a 7–40 character sha and expands it through GitHub (exit 2 on none or ambiguous); docs/releasing.md step 2's full-sha note dropped. PR #198 merged 2026-11-04 04:23:20 UTC; main push run 41772899189 on 6b3771d passed.
+- 195: #195 workers push with `git push origin HEAD`; `relay.py status` refuses review/done when origin's branch is not at that head. Held after CI for the worker's two choices (no check for run/audit/spare lanes; review/done fails rather than warns when offline); the user kept both 2026-11-03 (picked "Keep as is"). PR #197 merged 2026-11-04 04:25:20 UTC; main push run 41773107785 on b988bda passed.
+- Round merge right, ended when both lanes merged: **Merge right:** 2026-11-03 19:57 -0800, lanes 195, 196: asked "這一輪每條 lane 都「開 PR，CI 通過後合併」嗎？", picked 「開 PR，CI 通過後合併 (Recommended)」.
+- Roadmap note: filled 2026-11-03 from the round 181–187 retrospective. Mechanical overlaps (parallel): relay.py (195 `cmd_status`, 196 `cmd_waitchecks`); tests/test_relay.py (each its own tests).
+- 2026-11-03 21:45 -0800: the previous coordinator's account lost Claude Code access right after both merges; the new coordinator (new account, worktree lane-102-f7b67c) did step 6 from its transcript. Sessions 195, 196 and the previous coordinator are not visible to the new account, so they cannot be archived from here.
