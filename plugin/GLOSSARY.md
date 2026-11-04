@@ -100,7 +100,7 @@ The coordinator's background `sleep` that wakes it to read `status/` while a wor
 When no lane is left to run or start: the coordinator hands control back and, on the user's yes, archives finished sessions, gives temporary rulings an end condition and writes itself out of Handover (`coordinate/close-out.md`).
 
 **Push run**
-The CI run the default branch gets for each commit pushed to it, a merge commit included. What a PR's checks do not cover shows up here first.
+The CI run the default branch gets for each commit pushed to it, a merge commit included. What a PR's checks do not cover shows up here first. `relay.py merge` waits for the one on its last merge commit; `waitchecks --push` waits for any commit's.
 
 **CI fallback**
 The path a lane on "merge once CI passes" takes when its CI cannot run or no check appears (`coordinate/ci-fallbacks.md`).
