@@ -168,7 +168,9 @@ localcheck  the checks CI would run, for when it cannot (billing, quota). In --c
         default branch (`git diff <base>...<head>`) touches none, it is listed as not needed
         (no covered path changed) and not run; an item with no list always runs. Prints the
         head and base shas and each command's output; --comment <N> also posts that output on
-        PR <N>.
+        PR <N>. The fetch and the lookup of the lane's pushed head each run with git's prompts
+        off and fail with the step named past 120 s; a fetch that fails otherwise (offline, say)
+        is not fatal.
 
 waitchecks  waits for PR <N>'s first check, then watches its checks. Polls `gh pr view <N> --json
         statusCheckRollup` now and at 1, 3 and 6 minutes; project.md's `CI start wait: <minutes>`
@@ -276,6 +278,7 @@ TIMED_OUT = 124  # run's exit code for a command killed, or never started, past 
 deadline = None  # the time.monotonic() ready's lookups must end by; None outside ready
 timed_out = []  # the commands run killed or skipped past `deadline`, in order
 STATUS_LOOKUP_SECONDS = 30  # status's origin lookup, which no `deadline` bounds (#200)
+LOCALCHECK_GIT_SECONDS = 120  # localcheck's fetch, then its origin lookup, each (#211)
 
 
 def run(cmd, cwd=None, timeout=None, env=None):
@@ -1861,8 +1864,14 @@ def cmd_localcheck(a):
     branch = st.get("branch", "none")
     if branch == "none":
         return fail(f"lane {a.key} has no branch in {status}")
-    run(["git", "fetch", "-q", "origin"], cwd=checkout)
-    head = pushed_head(checkout, branch)
+    code, _, err = run(["git", "fetch", "-q", "origin"], cwd=checkout,
+                       timeout=LOCALCHECK_GIT_SECONDS, env=no_prompt_env())
+    if code == TIMED_OUT:  # any other failure (offline, say) leaves the lookup below to judge
+        return fail(f"git fetch origin: {err.strip()}")
+    try:
+        head = pushed_head(checkout, branch, LOCALCHECK_GIT_SECONDS)
+    except RuntimeError as e:
+        return fail(f"could not look up {branch} on origin: {e}")
     if not head:
         return fail(f"branch {branch} is not pushed")
     default = default_branch(checkout)

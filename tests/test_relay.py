@@ -1047,6 +1047,52 @@ class LocalcheckTests(Base):
         self.assertIn("7", out)
         self.assertEqual(len(self.worktrees()), 1)
 
+    def hung_origin(self, fail_first):
+        """Points origin at an ssh command that records GIT_TERMINAL_PROMPT and hangs; with
+        <fail_first>, its first call (the fetch) fails at once instead. Returns the record."""
+        seen = self.tmp / "prompt.txt"
+        hang = self.tmp / "hang.py"
+        hang.write_text("import os, sys, time\n"
+                        "if '-G' in sys.argv: sys.exit(0)\n"  # git's ssh variant probe
+                        "first = not os.path.exists(sys.argv[1])\n"
+                        "open(sys.argv[1], 'a').write(os.environ.get('GIT_TERMINAL_PROMPT', '') + ' ')\n"
+                        f"if first and {fail_first}: sys.exit(1)\n"
+                        "time.sleep(20)\n")
+        git("remote", "set-url", "origin", "ssh://git@example.invalid/r.git", cwd=self.clone)
+        ssh = f'"{pathlib.Path(sys.executable).as_posix()}" "{hang.as_posix()}" "{seen.as_posix()}"'
+        return seen, mock.patch.dict(os.environ, {"GIT_SSH_COMMAND": ssh})
+
+    def test_a_hung_fetch_times_out_naming_the_step(self):
+        """#211: a fetch that never answers fails localcheck past its timeout, and git runs it
+        with prompts off."""
+        self.lane()
+        self.project(f"- **Local checks:** {self.py('print(5)')}\n")
+        seen, env = self.hung_origin(fail_first=False)
+        start = time.monotonic()
+        with env, mock.patch.object(relay, "LOCALCHECK_GIT_SECONDS", 2):
+            code, out, err = self.localcheck()
+        self.assertLess(time.monotonic() - start, 15)
+        self.assertEqual(code, 1)
+        self.assertIn("git fetch origin: timed out after 2 s", err)
+        self.assertEqual(seen.read_text(), "0 ")
+        self.assertEqual(len(self.worktrees()), 1)
+
+    def test_a_hung_lookup_times_out_naming_the_step(self):
+        """#211: past a fetch that fails at once (as offline, still not fatal), an ls-remote that
+        never answers fails localcheck past its timeout, with prompts off."""
+        self.lane()
+        self.project(f"- **Local checks:** {self.py('print(5)')}\n")
+        seen, env = self.hung_origin(fail_first=True)
+        start = time.monotonic()
+        with env, mock.patch.object(relay, "LOCALCHECK_GIT_SECONDS", 2):
+            code, out, err = self.localcheck()
+        self.assertLess(time.monotonic() - start, 15)
+        self.assertEqual(code, 1)
+        self.assertIn("could not look up lane-12 on origin: git ls-remote origin lane-12: "
+                      "timed out after 2 s", err)
+        self.assertEqual(seen.read_text(), "0 0 ")
+        self.assertEqual(len(self.worktrees()), 1)
+
     def test_comment_posts_the_output(self):
         head, _ = self.lane()
         self.project(f"- **Local checks:** {self.py('print(5)')}\n")
