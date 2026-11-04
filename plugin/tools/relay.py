@@ -1871,7 +1871,7 @@ def cmd_localcheck(a):
     try:
         head = pushed_head(checkout, branch, LOCALCHECK_GIT_SECONDS)
     except RuntimeError as e:
-        return fail(f"could not look up {branch} on origin: {e}")
+        return fail(f"could not check the head on origin: {e}")
     if not head:
         return fail(f"branch {branch} is not pushed")
     default = default_branch(checkout)

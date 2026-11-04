@@ -1088,7 +1088,7 @@ class LocalcheckTests(Base):
             code, out, err = self.localcheck()
         self.assertLess(time.monotonic() - start, 15)
         self.assertEqual(code, 1)
-        self.assertIn("could not look up lane-12 on origin: git ls-remote origin lane-12: "
+        self.assertIn("could not check the head on origin: git ls-remote origin lane-12: "
                       "timed out after 2 s", err)
         self.assertEqual(seen.read_text(), "0 0 ")
         self.assertEqual(len(self.worktrees()), 1)
