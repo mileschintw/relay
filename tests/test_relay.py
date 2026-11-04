@@ -30,12 +30,15 @@ GIT_CONFIG = """[user]
 
 
 def setUpModule():
-    home = pathlib.Path(tempfile.mkdtemp())
-    (home / "gitconfig").write_text(GIT_CONFIG, encoding="utf-8")
-    env = mock.patch.dict(os.environ, {"GIT_CONFIG_GLOBAL": str(home / "gitconfig"),
-                                       "GIT_CONFIG_NOSYSTEM": "1"})
-    env.start()
-    unittest.addModuleCleanup(env.stop)
+    config = pathlib.Path(tempfile.mkdtemp()) / "gitconfig"
+    config.write_text(GIT_CONFIG, encoding="utf-8")
+    env_patch = mock.patch.dict(os.environ, {"GIT_CONFIG_GLOBAL": str(config),
+                                             "GIT_CONFIG_NOSYSTEM": "1"})
+    env_patch.start()
+    unittest.addModuleCleanup(env_patch.stop)
+    # config passed in by the caller's environment would also reach every git
+    for name in ("GIT_CONFIG_COUNT", "GIT_CONFIG_PARAMETERS"):
+        os.environ.pop(name, None)
 
 
 def git(*args, cwd):
