@@ -20,7 +20,7 @@ none (ruling 2, no new features during the slimming, ended when #112 closed 2026
 | Key | Issues | Session | State | Parked until |
 |---|---|---|---|---|
 | 181 | #181 | local_8005a435-95f2-40f0-9abe-3f4f3571afaa (lane-181-cd73ca) | parked | GO #181, after #183 merges |
-| 182 | #182 | local_168e63e5-3c82-486c-a4b1-d753c4cfd522 (landed in archived lane 174's folder lane-174-8eea7d, on its own branch claude/lane-182-5e2dc3) | done; asked to push 61ac25c (origin still b2bee65) | - |
+| 182 | #182 | local_168e63e5-3c82-486c-a4b1-d753c4cfd522 (landed in archived lane 174's folder lane-174-8eea7d, on its own branch claude/lane-182-5e2dc3) | PR #191, waiting on CI | - |
 | 183 | #183 | local_2a6b47ac-2cc2-4551-a840-147a1cb22f1f (landed in archived lane 173's folder lane-173-14b5e0, on its own branch claude/lane-183-a56c9c) | review | - |
 | 185 | #185 | local_69ad8167-a446-4a06-ae85-80d14dffd5a0 (landed in archived lane 167's folder lane-167-29fed5, on its own branch claude/lane-185-774389) | PR #190, waiting on CI | - |
 | 186 | #186 | local_99f384a6-3a3c-481f-8e45-8ed4341fa4fd (landed in archived lane 133's folder lane-133-1fd07d, on its own branch claude/lane-186-ba2e15) | review | - |
