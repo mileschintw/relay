@@ -1405,6 +1405,62 @@ class MergeTests(Base):
         self.assertIn("12: gh pr merge 5 failed: ", err)
         self.assertIn("Head branch was modified", err)
 
+    def views(self, *states):
+        """PR #5's `pr view` answers in turn: the merge state check, then one per state."""
+        pr, head = self.heads["12"]
+        base = {"headRefOid": head, "mergeStateStatus": "CLEAN", "baseRefName": "main",
+                "mergedAt": "2026-10-31T07:00:00Z", "mergeCommit": {"oid": "m5" * 8}}
+        return {"5": [{**base, "state": "OPEN"}] + [{**base, "state": s} for s in states],
+                "6": {**base, "headRefOid": self.heads["13"][1], "state": "OPEN"}}
+
+    def test_failed_merge_whose_pr_merged_counts_as_merged(self):
+        sleeps = []
+        code, out, err = self.merge("12", "13", sleep=sleeps.append, pr_view=self.views("MERGED"),
+                                    merge_fail={"5": "GraphQL: Something went wrong"})
+        self.assertEqual(code, 0, err)
+        self.assertEqual(len(self.merges()), 2)
+        self.assertIn("12: merged PR #5 at 2026-10-31T07:00:00Z", out)
+        self.assertNotIn("12: ", err)
+        self.assertEqual([s for s in sleeps if s], list(relay.RUN_WAITS[1:]))
+
+    def test_502_then_in_progress_then_merged_within_the_bound(self):
+        sleeps = []
+        polls = len(relay.MERGE_POLLS)
+        code, out, err = self.merge(
+            "12", "13", sleep=sleeps.append,
+            pr_view=self.views(*["OPEN"] * (polls + 2), "MERGED"),
+            merge_fail={"5": ["HTTP 502: Bad Gateway (https://api.github.com/graphql)",
+                              "GraphQL: Merge already in progress (mergePullRequest)"]})
+        self.assertEqual(code, 0, err)
+        head = self.heads["12"][1]
+        self.assertEqual(self.merges()[:2],
+                         [f"pr merge 5 --repo o/r --merge --match-head-commit {head}"] * 2)
+        self.assertEqual(len(self.merges()), 3)
+        self.assertIn("12: merged PR #5 at 2026-10-31T07:00:00Z", out)
+        merge_sleeps = [s for s in sleeps if s][:-len(relay.RUN_WAITS[1:])]
+        self.assertEqual(merge_sleeps, list(relay.MERGE_POLLS) + list(relay.MERGE_POLLS[:1]))
+
+    def test_502_then_a_retry_that_merges(self):
+        code, out, err = self.merge("12", pr_view=self.views(*["OPEN"] * 20),
+                                    merge_fail={"5": ["HTTP 502: Bad Gateway", None]})
+        self.assertEqual(code, 0, err)
+        self.assertEqual(len(self.merges()), 2)
+        self.assertIn("12: merged PR #5 at 2026-10-31T07:00:00Z", out)
+
+    def test_persistent_failure_stops_after_one_retry_naming_the_last_error(self):
+        sleeps = []
+        code, out, err = self.merge(
+            "12", "13", sleep=sleeps.append, pr_view=self.views(*["OPEN"] * 20),
+            merge_fail={"5": ["HTTP 502: Bad Gateway", "GraphQL: Merge already in progress"]})
+        self.assertEqual(code, 1)
+        self.assertEqual(len(self.merges()), 2)
+        line = [l for l in err.splitlines() if l.startswith("12: ")]
+        self.assertEqual(len(line), 1, err)
+        self.assertIn("gh pr merge 5 failed", line[0])
+        self.assertIn("Merge already in progress", line[0])
+        self.assertNotIn("502", line[0])
+        self.assertEqual([s for s in sleeps if s], list(relay.MERGE_POLLS) * 2)
+
 
 class SafeExitTests(Base):
     """waitchecks and merge exit by what CI and GitHub say, never by an error of their own; the

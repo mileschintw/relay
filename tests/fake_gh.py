@@ -27,7 +27,9 @@
  "pr_view": {"5": {"headRefOid": "<sha>", "mergeStateStatus": "CLEAN", "baseRefName": "main",
                    "mergedAt": "<time>", "mergeCommit": {"oid": "<sha>"}}},  # other `pr view 5`;
                                                   # a list answers per call, the last one repeated
- "merge_fail": {"5": "message"},                  # `pr merge 5` exits 1 with this message
+ "merge_fail": {"5": "message"},                  # `pr merge 5` exits 1 with this message; a
+                                                  # list answers per call (null: it merges), the
+                                                  # last one repeated
  "runs": [{"databaseId": 9, "status": "queued"}]} # `run list`'s answer, default [] (merge's
                                                   # push run, and ready's Default branch)
 prs: `pr list --head <branch>`'s answer; without --head, every PR with its headRefName, cut at
@@ -149,8 +151,12 @@ elif a[:2] == ["pr", "view"]:
         view = view[min(pr_views(a[2], rollup=False), len(view)) - 1]
     print(json.dumps(view))
 elif a[:2] == ["pr", "merge"]:
-    if a[2] in data.get("merge_fail", {}):
-        sys.exit(data["merge_fail"][a[2]])
+    fails = data.get("merge_fail", {}).get(a[2])
+    if isinstance(fails, list):
+        calls = open(os.environ["RELAY_FAKE_GH"] + ".calls", encoding="utf-8").read().splitlines()
+        fails = fails[min(sum(c.startswith(f"pr merge {a[2]} ") for c in calls), len(fails)) - 1]
+    if fails:
+        sys.exit(fails)
     print(f"merged pull request #{a[2]}")
 elif a[:2] == ["run", "list"]:
     print(json.dumps(data.get("runs", [])))
